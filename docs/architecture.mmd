@@ -1,0 +1,79 @@
+flowchart LR
+  subgraph Frontend
+    AdminUI["Admin UI (React)"]
+    AgentUI["Agent UI (React)"]
+    WebRTC["WebRTC Client (SIP.js/JsSIP)"]
+  end
+
+  AdminUI --> APIGW["API Gateway (NestJS)"]
+  AgentUI --> APIGW
+  AgentUI --> WebRTC
+
+  subgraph Backend
+    Auth["Auth Service"]
+    Users["User/Role Service"]
+    Leads["Lead/List Service"]
+    Dialer["Dialer Service"]
+    Compliance["Compliance Service"]
+    Analytics["Analytics Service"]
+    Integrations["Integration Service"]
+    Recording["Recording/QA Service"]
+  end
+
+  APIGW --> Auth
+  APIGW --> Users
+  APIGW --> Leads
+  APIGW --> Dialer
+  APIGW --> Compliance
+  APIGW --> Analytics
+  APIGW --> Integrations
+  APIGW --> Recording
+
+  Users --> DB[("Postgres")]
+  Leads --> DB
+  Dialer --> DB
+  Compliance --> DB
+  Analytics --> DB
+  Integrations --> DB
+  Recording --> DB
+
+  Dialer --> Redis[("Redis Queue")]
+  Dialer --> CallEngine["Call Engine (Asterisk/FreeSWITCH)"]
+  Dialer --> Compliance
+  WebRTC --> CallEngine
+  Dialer --> Storage[("S3/Storage")]
+  Recording --> Storage
+
+  subgraph ComplianceSystems["Compliance & Audit"]
+    DNC["DNC Registry"]
+    DNCAPI["DNC Scrub API"]
+    QuietHours["Quiet Hours Rules"]
+    Audit["Audit Logs"]
+  end
+
+  Compliance --> DNC
+  Compliance --> DNCAPI
+  Compliance --> QuietHours
+  Compliance --> Audit
+
+  subgraph IntegrationsLayer["Integrations"]
+    CRM["CRM (GoHighLevel/Custom)"]
+    SMS["SMS Provider"]
+    Webhooks["Webhook Dispatch"]
+    Zapier["Zapier"]
+  end
+
+  Integrations --> CRM
+  Integrations --> SMS
+  Integrations --> Webhooks
+  Integrations --> Zapier
+
+  subgraph QA["QA & Monitoring"]
+    Supervisor["Supervisor Listen/Whisper/Barge"]
+    Scorecards["Agent Scorecards"]
+    Playback["Call Playback"]
+  end
+
+  Recording --> Supervisor
+  Recording --> Scorecards
+  Recording --> Playback

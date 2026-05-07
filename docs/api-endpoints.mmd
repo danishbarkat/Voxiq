@@ -1,0 +1,15 @@
+flowchart LR
+  Client[Client Apps]
+  APIGW[API Gateway]
+
+  Client --> APIGW
+
+  APIGW --> Auth[Auth]
+  APIGW --> Users[Users]
+  APIGW --> Roles[Roles/Permissions]
+  APIGW --> Teams[Teams/Accounts]
+  APIGW --> Lists[Leads/Lists]
+  APIGW --> Campaigns[Campaigns]
+  APIGW --> Dialer[Dialer]
+  APIGW --> Compliance[Compliance]
+  APIGW --> Analytics[Analytics]

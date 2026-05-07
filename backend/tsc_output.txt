@@ -1,0 +1,15 @@
+src/dialer/dialer.service.ts(22,9): error TS1206: Decorators are not valid here.
+src/websocket/websocket.gateway.ts(32,6): error TS1240: Unable to resolve signature of property decorator when called as an expression.
+  Argument of type 'ClassFieldDecoratorContext<WebsocketGateway, Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>> & { ...; }' is not assignable to parameter of type 'string | symbol'.
+src/websocket/websocket.gateway.ts(89,5): error TS1241: Unable to resolve signature of method decorator when called as an expression.
+  The runtime will invoke the decorator with 2 arguments, but the decorator expects 3.
+src/websocket/websocket.gateway.ts(89,6): error TS1270: Decorator function return type 'void | TypedPropertyDescriptor<unknown>' is not assignable to type 'void | ((client: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, data: { agentId: string; }) => void)'.
+  Type 'TypedPropertyDescriptor<unknown>' is not assignable to type 'void | ((client: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, data: { agentId: string; }) => void)'.
+src/websocket/websocket.gateway.ts(91,9): error TS1206: Decorators are not valid here.
+src/websocket/websocket.gateway.ts(92,9): error TS1206: Decorators are not valid here.
+src/websocket/websocket.gateway.ts(118,5): error TS1241: Unable to resolve signature of method decorator when called as an expression.
+  The runtime will invoke the decorator with 2 arguments, but the decorator expects 3.
+src/websocket/websocket.gateway.ts(118,6): error TS1270: Decorator function return type 'void | TypedPropertyDescriptor<unknown>' is not assignable to type 'void | ((client: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, data: { agentId: string; status: "available" | ... 1 more ... | "paused"; }) => void)'.
+  Type 'TypedPropertyDescriptor<unknown>' is not assignable to type 'void | ((client: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, data: { agentId: string; status: "available" | ... 1 more ... | "paused"; }) => void)'.
+src/websocket/websocket.gateway.ts(120,9): error TS1206: Decorators are not valid here.
+src/websocket/websocket.gateway.ts(121,9): error TS1206: Decorators are not valid here.

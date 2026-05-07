@@ -1,0 +1,678 @@
+/**
+ * useSoftphone - Telnyx WebRTC browser softphone (v2.25.x)
+ */
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { TelnyxRTC } from '@telnyx/webrtc';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://dialer.rmessagesllc.com';
+const AUDIO_ELEMENT_ID = 'telnyx-remote-audio';
+
+// ── AudioContext unlock ───────────────────────────────────────────────────────
+// Browsers require a user gesture (click, keydown) to start audio.
+// We pre-emptively resume the AudioContext on the very first interaction so that
+// subsequent call audio (which fires inside SDK event handlers, not user gestures)
+// is already allowed by the browser.
+let _audioCtxUnlocked = false;
+function unlockAudioContext() {
+    if (_audioCtxUnlocked) return;
+    _audioCtxUnlocked = true;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+        ctx.resume().then(() => console.log('[Softphone] AudioContext unlocked ✅'));
+    }
+    // Also play a silent buffer to fully satisfy Safari's autoplay policy
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+}
+
+// Create and inject the hidden audio element into the DOM immediately
+// (must exist before TelnyxRTC constructor is called with remoteElement)
+function ensureAudioElement() {
+    if (!document.getElementById(AUDIO_ELEMENT_ID)) {
+        const el = document.createElement('audio');
+        el.id = AUDIO_ELEMENT_ID;
+        el.autoplay = true;
+        el.setAttribute('playsinline', '');
+        el.style.display = 'none';
+        document.body.appendChild(el);
+        console.log('[Softphone] Created DOM audio element #' + AUDIO_ELEMENT_ID);
+    }
+    return document.getElementById(AUDIO_ELEMENT_ID);
+}
+
+// Attach AudioContext unlock to first user gesture globally
+// NOTE: This is called inside the hook's useEffect, NOT at module level,
+// to avoid Vite bundler Temporal Dead Zone (TDZ) initialization crashes.
+function attachAudioUnlock() {
+    if (typeof window === 'undefined') return;
+    const _unlock = () => { unlockAudioContext(); };
+    window.addEventListener('click', _unlock, { once: true, capture: true });
+    window.addEventListener('keydown', _unlock, { once: true, capture: true });
+    window.addEventListener('touchstart', _unlock, { once: true, capture: true });
+}
+
+export const useSoftphone = (config) => {
+    const [callState, setCallState] = useState('disconnected');
+    const [registered, setRegistered] = useState(false);
+    const [lastError, setLastError] = useState(null);
+    const [callControlId, setCallControlId] = useState(null);
+    // callOutcome: tracks WHY a call ended — 'invalid' | 'no_answer' | 'answered' | null
+    const [callOutcome, setCallOutcome] = useState(null);
+
+    const clientRef = useRef(null);
+    const registeredRef = useRef(false);
+    const activeCallRef = useRef(null);
+    const activeCallLogIdRef = useRef(null);
+    const callControlIdRef = useRef(null);
+    const micStreamRef = useRef(null);
+    const recorderRef = useRef(null);
+    const recordingChunksRef = useRef([]);
+    const recordingContextRef = useRef(null);
+    const recordingDestinationRef = useRef(null);
+    const recordingSourcesRef = useRef([]);
+    const recordingUploadPromiseRef = useRef(Promise.resolve());
+    const recordingCallIdRef = useRef(null);
+    // Track which state the call reached before hangup
+    const callReachedRingingRef = useRef(false);
+    const callReachedActiveRef = useRef(false);
+    // Guard against hangup + destroy double-fire for the same call
+    const lastProcessedCallIdRef = useRef(null);
+    // Timestamp when registration completed — used to enforce a post-registration
+    // stabilization window before allowing calls (Telnyx WS session needs ~1-2s to fully initialize)
+    const registeredAtRef = useRef(0);
+
+    // Attach AudioContext unlock on first mount (safe: runs after React init)
+    useEffect(() => {
+        attachAudioUnlock();
+    }, []);
+
+    useEffect(() => { callControlIdRef.current = callControlId; }, [callControlId]);
+    useEffect(() => { registeredRef.current = registered; }, [registered]);
+
+    const cleanupRecordingGraph = useCallback(() => {
+        recordingSourcesRef.current.forEach((source) => {
+            try { source.disconnect(); } catch (_) { }
+        });
+        recordingSourcesRef.current = [];
+        if (recordingDestinationRef.current) {
+            try { recordingDestinationRef.current.disconnect?.(); } catch (_) { }
+        }
+        recordingDestinationRef.current = null;
+        if (recordingContextRef.current) {
+            try { recordingContextRef.current.close(); } catch (_) { }
+        }
+        recordingContextRef.current = null;
+    }, []);
+
+    const stopMicCapture = useCallback(() => {
+        if (micStreamRef.current) {
+            micStreamRef.current.getTracks().forEach((track) => {
+                try { track.stop(); } catch (_) { }
+            });
+            micStreamRef.current = null;
+        }
+    }, []);
+
+    const uploadCustomRecording = useCallback(async (blob, callLogId) => {
+        if (!callLogId || !blob || blob.size === 0) return;
+
+        const formData = new FormData();
+        formData.append('callLogId', callLogId);
+        formData.append('file', blob, `call-${callLogId}.webm`);
+
+        try {
+            const res = await fetch(`${API_BASE}/api/voip/custom-recording`, {
+                method: 'POST',
+                body: formData,
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || `Upload failed (${res.status})`);
+            }
+        } catch (err) {
+            console.error('[Softphone] Custom recording upload failed:', err);
+        }
+    }, []);
+
+    const stopCustomRecording = useCallback(() => {
+        const recorder = recorderRef.current;
+        if (!recorder) {
+            cleanupRecordingGraph();
+            stopMicCapture();
+            return recordingUploadPromiseRef.current;
+        }
+
+        if (recorder.state === 'inactive') {
+            recorderRef.current = null;
+            cleanupRecordingGraph();
+            stopMicCapture();
+            return recordingUploadPromiseRef.current;
+        }
+
+        recorder.stop();
+        recorderRef.current = null;
+        return recordingUploadPromiseRef.current;
+    }, [cleanupRecordingGraph, stopMicCapture]);
+
+    const startCustomRecording = useCallback((remoteStream, callId) => {
+        const localStream = micStreamRef.current;
+        const callLogId = activeCallLogIdRef.current;
+
+        if (!callId || !callLogId || !remoteStream || !localStream) return false;
+        if (recorderRef.current && recorderRef.current.state !== 'inactive') return true;
+        if (recordingCallIdRef.current === callId) return true;
+
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx || typeof MediaRecorder === 'undefined') return false;
+
+            const audioContext = new AudioCtx();
+            
+            // CRITICAL: Explicitly resume the context. Since this is NOT a direct user gesture,
+            // standard browser policy might keep it 'suspended'.
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => console.log('[Softphone] Custom recorder AudioContext resumed ✅'));
+            }
+
+            const destination = audioContext.createMediaStreamDestination();
+            const remoteSource = audioContext.createMediaStreamSource(remoteStream);
+            const localSource = audioContext.createMediaStreamSource(localStream);
+
+            remoteSource.connect(destination);
+            localSource.connect(destination);
+
+            const mimeType = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : (MediaRecorder.isTypeSupported?.('audio/webm') ? 'audio/webm' : '');
+            
+            console.log('[Softphone] Initializing MediaRecorder with mimeType:', mimeType || 'default');
+            
+            const recorder = mimeType
+                ? new MediaRecorder(destination.stream, { mimeType })
+                : new MediaRecorder(destination.stream);
+
+            recordingContextRef.current = audioContext;
+            recordingDestinationRef.current = destination;
+            recordingSourcesRef.current = [remoteSource, localSource];
+            recordingChunksRef.current = [];
+            recordingCallIdRef.current = callId;
+            recorderRef.current = recorder;
+
+            recorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordingChunksRef.current.push(event.data);
+                }
+            };
+
+            recorder.onerror = (err) => {
+                console.error('[Softphone] MediaRecorder error:', err);
+            };
+
+            recorder.onstop = () => {
+                console.log('[Softphone] Custom recorder stopped. Finalizing blob...');
+                const chunks = recordingChunksRef.current;
+                const blob = chunks.length > 0 ? new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }) : null;
+                recordingChunksRef.current = [];
+                recordingCallIdRef.current = null;
+
+                recordingUploadPromiseRef.current = (async () => {
+                    if (blob && blob.size > 0) {
+                        console.log(`[Softphone] Uploading recording (${Math.round(blob.size / 1024)} KB) for callLog: ${callLogId}`);
+                        await uploadCustomRecording(blob, callLogId);
+                    } else {
+                        console.warn('[Softphone] No audio data captured, skipping upload.');
+                    }
+                    cleanupRecordingGraph();
+                    stopMicCapture();
+                })();
+            };
+
+            recorder.start(1000);
+            console.log('[Softphone] Custom recorder started for callLog:', callLogId);
+            return true;
+        } catch (err) {
+            console.error('[Softphone] Failed to start custom recorder:', err);
+            cleanupRecordingGraph();
+            return false;
+        }
+    }, [cleanupRecordingGraph, stopMicCapture, uploadCustomRecording]);
+
+    const ensureRecordingStarted = useCallback((call, attempt = 0) => {
+        if (!call || recordingCallIdRef.current === call.id) return;
+
+        const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
+        const remoteStream = call.remoteStream || (audioEl?.srcObject instanceof MediaStream ? audioEl.srcObject : null);
+        if (remoteStream && startCustomRecording(remoteStream, call.id)) return;
+
+        if (attempt < 8) {
+            setTimeout(() => ensureRecordingStarted(call, attempt + 1), 300);
+        }
+    }, [startCustomRecording]);
+
+    // ── Init TelnyxRTC ───────────────────────────────────────────────────────
+    useEffect(() => {
+        const login = config?.login || config?.username;
+        const password = config?.password;
+        if (!login || !password) return;
+
+        // Ensure audio element exists in DOM BEFORE creating client
+        ensureAudioElement();
+        console.log('[Softphone] Connecting as:', login);
+
+        const client = new TelnyxRTC({
+            login,
+            password,
+            // Pass element ID so SDK auto-attaches remote audio stream
+            remoteElement: AUDIO_ELEMENT_ID,
+        });
+
+        client.on('telnyx.ready', () => {
+            console.log('[Softphone] ✅ Registered');
+            setRegistered(true);
+            registeredRef.current = true;
+            registeredAtRef.current = Date.now(); // Record when we registered
+        });
+
+        client.on('telnyx.error', (err) => {
+            console.error('[Softphone] ❌ Error:', err);
+            setRegistered(false);
+            registeredRef.current = false;
+        });
+
+        client.on('telnyx.notification', (notification) => {
+            const { call } = notification;
+            if (!call) return;
+
+            console.log(`[Softphone] ${notification.type} → ${call.state}`, {
+                remoteStream: call.remoteStream,
+                hasStream: !!(call.remoteStream),
+            });
+
+            if (notification.type !== 'callUpdate') return;
+
+            // notification.call.id is the Telnyx call_control_id
+            if (call.id && activeCallLogIdRef.current) {
+                const logId = activeCallLogIdRef.current;
+                const linkKey = `${call.id}:${logId}`;
+                // Only send update ONCE per unique (callId+logId) pair to prevent 500 from concurrent PATCH
+                if (!linkedControlIds.current.has(linkKey)) {
+                    linkedControlIds.current.add(linkKey);
+                    setCallControlId(call.id);
+                    callControlIdRef.current = call.id;
+                    console.log('[Softphone] Linking WebRTC call ID to CallLog:', call.id, logId);
+                    fetch(`${API_BASE}/api/dialer/call/log/${logId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ callControlId: call.id }),
+                    }).catch(err => console.error('[Softphone] Link failed:', err));
+                }
+            }
+
+            switch (call.state) {
+                case 'new': {
+                    // New call started — reset dedup guard so fresh call isn't
+                    // misidentified as a duplicate of the previous call
+                    lastProcessedCallIdRef.current = null;
+                    activeCallRef.current = call;
+                    isDialingRef.current = false; // Release mutex
+                    break;
+                }
+
+                case 'requesting':
+                    setCallState('connecting');
+                    break;
+
+                case 'trying':
+                case 'early':
+                    setCallState('ringing');
+                    callReachedRingingRef.current = true; // Call actually rang
+                    ensureRecordingStarted(call); // Start recording early — captures voicemail answers
+                    break;
+
+                case 'active': {
+                    setCallState('connected');
+                    setLastError(null);
+                    callReachedActiveRef.current = true; // Call was actually answered
+
+                    // Belt + suspenders: try to manually attach stream in case SDK didn't
+                    const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
+                    if (audioEl) {
+                        if (call.remoteStream) {
+                            console.log('[Softphone] Attaching remoteStream to audio element');
+                            audioEl.srcObject = call.remoteStream;
+                            audioEl.play()
+                                .then(() => console.log('[Softphone] Audio playing ✅'))
+                                .catch(e => console.error('[Softphone] Audio play error:', e));
+                        } else {
+                            // Try via internal peer connection as fallback
+                            console.warn('[Softphone] call.remoteStream is', call.remoteStream, '— trying via peer');
+                            try {
+                                const pc = call.peer?.instance || call.peer;
+                                if (pc) {
+                                    // Watch for tracks immediately and in the future
+                                    pc.ontrack = (ev) => {
+                                        if (ev.streams?.[0]) {
+                                            console.log('[Softphone] Got stream via ontrack');
+                                            audioEl.srcObject = ev.streams[0];
+                                            audioEl.play().catch(() => { });
+                                        }
+                                    };
+                                    // Existing tracks polling
+                                    const bindTracks = () => {
+                                        const receivers = pc.getReceivers?.() || [];
+                                        const tracks = receivers.map(r => r.track).filter(Boolean);
+                                        if (tracks.length && !audioEl.srcObject) {
+                                            const stream = new MediaStream(tracks);
+                                            console.log('[Softphone] Got stream via getReceivers');
+                                            audioEl.srcObject = stream;
+                                            audioEl.play().catch(() => { });
+                                        }
+                                    };
+                                    bindTracks();
+                                    setTimeout(bindTracks, 500);
+                                    setTimeout(bindTracks, 1000);
+                                    setTimeout(bindTracks, 2000);
+                                }
+                            } catch (e) {
+                                console.error('[Softphone] Peer fallback error:', e);
+                            }
+                        }
+                    }
+                    ensureRecordingStarted(call);
+                    break;
+                }
+
+                case 'hangup':
+                case 'destroy': {
+                    // ── Dedup guard ─────────────────────────────────────────
+                    // Both 'hangup' AND 'destroy' fire for the same call.
+                    // We only process the FIRST one; the second is ignored.
+                    if (call && call.id) {
+                        // Ignore events for OLD calls (force-hung-up before new dial)
+                        if (activeCallRef.current && activeCallRef.current.id !== call.id) {
+                            console.log(`[Softphone] Ignoring ${call.state} for old call ID: ${call.id}`);
+                            break;
+                        }
+                        // Ignore duplicate hangup/destroy for SAME call
+                        if (lastProcessedCallIdRef.current === call.id) {
+                            console.log(`[Softphone] Ignoring duplicate ${call.state} for already-processed call: ${call.id}`);
+                            break;
+                        }
+                        lastProcessedCallIdRef.current = call.id;
+                    }
+
+                    // Determine call outcome before resetting state
+                    const outcome = callReachedActiveRef.current
+                        ? 'answered'
+                        : callReachedRingingRef.current
+                            ? 'no_answer'
+                            : 'invalid';
+                    setCallOutcome(outcome);
+                    console.log(`[Softphone] Call ended — outcome: ${outcome}`);
+                    // Reset reach tracking for next call
+                    callReachedRingingRef.current = false;
+                    callReachedActiveRef.current = false;
+                    setCallState('disconnected');
+                    setLastError(null);
+                    stopCustomRecording();
+                    activeCallRef.current = null;
+                    activeCallLogIdRef.current = null;
+                    const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
+                    if (audioEl) audioEl.srcObject = null;
+                    break;
+                }
+                default:
+                    break;
+            }
+        });
+
+        client.connect();
+        clientRef.current = client;
+
+        return () => {
+            stopCustomRecording();
+            stopMicCapture();
+            try { client.disconnect(); } catch (_) { }
+            clientRef.current = null;
+            setRegistered(false);
+            registeredRef.current = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [config?.login, config?.username, config?.password, ensureRecordingStarted, stopCustomRecording, stopMicCapture]);
+
+    // ── makeCall ─────────────────────────────────────────────────────────────
+    const isDialingRef = useRef(false); // Mutex: prevent concurrent newCall() invocations
+    const linkedControlIds = useRef(new Set()); // Track already-linked controlIds to skip duplicate PATCH
+
+    const makeCall = useCallback(async (target, leadId, callLogId) => {
+        // ── AudioContext unlock ───────────────────────────────────────────────
+        // makeCall is always triggered by a user gesture (button click).
+        // IMPORTANT: Do NOT use 'await' here — browsers expire the user-gesture
+        // activation context after the first await in an async function. We must
+        // create + resume AudioContext synchronously to stay inside the gesture window.
+        try {
+            const warmCtx = new (window.AudioContext || window.webkitAudioContext)();
+            warmCtx.resume().then(() => warmCtx.close()).catch(() => { });
+        } catch (_) { /* ignore */ }
+
+        const digits = (target || '').replace(/\D/g, '');
+        if (digits.length < 7) {
+            setLastError('invalid_number');
+            setCallOutcome('invalid'); // Let auto-advance effect handle next lead
+            setCallState('failed');
+            return null;
+        }
+
+        // ── MUTEX GUARD ───────────────────────────────────────────────────────
+        // Prevent starting a new call while one is already being set up.
+        // This was causing multiple simultaneous WebRTC calls from rapid auto-dial.
+        if (isDialingRef.current) {
+            console.warn('[Softphone] makeCall blocked — already dialing. Ignoring duplicate request.');
+            return null;
+        }
+        isDialingRef.current = true;
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Force hangup any existing active call before starting a new one
+        if (activeCallRef.current) {
+            console.log('[Softphone] Force-hanging up existing active call before new dial');
+            try { activeCallRef.current.hangup(); } catch (_) { }
+            activeCallRef.current = null;
+            // Brief pause to let SDK clean up
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        // ── Post-registration stabilization cooldown ──────────────────────────
+        // The Telnyx WebSocket session needs ~1.5s after registration to fully
+        // stabilize. If we dial too quickly, the first call gets an immediate  
+        // SDK-level hangup with 'CALL DOES NOT EXIST' before even reaching ringing.
+        const msSinceRegistered = Date.now() - registeredAtRef.current;
+        if (msSinceRegistered < 2500) {
+            const waitMs = 2500 - msSinceRegistered;
+            console.log(`[Softphone] Waiting ${waitMs}ms for WebSocket stabilization before first call...`);
+            await new Promise(r => setTimeout(r, waitMs));
+        }
+        setLastError(null);
+        setCallState('connecting');
+        setCallOutcome(null); // ← CRITICAL: Reset outcome so previous call's result doesn't interfere
+        callReachedRingingRef.current = false;  // ← Reset for THIS call
+        callReachedActiveRef.current = false;   // ← Reset for THIS call
+        linkedControlIds.current.clear(); // Reset for each new call
+
+        if (callLogId) {
+            activeCallLogIdRef.current = callLogId;
+        }
+
+        if (clientRef.current && registeredRef.current) {
+            try {
+                // Force browser to request microphone right before dialing!
+                // This guarantees the mic is active and bypasses strict autoplay blocks for incoming audio.
+                try {
+                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                } catch (micErr) {
+                    console.error('[Softphone] Microphone access denied/failed:', micErr);
+                    alert('Error: Please allow microphone access in your browser to make WebRTC calls.');
+                    setLastError('error');
+                    setCallOutcome('invalid');
+                    setCallState('failed');
+                    stopMicCapture();
+                    isDialingRef.current = false;
+                    return null;
+                }
+
+                const to = digits.length === 10 ? '+1' + digits : '+' + digits;
+                const from = config?.callerNumber || '+12623990007';
+                const callerName = config?.callerName || '';
+                console.log('[Softphone] WebRTC newCall:', to, 'logId:', callLogId);
+                const call = clientRef.current.newCall({
+                    destinationNumber: to,
+                    callerNumber: from,
+                    callerName,
+                    clientState: callLogId,
+                    // Pass explicitly to SDK call options as well to force audio routing
+                    audio: true,
+                    video: false,
+                    remoteElement: AUDIO_ELEMENT_ID,
+                    localElement: 'telnyx-local-video', // Stub to avoid video routing bugs
+                });
+                activeCallRef.current = call;
+                setCallState('ringing');
+                isDialingRef.current = false; // Release mutex after call is set up
+                return { callId: null, callLogId: callLogId || null };
+            } catch (err) {
+                console.error('[Softphone] newCall error, falling back:', err);
+                stopMicCapture();
+                isDialingRef.current = false;
+            }
+        } else {
+            stopMicCapture();
+            isDialingRef.current = false;
+        }
+
+        console.log('[Softphone] WebRTC not available or failed, falling back to backend dial');
+        // Backend fallback (no browser audio)
+        try {
+            const res = await fetch(`${API_BASE}/api/dialer/call/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: digits,
+                    from: config?.callerNumber || '+12623990007',
+                    callerName: config?.callerName || '',
+                    leadId,
+                }),
+            });
+            if (!res.ok) {
+                setLastError('error');
+                setCallOutcome('invalid');
+                setCallState('failed');
+                stopMicCapture();
+                isDialingRef.current = false;
+                return null;
+            }
+            const data = await res.json();
+            setCallControlId(data.callId);
+            callControlIdRef.current = data.callId;
+            setCallState('ringing');
+            setTimeout(() => {
+                if (callControlIdRef.current === data.callId) { setCallState('disconnected'); setCallControlId(null); }
+            }, 30000);
+
+            isDialingRef.current = false; // RELEASE MUTEX
+            return { callId: data.callId, callLogId: data.callLogId };
+        } catch (err) {
+            setLastError('error');
+            setCallOutcome('invalid');
+            setCallState('failed');
+            stopMicCapture();
+            isDialingRef.current = false; // RELEASE MUTEX
+            return null;
+        }
+    }, [config?.callerName, config?.callerNumber, stopMicCapture]);
+
+    const attachCall = useCallback((callLogId) => {
+        console.log('[Softphone] Attaching campaign call, logId:', callLogId);
+        activeCallLogIdRef.current = callLogId;
+        setLastError(null);
+        setCallState('ringing');
+        // Capture mic early for campaign calls (makeCall is not used, so getUserMedia never fires)
+        if (!micStreamRef.current) {
+            navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                .then(stream => { micStreamRef.current = stream; })
+                .catch(err => console.warn('[Softphone] attachCall mic capture failed:', err));
+        }
+    }, []);
+
+    const hangup = useCallback(async () => {
+        if (activeCallRef.current) {
+            try { activeCallRef.current.hangup(); } catch (e) { console.warn(e); }
+            activeCallRef.current = null;
+        }
+        const cid = callControlIdRef.current;
+        if (cid) {
+            try {
+                await fetch(`${API_BASE}/api/dialer/call/hangup`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ callId: cid }),
+                });
+            } catch (e) { console.warn(e); }
+            setCallControlId(null); callControlIdRef.current = null;
+        }
+        activeCallLogIdRef.current = null;
+        stopCustomRecording();
+        setCallState('disconnected');
+        const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
+        if (audioEl) audioEl.srcObject = null;
+    }, [stopCustomRecording]);
+
+    const sendDTMF = useCallback((digit) => {
+        if (activeCallRef.current) {
+            console.log(`[Softphone] Sending DTMF: ${digit}`);
+            try {
+                activeCallRef.current.dtmf(digit);
+            } catch (err) {
+                console.error('[Softphone] Failed to send DTMF:', err);
+            }
+        }
+    }, []);
+
+    const handleWebSocketCallUpdate = useCallback((incomingLogId, status) => {
+        console.log(`[Softphone] WS update: logId=${incomingLogId} status=${status}`);
+
+        // STRICT match: for disconnect/hangup events, ONLY apply if the callLogId matches our active call.
+        // This prevents dropped parallel-dial hangups or stale events from killing a live call.
+        const activeLogId = activeCallLogIdRef.current;
+        const activeCtrlId = callControlIdRef.current;
+
+        const isOurCall =
+            !incomingLogId || // No ID = broadcast to all (safe to apply)
+            incomingLogId === activeLogId ||
+            incomingLogId === activeCtrlId;
+
+        if (status === 'connected') {
+            // Only mark connected if it's our call or we have no active call tracked yet
+            if (isOurCall || (!activeLogId && !activeCtrlId)) {
+                setCallState('connected');
+                setLastError(null);
+                if (activeCallRef.current) ensureRecordingStarted(activeCallRef.current);
+            }
+        } else if (status === 'completed' || status === 'hangup') {
+            // CRITICAL: Only disconnect if this event is definitively about OUR call.
+            // If incomingLogId doesn't match, this is a stale/parallel-dial hangup — ignore it!
+            if (!isOurCall) {
+                console.warn(`[Softphone] Ignoring hangup for ${incomingLogId} — active call is ${activeLogId}. Stale event dropped.`);
+                return;
+            }
+            setCallState('disconnected');
+            setCallControlId(null);
+            callControlIdRef.current = null;
+            stopCustomRecording();
+            activeCallLogIdRef.current = null;
+        }
+    }, [ensureRecordingStarted, stopCustomRecording]);
+
+    return { registered, callState, lastError, callOutcome, makeCall, attachCall, hangup, callControlId, handleWebSocketCallUpdate, sendDTMF, ua: null, session: null };
+};

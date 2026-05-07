@@ -1,0 +1,226 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String              @id @default(uuid())
+  name              String
+  status            AccountStatus       @default(ACTIVE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  campaigns         Campaign[]
+  leads             Lead[]
+  lists             List[]
+  teams             Team[]
+  users             User[]
+  VoicemailTemplate VoicemailTemplate[]
+}
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  accountId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  account   Account  @relation(fields: [accountId], references: [id])
+  users     User[]
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       User[]
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  key         String           @unique
+  description String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id           String      @id @default(uuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  status       UserStatus  @default(ACTIVE)
+  roleId       String
+  accountId    String
+  teamId       String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  callerNumber String?
+  AgentList    AgentList[]
+  callLogs     CallLog[]   @relation("AgentCalls")
+  account      Account     @relation(fields: [accountId], references: [id])
+  role         Role        @relation(fields: [roleId], references: [id])
+  team         Team?       @relation(fields: [teamId], references: [id])
+}
+
+model List {
+  id            String         @id @default(uuid())
+  accountId     String
+  name          String
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  AgentList     AgentList[]
+  campaignLinks CampaignList[]
+  leads         Lead[]
+  account       Account        @relation(fields: [accountId], references: [id])
+}
+
+model Lead {
+  id           String     @id @default(uuid())
+  accountId    String
+  listId       String
+  firstName    String
+  lastName     String
+  phone        String
+  address      String?
+  tags         String[]
+  customFields Json
+  status       LeadStatus @default(NEW)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  callbackAt   DateTime?
+  callLogs     CallLog[]
+  account      Account    @relation(fields: [accountId], references: [id])
+  list         List       @relation(fields: [listId], references: [id])
+}
+
+model Campaign {
+  id            String         @id @default(uuid())
+  accountId     String
+  name          String
+  mode          CampaignMode
+  pacing        Int
+  localPresence Boolean        @default(false)
+  status        CampaignStatus @default(PAUSED)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  callLogs      CallLog[]
+  account       Account        @relation(fields: [accountId], references: [id])
+  lists         CampaignList[]
+}
+
+model CampaignList {
+  campaignId String
+  listId     String
+  createdAt  DateTime @default(now())
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  list       List     @relation(fields: [listId], references: [id])
+
+  @@id([campaignId, listId])
+}
+
+model CallLog {
+  id             String     @id @default(uuid())
+  leadId         String
+  agentId        String
+  campaignId     String
+  startedAt      DateTime
+  endedAt        DateTime?
+  disposition    String?
+  recordingUrl   String?
+  callStatus     CallStatus @default(RINGING)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  callControlId  String?    @unique
+  notes          String?
+  dealValue      Float?
+  vmRecordingUrl String?
+  tags           String[]   @default([])
+  agent          User       @relation("AgentCalls", fields: [agentId], references: [id])
+  campaign       Campaign   @relation(fields: [campaignId], references: [id])
+  lead           Lead       @relation(fields: [leadId], references: [id])
+}
+
+model DncRegistry {
+  id        String   @id @default(uuid())
+  accountId String?
+  phone     String   @unique
+  source    String
+  createdAt DateTime @default(now())
+}
+
+model AgentList {
+  agentId   String
+  listId    String
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  List      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([agentId, listId])
+}
+
+model VoicemailTemplate {
+  id        String   @id
+  accountId String
+  name      String
+  url       String
+  duration  Int
+  createdAt DateTime @default(now())
+  Account   Account  @relation(fields: [accountId], references: [id])
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  NO_ANSWER
+  DNC
+  BOOKED
+  CALLBACK
+  UNREACHABLE
+}
+
+enum CampaignMode {
+  PREDICTIVE
+  POWER
+  PREVIEW
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum CallStatus {
+  RINGING
+  CONNECTED
+  FAILED
+  COMPLETED
+}

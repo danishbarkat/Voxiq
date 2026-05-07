@@ -1,0 +1,29 @@
+flowchart LR
+  Admin[Admin]
+  Manager[Manager]
+  Agent[Agent]
+
+  Users[Users]
+  Campaigns[Campaigns]
+  Lists[Lists]
+  Reports[Reports]
+  Compliance[Compliance]
+  Recordings[Recordings]
+  Dialer[Dialer]
+
+  Admin --> Users
+  Admin --> Campaigns
+  Admin --> Lists
+  Admin --> Reports
+  Admin --> Compliance
+  Admin --> Recordings
+  Admin --> Dialer
+
+  Manager --> Campaigns
+  Manager --> Lists
+  Manager --> Reports
+  Manager --> Recordings
+  Manager --> Dialer
+
+  Agent --> Dialer
+  Agent --> Recordings

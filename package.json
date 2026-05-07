@@ -1,0 +1,10 @@
+{
+  "name": "winfi-dialer-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm --prefix backend run start:dev\" \"npm --prefix frontend run dev -- --host\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

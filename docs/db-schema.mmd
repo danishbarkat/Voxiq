@@ -1,0 +1,117 @@
+erDiagram
+  ACCOUNT {
+    string id PK
+    string name
+    string status
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  TEAM {
+    string id PK
+    string name
+    string accountId FK
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  ROLE {
+    string id PK
+    string name
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  PERMISSION {
+    string id PK
+    string key
+    string description
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  ROLE_PERMISSION {
+    string roleId FK
+    string permissionId FK
+    datetime createdAt
+  }
+
+  USER {
+    string id PK
+    string name
+    string email
+    string passwordHash
+    string status
+    string roleId FK
+    string accountId FK
+    string teamId FK
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  LIST {
+    string id PK
+    string accountId FK
+    string name
+    string description
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  LEAD {
+    string id PK
+    string accountId FK
+    string listId FK
+    string firstName
+    string lastName
+    string phone
+    string status
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  CAMPAIGN {
+    string id PK
+    string accountId FK
+    string name
+    string mode
+    string status
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  CALL_LOG {
+    string id PK
+    string leadId FK
+    string agentId FK
+    string campaignId FK
+    string callStatus
+    datetime startedAt
+    datetime endedAt
+  }
+
+  DNC_REGISTRY {
+    string id PK
+    string accountId FK
+    string phone
+    string source
+    datetime createdAt
+  }
+
+  ACCOUNT ||--o{ TEAM : has
+  ACCOUNT ||--o{ USER : has
+  ACCOUNT ||--o{ LIST : has
+  ACCOUNT ||--o{ LEAD : has
+  ACCOUNT ||--o{ CAMPAIGN : has
+
+  TEAM ||--o{ USER : has
+
+  ROLE ||--o{ USER : assigns
+  ROLE ||--o{ ROLE_PERMISSION : contains
+  PERMISSION ||--o{ ROLE_PERMISSION : grants
+
+  LIST ||--o{ LEAD : contains
+
+  LEAD ||--o{ CALL_LOG : logs
+  USER ||--o{ CALL_LOG : handles
+  CAMPAIGN ||--o{ CALL_LOG : tracks

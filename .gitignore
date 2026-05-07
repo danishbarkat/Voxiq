@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+.env
+**/.env
+*.env.local
+*.env.production
+**/.env.*
+.DS_Store
+._*
+**/dist/
+**/coverage/
+*.tar.gz
+*.key
+*.key.pub
+.claude/

@@ -1,0 +1,17 @@
+flowchart TB
+  Goal[Milestone 1 Goal: Foundation & Architecture]
+
+  Arch[Architecture + Infra Plan]
+  RBAC[Roles + Permissions Matrix]
+  Wireframes[Admin/Agent Wireframes]
+  CallFlow[Call Flow Design]
+  Outcome[Approved architecture + ready to build]
+
+  Goal --> Arch
+  Goal --> RBAC
+  Goal --> Wireframes
+  Goal --> CallFlow
+  Arch --> Outcome
+  RBAC --> Outcome
+  Wireframes --> Outcome
+  CallFlow --> Outcome

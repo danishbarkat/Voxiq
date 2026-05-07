@@ -1,0 +1,17 @@
+flowchart TB
+  Cloud[Cloud Account AWS/GCP]
+  Network[VPC + Subnets + Security Groups]
+  Compute[App Servers + Load Balancer]
+  DB[(Postgres RDS/CloudSQL)]
+  Cache[(Redis Cluster)]
+  Storage[(S3/Cloud Storage)]
+  Observability[Logs + Metrics + Alerts]
+  CICD[CI/CD Pipeline]
+
+  Cloud --> Network
+  Network --> Compute
+  Compute --> DB
+  Compute --> Cache
+  Compute --> Storage
+  Compute --> Observability
+  CICD --> Compute
