@@ -31,4 +31,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsIn(['ACTIVE', 'INACTIVE'])
   status?: 'ACTIVE' | 'INACTIVE';
+
+  @IsOptional()
+  @IsString()
+  sipUri?: string;
+
+  @IsOptional()
+  @IsString()
+  sipPassword?: string;
 }

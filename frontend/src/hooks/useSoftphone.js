@@ -58,6 +58,8 @@ export const useSoftphone = (config) => {
     const [callState, setCallState] = useState('disconnected');
     const [registered, setRegistered] = useState(false);
     const [lastError, setLastError] = useState(null);
+    // sipCause: human-readable SIP rejection reason (e.g. "CALL_REJECTED", "UNALLOCATED_NUMBER")
+    const [sipCause, setSipCause] = useState(null);
     const [callControlId, setCallControlId] = useState(null);
     // callOutcome: tracks WHY a call ended — 'invalid' | 'no_answer' | 'answered' | null
     const [callOutcome, setCallOutcome] = useState(null);
@@ -318,18 +320,22 @@ export const useSoftphone = (config) => {
                     lastProcessedCallIdRef.current = null;
                     activeCallRef.current = call;
                     isDialingRef.current = false; // Release mutex
+                    setSipCause(null); // Clear previous failure reason
                     break;
                 }
 
                 case 'requesting':
+                case 'trying':
+                    // 'trying' is a LOCAL SDK state — Telnyx hasn't confirmed the call yet.
+                    // Stay in 'connecting' so the UI shows "DIALING..." not "RINGING..."
                     setCallState('connecting');
                     break;
 
-                case 'trying':
                 case 'early':
+                    // 'early' = SIP 180/183 from the remote carrier — phone is actually ringing
                     setCallState('ringing');
-                    callReachedRingingRef.current = true; // Call actually rang
-                    ensureRecordingStarted(call); // Start recording early — captures voicemail answers
+                    callReachedRingingRef.current = true;
+                    ensureRecordingStarted(call);
                     break;
 
                 case 'active': {
@@ -402,6 +408,13 @@ export const useSoftphone = (config) => {
                             break;
                         }
                         lastProcessedCallIdRef.current = call.id;
+                    }
+
+                    // Capture SIP cause for diagnostics (SDK exposes cause + causeCode on call object)
+                    const cause = call?.cause || call?.causeCode || null;
+                    if (cause) {
+                        setSipCause(String(cause));
+                        console.warn(`[Softphone] SIP cause: ${cause}`);
                     }
 
                     // Determine call outcome before resetting state
@@ -496,6 +509,7 @@ export const useSoftphone = (config) => {
             await new Promise(r => setTimeout(r, waitMs));
         }
         setLastError(null);
+        setSipCause(null); // Clear previous SIP error reason
         setCallState('connecting');
         setCallOutcome(null); // ← CRITICAL: Reset outcome so previous call's result doesn't interfere
         callReachedRingingRef.current = false;  // ← Reset for THIS call
@@ -523,8 +537,22 @@ export const useSoftphone = (config) => {
                     return null;
                 }
 
-                const to = digits.length === 10 ? '+1' + digits : '+' + digits;
-                const from = config?.callerNumber || '+12623990007';
+                let to = digits;
+                if (digits.startsWith('92')) {
+                    to = '+' + digits;
+                } else if (digits.length === 10 && (digits.startsWith('3'))) {
+                    // Pakistan mobile heuristic
+                    to = '+92' + digits;
+                } else if (digits.length === 11 && digits.startsWith('03')) {
+                    // Pakistan mobile with 0 prefix
+                    to = '+92' + digits.slice(1);
+                } else if (digits.length === 10) {
+                    to = '+1' + digits;
+                } else {
+                    to = '+' + digits;
+                }
+
+                const from = config?.callerNumber || '+14422039259';
                 const callerName = config?.callerName || '';
                 console.log('[Softphone] WebRTC newCall:', to, 'logId:', callLogId);
                 const call = clientRef.current.newCall({
@@ -539,7 +567,7 @@ export const useSoftphone = (config) => {
                     localElement: 'telnyx-local-video', // Stub to avoid video routing bugs
                 });
                 activeCallRef.current = call;
-                setCallState('ringing');
+                setCallState('connecting'); // Stay "DIALING..." until server confirms via 'early'/'active'
                 isDialingRef.current = false; // Release mutex after call is set up
                 return { callId: null, callLogId: callLogId || null };
             } catch (err) {
@@ -674,5 +702,5 @@ export const useSoftphone = (config) => {
         }
     }, [ensureRecordingStarted, stopCustomRecording]);
 
-    return { registered, callState, lastError, callOutcome, makeCall, attachCall, hangup, callControlId, handleWebSocketCallUpdate, sendDTMF, ua: null, session: null };
+    return { registered, callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, callControlId, handleWebSocketCallUpdate, sendDTMF, ua: null, session: null };
 };

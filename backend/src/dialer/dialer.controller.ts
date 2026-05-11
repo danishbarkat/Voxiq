@@ -165,7 +165,7 @@ export class DialerController {
     @SetMetadata('isPublic', true)
     @Post('call/log')
     async logCall(
-        @Body() body: { leadId: string; agentId: string; callControlId?: string; campaignId?: string }
+        @Body() body: { leadId?: string; agentId: string; callControlId?: string; campaignId?: string; manualNumber?: string; isManual?: boolean }
     ) {
         return this.dialerService.logCall(body);
     }

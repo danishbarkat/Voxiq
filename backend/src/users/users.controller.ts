@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Req,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -26,8 +27,8 @@ export class UsersController {
 
   @Roles('Admin', 'Manager')
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Req() req: any) {
+    return this.usersService.findAll(req?.user);
   }
 
   @Roles('Admin')
@@ -49,6 +50,16 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
   ) {
     return this.usersService.update(id, dto);
+  }
+
+  /** Assign SIP credentials (Telnyx WebRTC login) to an agent */
+  @Roles('Admin', 'Manager')
+  @Patch(':id/sip-credentials')
+  updateSipCredentials(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { sipUri?: string; sipPassword?: string },
+  ) {
+    return this.usersService.update(id, body as any);
   }
 
   /** Assign a Telnyx caller number to an agent */

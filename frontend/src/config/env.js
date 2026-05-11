@@ -5,4 +5,6 @@ const WS_URL = isProd ? window.location.origin : (import.meta.env.VITE_WS_URL ||
 const SIP_URI = import.meta.env.VITE_TELNYX_SIP_URI || '';
 const SIP_PASSWORD = import.meta.env.VITE_TELNYX_SIP_PASSWORD || '';
 
-export { API_URL, WS_URL, SIP_URI, SIP_PASSWORD };
+const DEFAULT_OUTBOUND_NUMBER = import.meta.env.VITE_DEFAULT_OUTBOUND_NUMBER || '+14422039259';
+
+export { API_URL, WS_URL, SIP_URI, SIP_PASSWORD, DEFAULT_OUTBOUND_NUMBER };

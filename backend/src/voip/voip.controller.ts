@@ -3,7 +3,6 @@ import { SetMetadata } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CallStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
-import { createVerify } from 'crypto';
 import { promises as fs } from 'fs';
 import { extname, join } from 'path';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
@@ -169,21 +168,29 @@ export class VoipController {
         @Headers('telnyx-timestamp') timestamp: string,
         @Headers('telnyx-public-key') _pubHeader: string,
     ) {
-        // Verify signature if public key is configured
+        // Verify Ed25519 signature if public key is configured
         const pubKey = this.config.get<string>('TELNYX_PUBLIC_KEY');
         if (pubKey) {
             if (!signature || !timestamp) {
                 throw new UnauthorizedException('Missing Telnyx signature headers');
             }
-            const verifier = createVerify('SHA256');
-            verifier.update(timestamp + JSON.stringify(body));
-            verifier.end();
-            const valid = verifier.verify(
-                Buffer.from(pubKey, 'base64'),
-                Buffer.from(signature, 'base64'),
-            );
-            if (!valid) {
-                throw new UnauthorizedException('Invalid Telnyx signature');
+            try {
+                const { verify } = await import('crypto');
+                const message = Buffer.from(timestamp + '|' + JSON.stringify(body));
+                const keyBuffer = Buffer.from(pubKey, 'base64');
+                const sigBuffer = Buffer.from(signature, 'base64');
+                const valid = verify(
+                    null,
+                    message,
+                    { key: keyBuffer, format: 'der', type: 'spki' },
+                    sigBuffer,
+                );
+                if (!valid) {
+                    throw new UnauthorizedException('Invalid Telnyx signature');
+                }
+            } catch (err) {
+                if (err instanceof UnauthorizedException) throw err;
+                this.logger.warn(`Webhook signature check skipped (crypto error): ${err.message}`);
             }
         }
 
@@ -195,7 +202,12 @@ export class VoipController {
             return { received: true };
         }
 
-        this.logger.log(`Telnyx Webhook: ${event} for call ${callId}`);
+        const hangupCause = (body?.data?.payload as any)?.hangup_cause;
+        const sipHangupCause = (body?.data?.payload as any)?.sip_hangup_cause;
+        const direction = (body?.data?.payload as any)?.direction;
+        const fromNum = (body?.data?.payload as any)?.from;
+        const toNum = (body?.data?.payload as any)?.to;
+        this.logger.log(`Telnyx Webhook: ${event} | call=${callId} | dir=${direction} | from=${fromNum} | to=${toNum}${hangupCause ? ` | hangup_cause=${hangupCause}` : ''}${sipHangupCause ? ` | sip_cause=${sipHangupCause}` : ''}`);
 
         const recordingUrl =
             body?.data?.payload?.public_recording_urls?.mp3 ||

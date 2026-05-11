@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useSoftphone } from '../hooks/useSoftphone';
-import { API_URL } from '../config/env';
+import { API_URL, SIP_URI, SIP_PASSWORD, DEFAULT_OUTBOUND_NUMBER } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken, getToken } from '../lib/auth';
 
@@ -65,11 +65,11 @@ export default function Agent() {
 
   const HEARTBEAT_MS = 20000;
 
-  const { callState, lastError, callOutcome, makeCall, attachCall, hangup, registered, handleWebSocketCallUpdate, sendDTMF } = useSoftphone({
-    username: 'winfiagent',
-    password: 'WinFi2024',
-    callerNumber: profile?.callerNumber || '+12623990007', // Use assigned number if available
-    callerName: profile?.callerName || 'RMESSAGES LLC',
+  const { callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, registered, handleWebSocketCallUpdate, sendDTMF } = useSoftphone({
+    username: SIP_URI || profile?.sipUri || 'winfiagent',
+    password: SIP_PASSWORD || profile?.sipPassword || 'WinFi2024',
+    callerNumber: profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259',
+    callerName: profile?.name || 'Voxiq Agent',
   });
 
   // Auto-skip on invalid number or failed call
@@ -260,17 +260,53 @@ export default function Agent() {
 
   const handleManualInputDial = useCallback(async () => {
     if (!dialNumber) return;
+    if (!agentId) {
+      alert('Profile still loading — please wait a moment and try again.');
+      return;
+    }
+    const originalNumber = dialNumber;
 
-    // If a lead is currently selected, use it. Otherwise, this is a "pure" manual call.
-    // NOTE: Backend logCall currently requires a leadId.
+    // If a lead is currently selected, use it.
     if (currentLead) {
       await handleDialLead(currentLead);
+      setDialNumber('');
     } else {
-      // Pure manual call without lead - WebRTC only for now
-      makeCall(dialNumber);
+      setStatus('Dialing Manual...');
+      setLocalCallActive(true);
+      
+      try {
+        const logData = await fetchJson(`${API_URL}/dialer/call/log`, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            manualNumber: originalNumber, 
+            agentId,
+            isManual: true 
+          }),
+        });
+        
+        const result = await makeCall(originalNumber, null, logData?.id);
+        if (result) {
+          setDialNumber('');
+          if (logData?.id) setCallLogId(logData.id);
+        } else {
+          setStatus('Dial Failed');
+          setLocalCallActive(false);
+          alert('Call failed to initiate. Please check your softphone registration.');
+        }
+      } catch (e) {
+        console.warn('Manual dial process failed:', e);
+        // Fallback to direct dial if logging fails
+        const result = await makeCall(originalNumber);
+        if (result) {
+          setDialNumber('');
+        } else {
+          setStatus('Error');
+          setLocalCallActive(false);
+          alert('Error: Could not connect the call. Check console for details.');
+        }
+      }
     }
-    setDialNumber('');
-  }, [dialNumber, currentLead, handleDialLead, makeCall]);
+  }, [dialNumber, currentLead, handleDialLead, makeCall, agentId]);
 
   // Skip to next lead in auto-dial mode (or stop if list exhausted)
   const handleAutoSkip = useCallback(async () => {
@@ -507,6 +543,11 @@ export default function Agent() {
       handleCallOutcome(leadForOutcome, callOutcome);
       currentLeadRef.current = null;
     }
+
+    // Always reset the status back to Idle after a manual call ends,
+    // even when there was no lead (pure typed-in number dial).
+    setLocalCallActive(false);
+    setStatus('Idle');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callState, callOutcome, autoDial]);
 
@@ -902,51 +943,101 @@ export default function Agent() {
       </div >
 
       <div className="flex flex-col gap-4">
-        <section className="card">
+        <section className="card" style={{ background: 'var(--grad-surface)', border: '1px solid var(--indigo-100)' }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-head">Softphone</h2>
+            <h2 className="font-head" style={{ color: 'var(--brand-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem' }}>📞</span> Softphone
+            </h2>
             <div className="pill-status" style={{
-              background: callState === 'connected' ? 'rgba(16,185,129,0.15)' : callState === 'connecting' || callState === 'ringing' ? 'rgba(245,158,11,0.15)' : 'var(--indigo-50)',
-              color: callState === 'connected' ? 'var(--emerald-500)' : callState === 'connecting' || callState === 'ringing' ? '#d97706' : 'var(--primary)',
+              background: callState === 'connected' ? 'rgba(16,185,129,0.15)' : callState === 'connecting' || callState === 'ringing' ? 'rgba(245,158,11,0.15)' : 'var(--white)',
+              color: callState === 'connected' ? 'var(--emerald-500)' : callState === 'connecting' || callState === 'ringing' ? '#d97706' : 'var(--slate-500)',
+              border: '1px solid var(--slate-100)',
+              fontSize: '0.75rem',
+              fontWeight: 700
             }}>
               {callState === 'connected'
-                ? `ON AIR • ${String(Math.floor(callTimer / 60)).padStart(2, '0')}:${String(callTimer % 60).padStart(2, '0')}`
-                : callState === 'connecting' ? '⏳ DIALING...'
-                  : callState === 'ringing' ? '🔔 RINGING...'
+                ? `LIVE • ${String(Math.floor(callTimer / 60)).padStart(2, '0')}:${String(callTimer % 60).padStart(2, '0')}`
+                : callState === 'connecting' ? 'DIALING...'
+                  : callState === 'ringing' ? 'RINGING...'
                     : registered ? '✅ REGISTERED' : 'STANDBY'}
             </div>
           </div>
 
-          <div className="text-center py-4 mb-4" style={{
-            background: callActive ? 'rgba(16,185,129,0.08)' : 'var(--slate-50)',
-            borderRadius: '8px',
-            border: callActive ? '1px solid rgba(16,185,129,0.2)' : '1px solid transparent',
+          <div className="text-center py-6 mb-6" style={{
+            background: 'white',
+            borderRadius: '12px',
+            border: callActive ? '2px solid var(--emerald-400)' : '1px dashed var(--slate-300)',
+            boxShadow: callActive ? '0 8px 24px rgba(16,185,129,0.1)' : 'none',
             transition: 'all 0.3s ease'
           }}>
-            <span className="stat-label">Line Status</span>
-            <div className="stat-val" style={{
-              fontSize: '1.25rem',
-              marginTop: '4px',
-              color: callState === 'connected' ? 'var(--emerald-500)' : callState === 'failed' ? '#dc2626' : 'inherit'
+            <span className="stat-label" style={{ marginBottom: '8px', display: 'block', fontSize: '0.8rem', letterSpacing: '0.05em' }}>CURRENT STATUS</span>
+            <div className="font-head" style={{
+              fontSize: '1.75rem',
+              color: callState === 'connected' ? 'var(--emerald-600)' : callState === 'failed' ? '#dc2626' : 'var(--brand-dark)',
+              fontWeight: 900,
+              letterSpacing: '-0.02em'
             }}>
               {lineStatusText()}
             </div>
+            {/* SIP failure reason — only visible after a rejected/failed call */}
+            {sipCause && callState === 'disconnected' && callOutcome === 'invalid' && (
+              <div style={{
+                marginTop: '8px',
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '0.75rem',
+                color: '#b91c1c',
+                fontWeight: 600,
+              }}>
+                {sipCause === 'USER_BUSY' || sipCause === '486'
+                  ? '📵 Line busy — destination phone is occupied or unreachable'
+                  : sipCause === 'CALL_REJECTED' || sipCause === '403'
+                    ? '❌ Call rejected — verify Telnyx outbound profile allows this destination'
+                    : sipCause === 'UNALLOCATED_NUMBER' || sipCause === '404'
+                      ? '⚠️ Number not found — check the number is correct'
+                      : `SIP error: ${sipCause}`
+                }
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {/* Campaign dialing controls */}
             {!callActive && !currentLead && status !== 'Waiting for Lead...' && (
-              <button className="btn btn-primary w-full" style={{ padding: '1rem' }} onClick={handleStartDialing}>
-                START CAMPAIGN DIALING
+              <button 
+                className="btn btn-primary w-full" 
+                style={{ 
+                  padding: '1rem', 
+                  fontSize: '1.1rem', 
+                  fontWeight: 800, 
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 15px rgba(var(--brand-primary-rgb), 0.3)'
+                }} 
+                onClick={handleStartDialing}
+              >
+                ▶ START CAMPAIGN DIALING
               </button>
             )}
             {!callActive && status === 'Waiting for Lead...' && (
-              <button className="btn w-full" style={{ background: 'var(--amber-500)', color: 'white' }} onClick={handlePause}>
-                PAUSE DIALING
+              <button 
+                className="btn w-full" 
+                style={{ 
+                  background: 'var(--amber-500)', 
+                  color: 'white', 
+                  padding: '1rem', 
+                  fontSize: '1.1rem', 
+                  fontWeight: 800,
+                  borderRadius: '12px'
+                }} 
+                onClick={handlePause}
+              >
+                ⏸ PAUSE DIALING
               </button>
             )}
 
-            {/* END CALL button - always visible and active when call in progress */}
+            {/* END CALL button - with pulsing animation */}
             {callActive && (
               <button
                 className="btn w-full"
@@ -954,27 +1045,28 @@ export default function Agent() {
                   background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
                   color: 'white',
                   padding: '1rem',
-                  fontSize: '1rem',
-                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  borderRadius: '12px',
                   letterSpacing: '0.05em',
-                  boxShadow: '0 4px 15px rgba(220,38,38,0.4)',
+                  boxShadow: '0 8px 20px rgba(220,38,38,0.4)',
                   animation: callState === 'connected' ? 'pulse-red 2s infinite' : 'none',
                 }}
                 onClick={handleHangup}
               >
-                📵 END CALL
+                📵 DISCONNECT CALL
               </button>
             )}
 
             {/* DTMF Keypad - Auto Display when connected */}
             {callState === 'connected' && (
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--slate-100)' }}>
-                <span className="stat-label block mb-3 text-center">Dial Pad</span>
+              <div className="mt-2 pt-4" style={{ borderTop: '1px solid var(--slate-100)' }}>
+                <span className="stat-label block mb-4 text-center" style={{ fontWeight: 700 }}>DIAL PAD</span>
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '8px',
-                  maxWidth: '240px',
+                  gap: '10px',
+                  maxWidth: '260px',
                   margin: '0 auto'
                 }}>
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(key => (
@@ -985,9 +1077,9 @@ export default function Agent() {
                       style={{
                         background: 'var(--slate-50)',
                         border: '1px solid var(--slate-200)',
-                        fontSize: '1.25rem',
+                        fontSize: '1.5rem',
                         fontWeight: 700,
-                        padding: '12px 0',
+                        padding: '14px 0',
                         borderRadius: '12px',
                         color: 'var(--brand-dark)',
                         transition: 'all 0.1s ease',
@@ -1000,24 +1092,45 @@ export default function Agent() {
               </div>
             )}
 
-            {/* Manual dial */}
-            {!callActive && (
-              <div className="flex gap-2 mt-2">
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Manual: +1 (555) 000-0000"
-                  value={dialNumber}
-                  onChange={(e) => setDialNumber(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleManualInputDial()}
-                />
-                <button
-                  className="btn btn-primary"
-                  onClick={handleManualInputDial}
-                  disabled={!dialNumber}
-                >
-                  Dial
-                </button>
+            {/* Manual dial section - High visibility when idle */}
+            {!callActive && !currentLead && status !== 'Waiting for Lead...' && (
+              <div className="mt-4 pt-6" style={{ borderTop: '1px solid var(--slate-100)' }}>
+                <span className="stat-label block mb-3 text-center" style={{ fontWeight: 700, fontSize: '0.75rem' }}>OR DIAL MANUALLY</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="+1 (555) 000-0000"
+                    value={dialNumber}
+                    onChange={(e) => setDialNumber(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleManualInputDial()}
+                    style={{ 
+                      fontSize: '1.1rem', 
+                      height: '52px', 
+                      borderRadius: '12px', 
+                      border: '2px solid var(--indigo-100)',
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      letterSpacing: '0.05em'
+                    }}
+                  />
+                  <button
+                    className="btn"
+                    style={{ 
+                      height: '52px', 
+                      padding: '0 1.5rem', 
+                      fontSize: '1rem', 
+                      fontWeight: 800,
+                      borderRadius: '12px',
+                      background: 'var(--brand-dark)',
+                      color: 'white'
+                    }}
+                    onClick={handleManualInputDial}
+                    disabled={!dialNumber}
+                  >
+                    DIAL
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -692,13 +692,62 @@ export class DialerService {
     /**
      * Create a call log entry for a manual or client-side initiated call
      */
-    async logCall(data: { leadId: string; agentId: string; callControlId?: string; campaignId?: string }): Promise<any> {
+    async logCall(data: { leadId?: string; agentId: string; callControlId?: string; campaignId?: string; manualNumber?: string; isManual?: boolean }): Promise<any> {
         let campaignId = data.campaignId;
+        let leadId = data.leadId;
+
+        // If it's a manual call and no leadId is provided, we find or create a "Manual" lead
+        if (data.isManual && !leadId && data.manualNumber) {
+            const agent = await this.prisma.user.findUnique({
+                where: { id: data.agentId },
+                select: { accountId: true }
+            });
+            
+            if (agent) {
+                // Find or create a default "Manual Leads" list for this account
+                let list = await this.prisma.list.findFirst({
+                    where: { accountId: agent.accountId, name: 'Manual Leads' }
+                });
+                
+                if (!list) {
+                    list = await this.prisma.list.create({
+                        data: {
+                            name: 'Manual Leads',
+                            accountId: agent.accountId,
+                            description: 'Auto-created list for manual dials'
+                        }
+                    });
+                }
+
+                // Check if this number already exists as a lead
+                let lead = await this.prisma.lead.findFirst({
+                    where: { phone: data.manualNumber, accountId: agent.accountId }
+                });
+
+                if (!lead) {
+                    lead = await this.prisma.lead.create({
+                        data: {
+                            firstName: 'Manual',
+                            lastName: 'Dial',
+                            phone: data.manualNumber,
+                            accountId: agent.accountId,
+                            listId: list.id,
+                            customFields: {}
+                        }
+                    });
+                }
+                leadId = lead.id;
+            }
+        }
+
+        if (!leadId) {
+            throw new Error('leadId or manualNumber is required to log a call');
+        }
 
         // If no campaignId provided, try to find one associated with the lead's account
         if (!campaignId) {
             const lead = await this.prisma.lead.findUnique({
-                where: { id: data.leadId },
+                where: { id: leadId },
                 select: { accountId: true },
             });
             if (lead) {
@@ -722,7 +771,7 @@ export class DialerService {
 
         return this.prisma.callLog.create({
             data: {
-                leadId: data.leadId,
+                leadId,
                 agentId: data.agentId,
                 campaignId,
                 callControlId: data.callControlId,

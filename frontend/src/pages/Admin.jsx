@@ -1,5 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  BarChart3, 
+  Mic, 
+  Trophy, 
+  Users, 
+  Rocket, 
+  Settings, 
+  ShieldCheck, 
+  LogOut, 
+  Plus, 
+  RefreshCcw,
+  Building2,
+  ListTodo,
+  Webhook,
+  Zap,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  Menu
+} from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
@@ -476,6 +497,7 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
 
 export default function Admin() {
   const navigate = useNavigate();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { socket, isConnected, reconnect } = useSocket();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [campaigns, setCampaigns] = useState([]);
@@ -569,6 +591,9 @@ export default function Admin() {
       fetchWebhooks();
       fetchSmsTemplates();
       fetchVmTemplates();
+    }
+    if (activeTab === 'agents') {
+      fetchUsers();
     }
   }, [activeTab]);
 
@@ -998,16 +1023,16 @@ export default function Admin() {
   };
 
   const TABS = [
-    { id: 'dashboard', label: '📊 Dashboard' },
-    { id: 'analytics', label: '📈 Analytics' },
-    { id: 'recordings', label: '🎙️ Recordings' },
-    { id: 'scorecards', label: '🏆 Scorecards' },
-    { id: 'leads', label: '📋 Leads' },
-    { id: 'agents', label: '👥 Agents' },
-    { id: 'campaigns', label: '🚀 Campaigns' },
-    { id: 'integrations', label: '🔗 Integrations' },
-    { id: 'accounts', label: '🏢 Accounts' },
-    { id: 'compliance', label: '⚖️ Compliance' },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} /> },
+    { id: 'recordings', label: 'Recordings', icon: <Mic size={18} /> },
+    { id: 'scorecards', label: 'Scorecards', icon: <Trophy size={18} /> },
+    { id: 'leads', label: 'Leads', icon: <ListTodo size={18} /> },
+    { id: 'agents', label: 'Agents', icon: <Users size={18} /> },
+    { id: 'campaigns', label: 'Campaigns', icon: <Rocket size={18} /> },
+    { id: 'integrations', label: 'Integrations', icon: <Webhook size={18} /> },
+    { id: 'accounts', label: 'Accounts', icon: <Building2 size={18} /> },
+    { id: 'compliance', label: 'Compliance', icon: <ShieldCheck size={18} /> },
   ];
 
   const ConfirmModal = () => {
@@ -1031,43 +1056,78 @@ export default function Admin() {
   };
 
   return (
-    <div className="admin-layout">
+    <div className={`admin-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
           <img src="/logo.png" alt="Voxiq" style={{ height: '26px', filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
-          <span>Voxiq Admin</span>
+          {!isSidebarCollapsed && <span>Voxiq Admin</span>}
+          <button 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            style={{ 
+              marginLeft: 'auto', 
+              background: 'none', 
+              border: 'none', 
+              color: '#94a3b8', 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px'
+            }}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          </button>
         </div>
 
-        {/* Nav */}
         <nav className="sidebar-nav">
           {TABS.map(t => (
-            <a key={t.id} href={`#${t.id}`} className={activeTab === t.id ? 'active' : ''} onClick={e => { e.preventDefault(); setActiveTab(t.id); }}>
-              {t.label}
+            <a 
+              key={t.id} 
+              href={`#${t.id}`} 
+              title={isSidebarCollapsed ? t.label : ''}
+              className={activeTab === t.id ? 'active' : ''} 
+              onClick={e => { e.preventDefault(); setActiveTab(t.id); }}
+            >
+              {t.icon}
+              {!isSidebarCollapsed && t.label}
             </a>
           ))}
         </nav>
 
         {/* Quick Actions */}
-        <div className="sidebar-tools">
-          <div className="sidebar-section-label">Quick Create</div>
-          <button className="sidebar-btn" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>➕ New Account</button>
-          <button className="sidebar-btn" onClick={() => { setListForm({ name: '', accountId: '', description: '' }); fetchAccounts(); setShowListModal(true); }}>➕ New List</button>
-          <button className="sidebar-btn" onClick={() => { setUserForm({ name: '', email: '', password: '', roleId: '', accountId: '' }); fetchAccounts(); fetchRoles(); setShowUserModal(true); }}>➕ New Agent</button>
-        </div>
+        {!isSidebarCollapsed && (
+          <div className="sidebar-tools">
+            <div className="sidebar-section-label">Quick Actions</div>
+            <button className="sidebar-btn" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>
+              <Plus size={14} /> Account
+            </button>
+            <button className="sidebar-btn" onClick={() => { setListForm({ name: '', accountId: '', description: '' }); fetchAccounts(); setShowListModal(true); }}>
+              <Plus size={14} /> List
+            </button>
+            <button className="sidebar-btn" onClick={() => { setUserForm({ name: '', email: '', password: '', roleId: '', accountId: '' }); fetchAccounts(); fetchRoles(); setShowUserModal(true); }}>
+              <Plus size={14} /> Agent
+            </button>
+          </div>
+        )}
 
         {/* System health + sign out */}
         <div className="sidebar-health">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)' }}>System</span>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isConnected ? '#4ade80' : '#f87171' }}>{isConnected ? '● LIVE' : '● OFFLINE'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', marginBottom: '8px' }}>
+            {!isSidebarCollapsed && <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)' }}>Status</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isConnected ? '#4ade80' : '#f87171', boxShadow: isConnected ? '0 0 8px #4ade80' : 'none' }} />
+              {!isSidebarCollapsed && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isConnected ? '#4ade80' : '#f87171' }}>{isConnected ? 'LIVE' : 'OFFLINE'}</span>}
+            </div>
           </div>
-          {authState.user && (
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {authState.user && !isSidebarCollapsed && (
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
               {authState.user.name || authState.user.email}
             </div>
           )}
-          <button className="sidebar-signout" onClick={handleLogout}>🚪 Sign Out</button>
+          <button className="sidebar-signout" onClick={handleLogout} title={isSidebarCollapsed ? 'Sign Out' : ''}>
+            <LogOut size={14} style={{ marginRight: isSidebarCollapsed ? '0' : '8px' }} />
+            {!isSidebarCollapsed && 'Sign Out'}
+          </button>
         </div>
       </aside>
 
@@ -1086,39 +1146,63 @@ export default function Admin() {
             {/* ── DASHBOARD ──────────────────────────────────────────────── */}
             {activeTab === 'dashboard' && (
               <>
-                <header className="card flex justify-between items-center mb-6">
+                <header className="card flex justify-between items-center mb-8" style={{ background: 'linear-gradient(to right, #ffffff, #f8fafc)', borderLeft: '4px solid var(--vx-accent)' }}>
                   <div>
-                    <h1 className="font-head">Operations Control</h1>
-                    <p className="text-dim">Supervise teams, manage lists, monitor compliance.</p>
+                    <h1 className="font-head" style={{ fontSize: '1.75rem' }}>Operations Control</h1>
+                    <p className="text-dim" style={{ fontSize: '0.9rem' }}>Real-time oversight and system management</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span className={`pill-status ${isConnected ? 'pill-success' : 'pill-error'}`} style={{ fontSize: '0.7rem' }}>{isConnected ? '● Live' : '● Offline'}</span>
-                    <button className="btn btn-primary" style={{ fontSize: '0.8rem' }} onClick={() => setActiveTab('leads')}>
-                      🚀 Import Leads
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '6px 12px', borderRadius: '12px' }}>
+                      <div className={isConnected ? 'pulse-green' : ''} style={{ width: '8px', height: '8px', borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#059669' : '#dc2626' }}>{isConnected ? 'System Live' : 'System Offline'}</span>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => setActiveTab('leads')}>
+                      <Rocket size={16} style={{ marginRight: '8px' }} />
+                      Import Leads
                     </button>
                   </div>
                 </header>
 
                 <div className="dynamic-grid mb-8">
                   <div className="card stat-card">
-                    <span className="stat-label">Active Campaigns</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span className="stat-label">Active Campaigns</span>
+                      <div style={{ background: 'rgba(79, 70, 229, 0.1)', padding: '8px', borderRadius: '10px', color: '#4f46e5' }}>
+                        <Rocket size={20} />
+                      </div>
+                    </div>
                     <span className="stat-val">{campaigns.filter(c => c.status === 'ACTIVE').length}<span style={{ fontSize: '0.9rem', color: 'var(--text-soft)', fontWeight: 400 }}>/{campaigns.length}</span></span>
                   </div>
                   <div className="card stat-card">
-                    <span className="stat-label">Fleet Connect Rate</span>
-                    <span className="stat-val" style={{ color: 'var(--emerald-500)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span className="stat-label">Fleet Connect Rate</span>
+                      <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '10px', color: '#10b981' }}>
+                        <Zap size={20} />
+                      </div>
+                    </div>
+                    <span className="stat-val" style={{ color: '#10b981' }}>
                       {Object.values(metrics).length > 0
                         ? (Object.values(metrics).reduce((acc, m) => acc + parseFloat(m?.connectionRate || 0), 0) / Object.values(metrics).length).toFixed(1)
                         : '0.0'}%
                     </span>
                   </div>
                   <div className="card stat-card">
-                    <span className="stat-label">Live Agents</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span className="stat-label">Live Agents</span>
+                      <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '10px', color: '#3b82f6' }}>
+                        <Users size={20} />
+                      </div>
+                    </div>
                     <span className="stat-val">{users.filter(u => u.status === 'ACTIVE').length}</span>
                   </div>
                   <div className="card stat-card">
-                    <span className="stat-label">Total Revenue</span>
-                    <span className="stat-val" style={{ color: 'var(--emerald-500)' }}>${(overview?.revenue || 0).toLocaleString()}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span className="stat-label">Total Revenue</span>
+                      <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '8px', borderRadius: '10px', color: '#f59e0b' }}>
+                        <DollarSign size={20} />
+                      </div>
+                    </div>
+                    <span className="stat-val" style={{ color: '#f59e0b' }}>${(overview?.revenue || 0).toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -1452,7 +1536,14 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map(u => {
+                      {users.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--vx-gray-400)' }}>
+                            <div style={{ marginBottom: '0.5rem' }}>👥 No agents found</div>
+                            <div style={{ fontSize: '0.8rem' }}>Try adding a new agent or clicking refresh.</div>
+                          </td>
+                        </tr>
+                      ) : users.map(u => {
                         const account = accounts.find(a => a.id === u.accountId);
                         const numberPool = account?.numberPool || [];
                         const assignedListIds = u.AgentList?.map(al => al.listId) || [];
@@ -1507,7 +1598,7 @@ export default function Admin() {
                                       gap: '4px',
                                     }}
                                   >
-                                    {al.list?.name}
+                                    {al.List?.name}
                                     <button
                                       style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '0.8rem', fontWeight: 700 }}
                                       onClick={async () => {

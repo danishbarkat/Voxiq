@@ -1,0 +1,776 @@
+
+> backend@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m2:47:42 AM[0m] Starting compilation in watch mode...
+
+[[90m2:47:52 AM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +37ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +31ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +37ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[VoipService] [39m[32mTelnyx VoIP service initialized[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[VoicemailService] [39m[32mS3 client initialized for voicemail storage[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCampaignsModule dependencies initialized[39m[38;5;3m +8ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAnalyticsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBackupModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLeadsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mWebsocketModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIntegrationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoicemailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoipModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDialerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:register" message[39m[38;5;3m +20ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:status" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/roles, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/sip-credentials, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/caller-number, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/lists, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoipController {/api/voip}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/custom-recording, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/voicemail-drop, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/listen, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/whisper, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/barge, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/telnyx/webhook, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDialerController {/api/dialer}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/hangup, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/pause, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/disposition, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/lock, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc/lead/:leadId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLeadsController {/api/leads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/import, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/history, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCampaignsController {/api/campaigns}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/metrics, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoicemailController {/api/voicemail}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id/playback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAnalyticsController {/api/analytics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/overview, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/hourly, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/export, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agents/scores, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/heatmap, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings/:id/tags, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/campaign/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agent/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mIntegrationsController {/api/integrations}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/test, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/save-key, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/key, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms/send, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:55 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +25ms[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:47:59 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mClient connected: LWMMod-MsMj9APeAAAAB user:068fad19-c998-4b75-a6ac-f65ef0c26dc2 role:Agent[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:48:04 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent registered: 068fad19-c998-4b75-a6ac-f65ef0c26dc2[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:48:04 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent 068fad19-c998-4b75-a6ac-f65ef0c26dc2 status updated to available[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:48:24 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent 068fad19-c998-4b75-a6ac-f65ef0c26dc2 status updated to available[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:48:44 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent 068fad19-c998-4b75-a6ac-f65ef0c26dc2 status updated to available[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:49:04 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent 068fad19-c998-4b75-a6ac-f65ef0c26dc2 status updated to available[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:49:24 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent 068fad19-c998-4b75-a6ac-f65ef0c26dc2 status updated to available[39m
+[32m[Nest] 33760  - [39m05/12/2026, 2:49:44 AM [32m    LOG[39m [38;5;3m[WebsocketGateway] [39m[32mAgent 068fad19-c998-4b75-a6ac-f65ef0c26dc2 status updated to available[39m
+[2J[3J[H[[90m2:49:52 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m2:49:54 AM[0m] Found 0 errors. Watching for file changes.
+
+node:internal/modules/cjs/loader:1459
+  throw err;
+  ^
+
+Error: Cannot find module 'D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\dist\main'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1456:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.14.0
+[2J[3J[H[[90m2:49:58 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m2:49:59 AM[0m] Found 0 errors. Watching for file changes.
+
+node:internal/modules/cjs/loader:1459
+  throw err;
+  ^
+
+Error: Cannot find module 'D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\dist\main'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1456:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v24.14.0
+[2J[3J[H[[90m3:08:18 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:18 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:20 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:21 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:22 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:24 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:25 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:26 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:27 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:27 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:29 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:29 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:30 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:31 AM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +37ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +29ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +25ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[VoipService] [39m[32mTelnyx VoIP service initialized[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[VoicemailService] [39m[32mS3 client initialized for voicemail storage[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCampaignsModule dependencies initialized[39m[38;5;3m +10ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAnalyticsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBackupModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLeadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mWebsocketModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIntegrationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoicemailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoipModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDialerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:register" message[39m[38;5;3m +21ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:status" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +3ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/roles, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/sip-credentials, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/caller-number, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/lists, PUT} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoipController {/api/voip}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/custom-recording, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/voicemail-drop, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/listen, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/whisper, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/barge, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/telnyx/webhook, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDialerController {/api/dialer}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/hangup, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/start, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/pause, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/disposition, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/lock, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc/lead/:leadId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLeadsController {/api/leads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/import, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/history, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCampaignsController {/api/campaigns}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/metrics, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoicemailController {/api/voicemail}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id/playback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAnalyticsController {/api/analytics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/overview, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/hourly, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/export, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agents/scores, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/heatmap, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings/:id/tags, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/campaign/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agent/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mIntegrationsController {/api/integrations}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/test, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/save-key, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/key, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms/send, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 1660  - [39m05/12/2026, 3:08:33 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +27ms[39m
+[2J[3J[H[[90m3:08:34 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:35 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:36 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:37 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:37 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:38 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:39 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:40 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:41 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:41 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:42 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:43 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:44 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:44 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:08:45 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:08:46 AM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +24ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[VoipService] [39m[32mTelnyx VoIP service initialized[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[VoicemailService] [39m[32mS3 client initialized for voicemail storage[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCampaignsModule dependencies initialized[39m[38;5;3m +6ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAnalyticsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBackupModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLeadsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mWebsocketModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIntegrationsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoicemailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoipModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDialerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:register" message[39m[38;5;3m +16ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:status" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/roles, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/sip-credentials, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/caller-number, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/lists, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoipController {/api/voip}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/custom-recording, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/voicemail-drop, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/listen, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/whisper, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/barge, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/telnyx/webhook, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDialerController {/api/dialer}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/hangup, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/pause, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/disposition, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/lock, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc/lead/:leadId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLeadsController {/api/leads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/import, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/history, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCampaignsController {/api/campaigns}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/metrics, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoicemailController {/api/voicemail}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id/playback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAnalyticsController {/api/analytics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/overview, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/hourly, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/export, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agents/scores, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/heatmap, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings/:id/tags, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/campaign/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agent/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mIntegrationsController {/api/integrations}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/test, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/save-key, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/key, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms/send, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +34ms[39m
+[31m[Nest] 22052  - [39m05/12/2026, 3:08:48 AM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +10ms[39m
+node:net:1948
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
+    at listenInCluster (node:net:2005:12)
+    at Server.listen (node:net:2110:7)
+    at ExpressAdapter.listen (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\platform-express\adapters\express-adapter.js:127:32)
+    at D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\src\main.ts:38:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.14.0
+[2J[3J[H[[90m3:19:03 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:19:18 AM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m3:19:30 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:19:30 AM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +25ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +5ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[VoipService] [39m[32mTelnyx VoIP service initialized[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[VoicemailService] [39m[32mS3 client initialized for voicemail storage[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCampaignsModule dependencies initialized[39m[38;5;3m +5ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAnalyticsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBackupModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLeadsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mWebsocketModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIntegrationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoicemailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoipModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDialerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:register" message[39m[38;5;3m +17ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:status" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/roles, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/sip-credentials, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/caller-number, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/lists, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoipController {/api/voip}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/custom-recording, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/voicemail-drop, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/listen, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/whisper, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/barge, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/telnyx/webhook, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDialerController {/api/dialer}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/start, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/hangup, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/pause, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/disposition, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/lock, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc/lead/:leadId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLeadsController {/api/leads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/import, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/history, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCampaignsController {/api/campaigns}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/metrics, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoicemailController {/api/voicemail}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id/playback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAnalyticsController {/api/analytics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/overview, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/hourly, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/export, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agents/scores, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/heatmap, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings/:id/tags, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/campaign/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agent/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mIntegrationsController {/api/integrations}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/test, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/save-key, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/key, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms/send, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +24ms[39m
+[31m[Nest] 16240  - [39m05/12/2026, 3:19:40 AM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +11ms[39m
+node:net:1948
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
+    at listenInCluster (node:net:2005:12)
+    at Server.listen (node:net:2110:7)
+    at ExpressAdapter.listen (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\platform-express\adapters\express-adapter.js:127:32)
+    at D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\src\main.ts:38:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.14.0
+[2J[3J[H[[90m3:19:41 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m3:19:42 AM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +32ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +5ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[VoipService] [39m[32mTelnyx VoIP service initialized[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[VoicemailService] [39m[32mS3 client initialized for voicemail storage[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCampaignsModule dependencies initialized[39m[38;5;3m +6ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAnalyticsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBackupModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLeadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mWebsocketModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mIntegrationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoicemailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVoipModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDialerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:register" message[39m[38;5;3m +16ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mWebsocketGateway subscribed to the "agent:status" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +3ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/roles, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/sip-credentials, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/caller-number, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id/lists, PUT} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/users/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoipController {/api/voip}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/custom-recording, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/voicemail-drop, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/listen, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/whisper, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/supervisor/barge, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voip/telnyx/webhook, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDialerController {/api/dialer}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/hangup, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/start, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/campaign/:id/pause, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/disposition, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/log, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/call/lock, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/dialer/dnc/lead/:leadId, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLeadsController {/api/leads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/import, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/accounts/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/history, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/lists/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/leads/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCampaignsController {/api/campaigns}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/metrics, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id/lists, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/campaigns/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mVoicemailController {/api/voicemail}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id/playback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/voicemail/templates/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAnalyticsController {/api/analytics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/overview, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/hourly, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/export, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agents/scores, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/heatmap, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/recordings/:id/tags, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/campaign/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/analytics/agent/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mIntegrationsController {/api/integrations}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/webhooks/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/test, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/save-key, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/ghl/key, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms-templates/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/integrations/sms/send, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +21ms[39m
+[31m[Nest] 39192  - [39m05/12/2026, 3:19:44 AM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +8ms[39m
+node:net:1948
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
+    at listenInCluster (node:net:2005:12)
+    at Server.listen (node:net:2110:7)
+    at ExpressAdapter.listen (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\platform-express\adapters\express-adapter.js:127:32)
+    at D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (D:\Office\Dialer Voxiq\Voxiq-mb-dailer\backend\src\main.ts:38:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.14.0

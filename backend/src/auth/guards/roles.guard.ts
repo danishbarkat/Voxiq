@@ -26,9 +26,15 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Role not found on user');
     }
 
-    const userRole = user.role.toLowerCase();
-    if (!requiredRoles.some(role => role.toLowerCase() === userRole)) {
-      throw new ForbiddenException('Insufficient role');
+    const userRole = (user.role || '').toString().toLowerCase().trim();
+    
+    // SuperAdmin bypasses all role checks
+    if (userRole === 'superadmin') {
+      return true;
+    }
+
+    if (!requiredRoles.some(role => role.toLowerCase().trim() === userRole)) {
+      throw new ForbiddenException(`Insufficient role: ${userRole}`);
     }
     return true;
   }

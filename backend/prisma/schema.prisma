@@ -14,6 +14,9 @@ model Account {
   status            AccountStatus       @default(ACTIVE)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  numberPool        Json?
+  agentLimit        Int?                @default(10)
+  approved          Boolean             @default(true)
   campaigns         Campaign[]
   leads             Lead[]
   lists             List[]
@@ -72,6 +75,8 @@ model User {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   callerNumber String?
+  sipUri       String?
+  sipPassword  String?
   AgentList    AgentList[]
   callLogs     CallLog[]   @relation("AgentCalls")
   account      Account     @relation(fields: [accountId], references: [id])
@@ -121,6 +126,8 @@ model Campaign {
   status        CampaignStatus @default(PAUSED)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  numberPool    Json?
+  record        Boolean        @default(false)
   callLogs      CallLog[]
   account       Account        @relation(fields: [accountId], references: [id])
   lists         CampaignList[]
@@ -149,10 +156,10 @@ model CallLog {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   callControlId  String?    @unique
-  notes          String?
   dealValue      Float?
-  vmRecordingUrl String?
+  notes          String?
   tags           String[]   @default([])
+  vmRecordingUrl String?
   agent          User       @relation("AgentCalls", fields: [agentId], references: [id])
   campaign       Campaign   @relation(fields: [campaignId], references: [id])
   lead           Lead       @relation(fields: [leadId], references: [id])

@@ -15,6 +15,8 @@ export class UsersService {
     email: true,
     status: true,
     callerNumber: true,
+    sipUri: true,
+    sipPassword: true,
     roleId: true,
     teamId: true,
     accountId: true,
@@ -25,7 +27,7 @@ export class UsersService {
         id: true,
       },
     },
-  } as const;
+  } as any;
 
   private readonly agentSelect = {
     id: true,
@@ -33,6 +35,8 @@ export class UsersService {
     email: true,
     status: true,
     callerNumber: true,
+    sipUri: true,
+    sipPassword: true,
     roleId: true,
     teamId: true,
     accountId: true,
@@ -46,10 +50,10 @@ export class UsersService {
     AgentList: {
       select: {
         listId: true,
-        list: { select: { id: true, name: true } },
+        List: { select: { id: true, name: true } },
       },
     },
-  } as const;
+  } as any;
 
   async create(dto: CreateUserDto) {
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -76,8 +80,16 @@ export class UsersService {
     }
   }
 
-  async findAll() {
+  async findAll(requester?: any) {
+    const where: Prisma.UserWhereInput = {};
+    
+    // Non-SuperAdmins only see users in their own account
+    if (requester && requester.role?.toLowerCase() !== 'superadmin' && requester.accountId) {
+      where.accountId = requester.accountId;
+    }
+
     const users = await this.prisma.user.findMany({
+      where,
       select: this.agentSelect,
       orderBy: { createdAt: 'desc' },
     });
@@ -103,6 +115,8 @@ export class UsersService {
       role: dto.roleId ? { connect: { id: dto.roleId } } : undefined,
       team: dto.teamId ? { connect: { id: dto.teamId } } : { disconnect: dto.teamId === null ? true : false },
       account: dto.accountId ? { connect: { id: dto.accountId } } : undefined,
+      ...(dto.sipUri !== undefined ? { sipUri: dto.sipUri || null } as any : {}),
+      ...(dto.sipPassword !== undefined ? { sipPassword: dto.sipPassword || null } as any : {}),
     };
 
     if (dto.password) {
