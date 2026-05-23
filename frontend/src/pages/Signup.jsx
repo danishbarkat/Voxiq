@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { countries } from '../lib/countries';
 
 export default function Signup() {
-    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -13,16 +12,19 @@ export default function Signup() {
         countryCode: '+1',
         phone: '',
         companyName: '',
-        city: '',
-        country: '',
+        adminCode: '',
+        requestedAgentLimit: 1,
+        requestedNumbers: 1,
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(false);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const value = e.target.type === 'number' ? Number(e.target.value) : e.target.value;
+        setFormData({ ...formData, [e.target.name]: value });
     };
 
     const handleSignup = async (e) => {
@@ -34,20 +36,21 @@ export default function Signup() {
         setIsLoading(true);
         setError(null);
         try {
-            const payload = {
-                name: `${formData.firstName} ${formData.lastName}`,
-                email: formData.email,
-                phone: `${formData.countryCode}${formData.phone}`,
-                company: formData.companyName,
-                city: formData.city,
-                country: formData.country,
-                password: formData.password
-            };
             await fetchJson(`${API_URL}/auth/signup`, {
                 method: 'POST',
-                body: JSON.stringify(payload),
+                body: JSON.stringify({
+                    name: formData.firstName,
+                    lastName: formData.lastName,
+                    email: formData.email,
+                    password: formData.password,
+                    phone: `${formData.countryCode}${formData.phone}`,
+                    companyName: formData.companyName,
+                    adminCode: formData.adminCode,
+                    requestedAgentLimit: formData.requestedAgentLimit,
+                    requestedNumbers: formData.requestedNumbers,
+                }),
             });
-            navigate('/login', { state: { message: 'Account created! Please log in.' } });
+            setSuccess(true);
         } catch (err) {
             setError(err.message || 'Signup failed. Please try again.');
         } finally {
@@ -55,24 +58,42 @@ export default function Signup() {
         }
     };
 
+    if (success) {
+        return (
+            <div className="auth-page">
+                <div className="auth-card" style={{ maxWidth: 480, textAlign: 'center', padding: '48px 32px' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+                    <h2 style={{ marginBottom: 8 }}>Request Submitted!</h2>
+                    <p style={{ color: '#6b7280', marginBottom: 24 }}>
+                        Your company account is under review. The Voxiq team will activate your account shortly.
+                        You will be able to login once approved.
+                    </p>
+                    <Link to="/login" className="auth-btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                        Go to Login →
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="auth-page">
             <div className="auth-card auth-card-wide">
                 <div className="auth-left">
                     <h2>Join<br />Voxiq</h2>
-                    <p>The next generation of sales dialing. Get started in minutes, no credit card required.</p>
+                    <p>Register your company for access to the next generation sales dialer.</p>
                     <div className="auth-feature-list">
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
-                            5x More Conversations
+                            Company Admin Access
                         </div>
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
-                            No Credit Card Required
+                            Managed Agent Seats
                         </div>
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
-                            Setup in Under an Hour
+                            Dedicated Phone Numbers
                         </div>
                     </div>
                 </div>
@@ -81,8 +102,8 @@ export default function Signup() {
                     <div className="auth-logo-box">
                         <img src="/logo.png" alt="Voxiq" style={{ height: '44px' }} />
                     </div>
-                    <h1>Create Account</h1>
-                    <p className="auth-subtitle">Fill in your details to get started</p>
+                    <h1>Company Registration</h1>
+                    <p className="auth-subtitle">Admins only — agents are added by your admin after approval</p>
 
                     {error && <div className="auth-error">{error}</div>}
 
@@ -105,22 +126,8 @@ export default function Signup() {
 
                         <div className="auth-field-row">
                             <div className="auth-field">
-                                <label>Company</label>
-                                <input name="companyName" type="text" placeholder="Company Inc." value={formData.companyName} onChange={handleChange} required />
-                            </div>
-                            <div className="auth-field">
-                                <label>City</label>
-                                <input name="city" type="text" placeholder="New York" value={formData.city} onChange={handleChange} required />
-                            </div>
-                        </div>
-
-                        <div className="auth-field-row">
-                            <div className="auth-field">
-                                <label>Country</label>
-                                <select name="country" value={formData.country} onChange={handleChange} required>
-                                    <option value="">Select Country</option>
-                                    {countries.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                                </select>
+                                <label>Company Name</label>
+                                <input name="companyName" type="text" placeholder="Acme Inc." value={formData.companyName} onChange={handleChange} required />
                             </div>
                             <div className="auth-field">
                                 <label>Phone Number</label>
@@ -130,6 +137,22 @@ export default function Signup() {
                                     </select>
                                     <input name="phone" type="tel" placeholder="555-0000" value={formData.phone} onChange={handleChange} required />
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="auth-field">
+                            <label>Admin Code <span style={{ color: '#9ca3af', fontWeight: 400 }}>(provided by Voxiq)</span></label>
+                            <input name="adminCode" type="text" placeholder="Enter your admin access code" value={formData.adminCode} onChange={handleChange} required />
+                        </div>
+
+                        <div className="auth-field-row">
+                            <div className="auth-field">
+                                <label>Agents Needed</label>
+                                <input name="requestedAgentLimit" type="number" min="1" max="100" value={formData.requestedAgentLimit} onChange={handleChange} required />
+                            </div>
+                            <div className="auth-field">
+                                <label>Phone Numbers Needed</label>
+                                <input name="requestedNumbers" type="number" min="1" max="50" value={formData.requestedNumbers} onChange={handleChange} required />
                             </div>
                         </div>
 
@@ -145,11 +168,11 @@ export default function Signup() {
                         </div>
 
                         <button type="submit" className="auth-btn-primary" disabled={isLoading}>
-                            {isLoading ? 'Creating Account…' : 'Create Account →'}
+                            {isLoading ? 'Submitting…' : 'Submit Registration →'}
                         </button>
 
                         <p className="auth-switch">
-                            Already have an account? <Link to="/login">Sign in</Link>
+                            Already approved? <Link to="/login">Sign in</Link>
                         </p>
                     </form>
                 </div>
