@@ -3,40 +3,52 @@ import { useEffect, useRef } from 'react'
 import Agent from './pages/Agent'
 import Admin from './pages/Admin'
 import Manager from './pages/Manager'
+import SuperAdmin from './pages/SuperAdmin'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
 import { getToken } from './lib/auth'
+import { SoftphoneProvider } from './context/SoftphoneContext'
 import './App.css'
 
-// Protected Route Wrapper
-function ProtectedRoute({ children, role }) {
+function getUserRole() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role?.toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
+
+function ProtectedRoute({ children, allowedRoles }) {
   const token = getToken();
   if (!token) return <Navigate to="/login" replace />;
+
+  if (allowedRoles) {
+    const role = getUserRole();
+    if (!allowedRoles.includes(role)) {
+      if (role === 'superadmin') return <Navigate to="/superadmin" replace />;
+      if (role === 'admin') return <Navigate to="/admin" replace />;
+      if (role === 'manager') return <Navigate to="/manager" replace />;
+      return <Navigate to="/agent" replace />;
+    }
+  }
+
   return children;
 }
 
-// Wrap each page individually so animation fires on every route change
 function PageWrapper({ children }) {
   const location = useLocation();
   const ref = useRef(null);
-
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     const el = ref.current;
-    if (el) {
-      el.style.animation = 'none';
-      void el.offsetWidth;
-      el.style.animation = '';
-    }
+    if (el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
   }, [location.pathname]);
-
-  return (
-    <div ref={ref} className="page-enter">
-      {children}
-    </div>
-  );
+  return <div ref={ref} className="page-enter">{children}</div>;
 }
 
 function AppRoutes() {
@@ -46,31 +58,26 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute role="ADMIN">
-              <Admin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager"
-          element={
-            <ProtectedRoute role="MANAGER">
-              <Manager />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/agent"
-          element={
-            <ProtectedRoute role="AGENT">
-              <Agent />
-            </ProtectedRoute>
-          }
-        />
-        {/* Fallback to login */}
+        <Route path="/superadmin" element={
+          <ProtectedRoute allowedRoles={['superadmin']}>
+            <SuperAdmin />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Admin />
+          </ProtectedRoute>
+        } />
+        <Route path="/manager" element={
+          <ProtectedRoute allowedRoles={['manager']}>
+            <Manager />
+          </ProtectedRoute>
+        } />
+        <Route path="/agent" element={
+          <ProtectedRoute allowedRoles={['agent']}>
+            <Agent />
+          </ProtectedRoute>
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </PageWrapper>
@@ -80,24 +87,23 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <div className="shell">
-        <NavbarWrapper />
-        <main className="page" style={{ padding: 0 }}>
-          <AppRoutes />
-        </main>
-      </div>
+      <SoftphoneProvider>
+        <div className="shell">
+          <NavbarWrapper />
+          <main className="page" style={{ padding: 0 }}>
+            <AppRoutes />
+          </main>
+        </div>
+      </SoftphoneProvider>
     </BrowserRouter>
-  )
+  );
 }
 
 function NavbarWrapper() {
   const location = useLocation();
   const publicPaths = ['/', '/login', '/signup'];
-  if (publicPaths.includes(location.pathname)) {
-    return <Navbar />;
-  }
+  if (publicPaths.includes(location.pathname)) return <Navbar />;
   return null;
 }
 
-
-export default App
+export default App;

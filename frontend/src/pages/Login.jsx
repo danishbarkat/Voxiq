@@ -24,14 +24,22 @@ export default function Login() {
             if (token) {
                 setToken(token);
                 const role = data.user?.role?.toLowerCase();
-                if (role === 'admin' || role === 'superadmin') navigate('/admin');
+                if (role === 'superadmin') navigate('/superadmin');
+                else if (role === 'admin') navigate('/admin');
                 else if (role === 'manager') navigate('/manager');
                 else navigate('/agent');
             } else {
                 setError('Login failed. Please check your credentials.');
             }
         } catch (err) {
-            setError(err.message || 'Connection error. Please try again.');
+            const msg = err.message || '';
+            if (msg.toLowerCase().includes('pending')) {
+              setError('⏳ Your account is pending approval. Please wait for the Voxiq team to activate it.');
+            } else if (msg.toLowerCase().includes('deactivated')) {
+              setError('🚫 Your account has been deactivated. Contact support.');
+            } else {
+              setError(msg || 'Login failed. Check your credentials.');
+            }
         } finally {
             setIsLoading(false);
         }
