@@ -4,25 +4,31 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Account {
-  id                String              @id @default(uuid())
-  name              String
-  status            AccountStatus       @default(ACTIVE)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  numberPool        Json?
-  agentLimit        Int?                @default(10)
-  approved          Boolean             @default(true)
-  campaigns         Campaign[]
-  leads             Lead[]
-  lists             List[]
-  teams             Team[]
-  users             User[]
-  VoicemailTemplate VoicemailTemplate[]
+  id                  String              @id @default(uuid())
+  name                String
+  status              AccountStatus       @default(PENDING)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  numberPool          Json?
+  agentLimit          Int?                @default(10)
+  approved            Boolean             @default(false)
+  requestedAgentLimit Int?
+  requestedNumbers    Int?
+  rejectionReason     String?
+  approvedAt          DateTime?
+  adminPhone          String?
+  campaigns           Campaign[]
+  leads               Lead[]
+  lists               List[]
+  teams               Team[]
+  users               User[]
+  VoicemailTemplate   VoicemailTemplate[]
 }
 
 model Team {
@@ -145,9 +151,9 @@ model CampaignList {
 
 model CallLog {
   id             String     @id @default(uuid())
-  leadId         String
-  agentId        String
-  campaignId     String
+  leadId         String?
+  agentId        String?
+  campaignId     String?
   startedAt      DateTime
   endedAt        DateTime?
   disposition    String?
@@ -160,9 +166,13 @@ model CallLog {
   notes          String?
   tags           String[]   @default([])
   vmRecordingUrl String?
-  agent          User       @relation("AgentCalls", fields: [agentId], references: [id])
-  campaign       Campaign   @relation(fields: [campaignId], references: [id])
-  lead           Lead       @relation(fields: [leadId], references: [id])
+  direction      String?    @default("outbound")
+  fromNumber     String?
+  toNumber       String?
+  callerName     String?
+  agent          User?      @relation("AgentCalls", fields: [agentId], references: [id])
+  campaign       Campaign?  @relation(fields: [campaignId], references: [id])
+  lead           Lead?      @relation(fields: [leadId], references: [id])
 }
 
 model DncRegistry {
@@ -194,6 +204,7 @@ model VoicemailTemplate {
 }
 
 enum AccountStatus {
+  PENDING
   ACTIVE
   INACTIVE
 }
@@ -230,4 +241,6 @@ enum CallStatus {
   CONNECTED
   FAILED
   COMPLETED
+  MISSED
+  REJECTED
 }
