@@ -1,0 +1,336 @@
+import { PrismaService } from '../prisma/prisma.service';
+import { LeadStatus } from '@prisma/client';
+import { CreateLeadDto } from './dto/create-lead.dto';
+import { UpdateLeadDto } from './dto/update-lead.dto';
+export declare class LeadsService {
+    private prisma;
+    private readonly logger;
+    constructor(prisma: PrismaService);
+    importCsv(file: Express.Multer.File, accountId: string, listId?: string, newListName?: string, requester?: any): Promise<{
+        imported: number;
+        duplicates: number;
+        errors: number;
+    }>;
+    private parseCsvRow;
+    private deduplicateLeads;
+    create(createLeadDto: CreateLeadDto, requester?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    findAll(filters?: {
+        accountId?: string;
+        listId?: string;
+        status?: LeadStatus;
+        agentId?: string;
+        limit?: number;
+        offset?: number;
+    }, requester?: any): Promise<({
+        callLogs: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            tags: string[];
+            callerName: string | null;
+            agentId: string | null;
+            leadId: string | null;
+            campaignId: string | null;
+            startedAt: Date;
+            endedAt: Date | null;
+            disposition: string | null;
+            recordingUrl: string | null;
+            callStatus: import("@prisma/client").$Enums.CallStatus;
+            callControlId: string | null;
+            dealValue: number | null;
+            notes: string | null;
+            vmRecordingUrl: string | null;
+            direction: string | null;
+            fromNumber: string | null;
+            toNumber: string | null;
+        }[];
+        list: {
+            id: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string;
+            description: string | null;
+        };
+    } & {
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    })[]>;
+    findOne(id: string, requester?: any): Promise<{
+        callLogs: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            tags: string[];
+            callerName: string | null;
+            agentId: string | null;
+            leadId: string | null;
+            campaignId: string | null;
+            startedAt: Date;
+            endedAt: Date | null;
+            disposition: string | null;
+            recordingUrl: string | null;
+            callStatus: import("@prisma/client").$Enums.CallStatus;
+            callControlId: string | null;
+            dealValue: number | null;
+            notes: string | null;
+            vmRecordingUrl: string | null;
+            direction: string | null;
+            fromNumber: string | null;
+            toNumber: string | null;
+        }[];
+        list: {
+            id: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string;
+            description: string | null;
+        };
+    } & {
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    update(id: string, updateLeadDto: UpdateLeadDto, requester?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    updateStatus(id: string, status: LeadStatus, requester?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    remove(id: string, requester?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    getCallHistory(id: string, requester?: any): Promise<({
+        campaign: {
+            id: string;
+            name: string;
+        } | null;
+        agent: {
+            id: string;
+            name: string;
+            email: string;
+        } | null;
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        tags: string[];
+        callerName: string | null;
+        agentId: string | null;
+        leadId: string | null;
+        campaignId: string | null;
+        startedAt: Date;
+        endedAt: Date | null;
+        disposition: string | null;
+        recordingUrl: string | null;
+        callStatus: import("@prisma/client").$Enums.CallStatus;
+        callControlId: string | null;
+        dealValue: number | null;
+        notes: string | null;
+        vmRecordingUrl: string | null;
+        direction: string | null;
+        fromNumber: string | null;
+        toNumber: string | null;
+    })[]>;
+    findAllLists(accountId?: string, requester?: any): Promise<({
+        _count: {
+            leads: number;
+        };
+    } & {
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        description: string | null;
+    })[]>;
+    findAllAccounts(requester?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }[]>;
+    createAccount(name: string, requester?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }>;
+    updateAccount(id: string, data: {
+        name?: string;
+        numberPool?: any;
+    }, requester?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }>;
+    deleteAccount(id: string, requester?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }>;
+    deleteList(id: string, requester?: any): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        description: string | null;
+    }>;
+    deleteLead(id: string, requester?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    createList(dto: {
+        name: string;
+        accountId: string;
+        description?: string;
+    }, requester?: any): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        description: string | null;
+    }>;
+    private ensureLeadExists;
+    private resolveScopedAccountId;
+    private assertSuperAdmin;
+    private assertAccountAccess;
+    private assertListAccess;
+    private assertUserAccess;
+    private assertLeadAccess;
+}

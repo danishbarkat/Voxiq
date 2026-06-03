@@ -1,0 +1,301 @@
+import { LeadsService } from './leads.service';
+import { CreateLeadDto } from './dto/create-lead.dto';
+import { UpdateLeadDto } from './dto/update-lead.dto';
+import { LeadStatus } from '@prisma/client';
+export declare class LeadsController {
+    private readonly leadsService;
+    constructor(leadsService: LeadsService);
+    importCsv(file: Express.Multer.File, accountId: string, listId?: string, newListName?: string, req?: any): Promise<{
+        imported: number;
+        duplicates: number;
+        errors: number;
+        message: string;
+    }>;
+    create(createLeadDto: CreateLeadDto, req: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    findAll(accountId?: string, listId?: string, status?: LeadStatus, agentId?: string, limit?: string, offset?: string, req?: any): Promise<({
+        callLogs: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            tags: string[];
+            callerName: string | null;
+            agentId: string | null;
+            leadId: string | null;
+            campaignId: string | null;
+            startedAt: Date;
+            endedAt: Date | null;
+            disposition: string | null;
+            recordingUrl: string | null;
+            callStatus: import("@prisma/client").$Enums.CallStatus;
+            callControlId: string | null;
+            dealValue: number | null;
+            notes: string | null;
+            vmRecordingUrl: string | null;
+            direction: string | null;
+            fromNumber: string | null;
+            toNumber: string | null;
+        }[];
+        list: {
+            id: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string;
+            description: string | null;
+        };
+    } & {
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    })[]>;
+    findAllLists(accountId?: string, req?: any): Promise<({
+        _count: {
+            leads: number;
+        };
+    } & {
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        description: string | null;
+    })[]>;
+    findAllAccounts(req?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }[]>;
+    createAccount(name: string, req?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }>;
+    updateAccount(id: string, data: {
+        name?: string;
+        numberPool?: any;
+    }, req?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }>;
+    deleteAccount(id: string, req?: any): Promise<{
+        id: string;
+        name: string;
+        status: import("@prisma/client").$Enums.AccountStatus;
+        accessCode: string | null;
+        accessCodeIssuedAt: Date | null;
+        accessCodeUsedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        numberPool: import("@prisma/client/runtime/library").JsonValue | null;
+        agentLimit: number | null;
+        approved: boolean;
+        requestedAgentLimit: number | null;
+        requestedNumbers: number | null;
+        rejectionReason: string | null;
+        approvedAt: Date | null;
+        adminPhone: string | null;
+    }>;
+    createList(name: string, accountId: string, description?: string, req?: any): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        description: string | null;
+    }>;
+    findOne(id: string, req?: any): Promise<{
+        callLogs: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            tags: string[];
+            callerName: string | null;
+            agentId: string | null;
+            leadId: string | null;
+            campaignId: string | null;
+            startedAt: Date;
+            endedAt: Date | null;
+            disposition: string | null;
+            recordingUrl: string | null;
+            callStatus: import("@prisma/client").$Enums.CallStatus;
+            callControlId: string | null;
+            dealValue: number | null;
+            notes: string | null;
+            vmRecordingUrl: string | null;
+            direction: string | null;
+            fromNumber: string | null;
+            toNumber: string | null;
+        }[];
+        list: {
+            id: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+            accountId: string;
+            description: string | null;
+        };
+    } & {
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    getCallHistory(id: string, req?: any): Promise<({
+        campaign: {
+            id: string;
+            name: string;
+        } | null;
+        agent: {
+            id: string;
+            name: string;
+            email: string;
+        } | null;
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        tags: string[];
+        callerName: string | null;
+        agentId: string | null;
+        leadId: string | null;
+        campaignId: string | null;
+        startedAt: Date;
+        endedAt: Date | null;
+        disposition: string | null;
+        recordingUrl: string | null;
+        callStatus: import("@prisma/client").$Enums.CallStatus;
+        callControlId: string | null;
+        dealValue: number | null;
+        notes: string | null;
+        vmRecordingUrl: string | null;
+        direction: string | null;
+        fromNumber: string | null;
+        toNumber: string | null;
+    })[]>;
+    update(id: string, updateLeadDto: UpdateLeadDto, req?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    updateStatus(id: string, status: LeadStatus, req?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+    removeList(id: string, req?: any): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        description: string | null;
+    }>;
+    removeLead(id: string, req?: any): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        listId: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        address: string | null;
+        tags: string[];
+        customFields: import("@prisma/client/runtime/library").JsonValue;
+        callbackAt: Date | null;
+    }>;
+}

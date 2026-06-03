@@ -1,0 +1,127 @@
+import { DialerService } from './dialer.service';
+import { VoipService } from '../voip/voip.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+export declare class DialerController {
+    private dialerService;
+    private voipService;
+    private prisma;
+    private config;
+    constructor(dialerService: DialerService, voipService: VoipService, prisma: PrismaService, config: ConfigService);
+    private getDefaultCallerName;
+    startCall(body: {
+        to: string;
+        from?: string;
+        callerName?: string;
+        leadId?: string;
+        agentId?: string;
+    }): Promise<{
+        error: string;
+        message: string;
+        existingCallLogId: string;
+        callId?: undefined;
+        status?: undefined;
+        callLogId?: undefined;
+    } | {
+        callId: string;
+        status: string;
+        callLogId: string | null;
+        error?: undefined;
+        message?: undefined;
+        existingCallLogId?: undefined;
+    }>;
+    hangupCall(body: {
+        callId: string;
+    }): Promise<{
+        message: string;
+    }>;
+    startCampaign(id: string): Promise<{
+        message: string;
+    }>;
+    pauseCampaign(id: string): Promise<{
+        message: string;
+    }>;
+    handleDisposition(body: {
+        callLogId: string;
+        disposition: string;
+        notes?: string;
+        callbackAt?: string;
+        dealValue?: number;
+    }): Promise<{
+        message: string;
+    }>;
+    updateCallLog(id: string, body: {
+        callControlId?: string;
+        disposition?: string;
+        notes?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        tags: string[];
+        callerName: string | null;
+        agentId: string | null;
+        leadId: string | null;
+        campaignId: string | null;
+        startedAt: Date;
+        endedAt: Date | null;
+        disposition: string | null;
+        recordingUrl: string | null;
+        callStatus: import("@prisma/client").$Enums.CallStatus;
+        callControlId: string | null;
+        dealValue: number | null;
+        notes: string | null;
+        vmRecordingUrl: string | null;
+        direction: string | null;
+        fromNumber: string | null;
+        toNumber: string | null;
+    }>;
+    logCall(body: {
+        leadId?: string;
+        agentId: string;
+        callControlId?: string;
+        campaignId?: string;
+        manualNumber?: string;
+        manualName?: string;
+        isManual?: boolean;
+    }): Promise<any>;
+    lockLead(body: {
+        leadId: string;
+        agentId: string;
+    }): Promise<{
+        locked: boolean;
+        reason: string;
+        callLogId?: undefined;
+    } | {
+        locked: boolean;
+        callLogId: any;
+        reason?: undefined;
+    }>;
+    addToDnc(body: {
+        phone: string;
+        accountId?: string;
+        reason?: string;
+    }): Promise<{
+        error: string;
+        success?: undefined;
+        phone?: undefined;
+    } | {
+        success: boolean;
+        phone: string;
+        error?: undefined;
+    }>;
+    addLeadToDnc(leadId: string, body: {
+        reason?: string;
+    }): Promise<{
+        error: string;
+        success?: undefined;
+        leadId?: undefined;
+        phone?: undefined;
+    } | {
+        success: boolean;
+        leadId: string;
+        phone: string;
+        error?: undefined;
+    }>;
+    private normalizeToE164;
+}
