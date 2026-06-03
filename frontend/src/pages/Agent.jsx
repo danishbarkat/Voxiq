@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
-import { useSoftphone } from '../hooks/useSoftphone';
+import { useSoftphoneContext } from '../context/SoftphoneContext';
 import { API_URL, SIP_URI, SIP_PASSWORD, DEFAULT_OUTBOUND_NUMBER } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken, getToken } from '../lib/auth';
+import { countries } from '../lib/countries';
 
 // Error label helper
 function errorLabel(err) {
@@ -31,8 +32,20 @@ export default function Agent() {
   const [recentCalls, setRecentCalls] = useState([]);
   const [status, setStatus] = useState('Idle');
   const [dialNumber, setDialNumber] = useState('');
+  const [dialName, setDialName] = useState('');
+  const [dialCountryCode, setDialCountryCode] = useState('+1');
+  const [showDialpad, setShowDialpad] = useState(false);
+  const [lastDialedNumber, setLastDialedNumber] = useState(() => {
+    try { return localStorage.getItem('voxiq_last_dialed') || ''; } catch { return ''; }
+  });
   const [callTimer, setCallTimer] = useState(0);
-  const [stats, setStats] = useState({ calls: 0, appointments: 0 });
+  const todayKey = `agent_stats_${new Date().toISOString().slice(0, 10)}`;
+  const [stats, setStats] = useState(() => {
+    try {
+      const saved = localStorage.getItem(todayKey);
+      return saved ? JSON.parse(saved) : { calls: 0, appointments: 0 };
+    } catch { return { calls: 0, appointments: 0 }; }
+  });
   const [localCallActive, setLocalCallActive] = useState(false);
 
   // Lead queue state
@@ -60,17 +73,45 @@ export default function Agent() {
   const [smsMsg, setSmsMsg] = useState('');
   const [smsSending, setSmsSending] = useState(false);
   const [showVmDrop, setShowVmDrop] = useState(false);
+
+  // SMS Messaging tab
+  const [smsTab, setSmsTab] = useState(false);
+  const [smsConversations, setSmsConversations] = useState([]);
+  const [smsActiveThread, setSmsActiveThread] = useState(null);
+  const [smsMessages, setSmsMessages] = useState([]);
+  const [smsInput, setSmsInput] = useState('');
+  const [smsSendingMsg, setSmsSendingMsg] = useState(false);
   const [callbackTime, setCallbackTime] = useState('');
   const [dealValue, setDealValue] = useState('');
 
+  // Persist today's stats to localStorage whenever they change
+  useEffect(() => {
+    try { localStorage.setItem(todayKey, JSON.stringify(stats)); } catch { /* ignore */ }
+  }, [stats, todayKey]);
+
   const HEARTBEAT_MS = 20000;
 
-  const { callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, registered, handleWebSocketCallUpdate, sendDTMF } = useSoftphone({
-    username: SIP_URI || profile?.sipUri || 'winfiagent',
-    password: SIP_PASSWORD || profile?.sipPassword || 'WinFi2024',
-    callerNumber: profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259',
-    callerName: profile?.name || 'Voxiq Agent',
-  });
+  const { callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, registered, handleWebSocketCallUpdate, sendDTMF, updateCredentials, incomingCall, incomingCallInfo } = useSoftphoneContext();
+
+  // Track inbound calls in recentCalls
+  const prevIncomingCallRef = useRef(null);
+  useEffect(() => {
+    const prev = prevIncomingCallRef.current;
+    if (prev && !incomingCall) {
+      // Call ended — was it answered or missed?
+      const wasAnswered = callState === 'connected' || callState === 'disconnected';
+      const from = prev.options?.remoteCallerNumber || prev.from || 'Unknown';
+      const callerName = prev.options?.remoteCallerName || from;
+      setRecentCalls(p => [{
+        lead: callerName !== from ? callerName : from,
+        number: from,
+        time: new Date().toLocaleTimeString(),
+        disposition: wasAnswered ? 'Received' : 'Missed',
+        direction: 'inbound',
+      }, ...p.slice(0, 49)]);
+    }
+    prevIncomingCallRef.current = incomingCall || null;
+  }, [incomingCall]);
 
   // Auto-skip on invalid number or failed call
   const autoSkipRef = useRef(false);
@@ -117,9 +158,17 @@ export default function Agent() {
     fetchJson(`${API_URL}/auth/profile`).then(async (auth) => {
       if (auth?.userId) {
         setAgentId(auth.userId);
+        try { localStorage.setItem('voxiq_agent_id', auth.userId); } catch { }
         // 2. Get full user details (number, lists)
         const fullUser = await fetchJson(`${API_URL}/users/${auth.userId}`);
         setProfile(fullUser);
+        // Update global SIP credentials with profile-specific values
+        updateCredentials({
+          login: SIP_URI || fullUser?.sipUri || 'winfiagent',
+          password: SIP_PASSWORD || fullUser?.sipPassword || 'WinFi2024',
+          callerName: fullUser?.name || 'Voxiq Agent',
+          callerNumber: fullUser?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259',
+        });
         // 3. Fetch leads for this agent
         fetchLeads(auth.userId);
       }
@@ -178,13 +227,34 @@ export default function Agent() {
         }
       });
 
+      socket.on(`sms:received:${profile?.accountId}`, (msg) => {
+        const contact = msg.fromNumber;
+        setSmsConversations(prev => {
+          const existing = prev.find(c => c.contactNumber === contact);
+          if (existing) {
+            return [
+              { ...existing, lastMessage: msg.body, lastMessageAt: msg.createdAt, direction: 'inbound' },
+              ...prev.filter(c => c.contactNumber !== contact),
+            ];
+          }
+          return [{ contactNumber: contact, lastMessage: msg.body, lastMessageAt: msg.createdAt, direction: 'inbound', agentName: null, agentId: null }, ...prev];
+        });
+        setSmsActiveThread(prev => {
+          if (prev === contact) {
+            setSmsMessages(msgs => [...msgs, { ...msg, direction: 'inbound' }]);
+          }
+          return prev;
+        });
+      });
+
       return () => {
         clearInterval(heartbeat);
         socket.off('call:incoming');
         socket.off('call:update');
+        socket.off(`sms:received:${profile?.accountId}`);
       };
     }
-  }, [socket, isConnected, agentId, attachCall, handleWebSocketCallUpdate]);
+  }, [socket, isConnected, agentId, attachCall, handleWebSocketCallUpdate, profile]);
 
   // Effect to fetch full lead details (with list) if missing
   useEffect(() => {
@@ -225,11 +295,17 @@ export default function Agent() {
       if (!lockRes?.locked) {
         const reason = lockRes?.reason || 'unknown';
         console.warn(`[Dialer] Lock denied for lead ${lead.id} — reason: ${reason}`);
-        if (!autoDialRef.current) {
-          setStatus(`⚠️ Already being dialed by another agent — skipping`);
-          setTimeout(() => setStatus('Idle'), 2500);
+        if (reason === 'db_error') {
+          // DB issue creating callLog — proceed with call anyway (no tracking)
+          console.warn('[Dialer] db_error on lock — proceeding without callLog');
+        } else {
+          // Another agent is dialing this lead — skip it
+          if (!autoDialRef.current) {
+            setStatus(`⚠️ Already being dialed by another agent — skipping`);
+            setTimeout(() => setStatus('Idle'), 2500);
+          }
+          return false;
         }
-        return false; // Lock failed
       }
 
       // Lock acquired — use the callLogId returned by the lock endpoint
@@ -258,55 +334,85 @@ export default function Agent() {
     return true; // Success
   }, [makeCall, agentId]);
 
-  const handleManualInputDial = useCallback(async () => {
-    if (!dialNumber) return;
+  const handleManualInputDial = useCallback(async (overrideNumber, overrideName) => {
+    const rawNumber = (typeof overrideNumber === 'string' ? overrideNumber : null) || dialNumber;
+    const numberToUse = rawNumber && !rawNumber.startsWith('+') ? dialCountryCode + rawNumber : rawNumber;
+    if (!numberToUse) return;
     if (!agentId) {
       alert('Profile still loading — please wait a moment and try again.');
       return;
     }
-    const originalNumber = dialNumber;
+    const originalNumber = numberToUse;
+    const nameToUse = (typeof overrideName === 'string' ? overrideName : null) || dialName || '';
+    setLastDialedNumber(originalNumber);
+    try { localStorage.setItem('voxiq_last_dialed', originalNumber); } catch { /* ignore */ }
 
     // If a lead is currently selected, use it.
     if (currentLead) {
       await handleDialLead(currentLead);
       setDialNumber('');
     } else {
+      // Show name + number in Lead Profile during the call
+      const nameParts = nameToUse.trim().split(' ');
+      setCurrentLead({
+        id: null,
+        firstName: nameParts[0] || 'Manual',
+        lastName: nameParts.slice(1).join(' ') || '',
+        phone: originalNumber,
+        status: 'MANUAL',
+        list: { name: 'Manual Dial' },
+        address: '',
+      });
+      currentLeadRef.current = {
+        id: null,
+        firstName: nameParts[0] || 'Manual',
+        lastName: nameParts.slice(1).join(' ') || '',
+        phone: originalNumber,
+        status: 'MANUAL',
+      };
+
       setStatus('Dialing Manual...');
       setLocalCallActive(true);
-      
+
       try {
         const logData = await fetchJson(`${API_URL}/dialer/call/log`, {
           method: 'POST',
-          body: JSON.stringify({ 
-            manualNumber: originalNumber, 
+          body: JSON.stringify({
+            manualNumber: originalNumber,
+            manualName: nameToUse || undefined,
             agentId,
-            isManual: true 
+            isManual: true
           }),
         });
-        
+
         const result = await makeCall(originalNumber, null, logData?.id);
         if (result) {
           setDialNumber('');
+          setDialName('');
           if (logData?.id) setCallLogId(logData.id);
         } else {
           setStatus('Dial Failed');
           setLocalCallActive(false);
+          setCurrentLead(null);
+          currentLeadRef.current = null;
           alert('Call failed to initiate. Please check your softphone registration.');
         }
       } catch (e) {
         console.warn('Manual dial process failed:', e);
-        // Fallback to direct dial if logging fails
         const result = await makeCall(originalNumber);
         if (result) {
           setDialNumber('');
+          setDialName('');
         } else {
           setStatus('Error');
           setLocalCallActive(false);
+          setCurrentLead(null);
+          currentLeadRef.current = null;
           alert('Error: Could not connect the call. Check console for details.');
         }
       }
     }
-  }, [dialNumber, currentLead, handleDialLead, makeCall, agentId]);
+  }, [dialNumber, dialCountryCode, dialName, currentLead, handleDialLead, makeCall, agentId]);
 
   // Skip to next lead in auto-dial mode (or stop if list exhausted)
   const handleAutoSkip = useCallback(async () => {
@@ -591,6 +697,44 @@ export default function Agent() {
     finally { setSmsSending(false); }
   };
 
+  const fetchSmsConversations = async () => {
+    try {
+      const token = localStorage.getItem('winfi_token');
+      const data = await fetch(`${API_URL}/sms/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json());
+      setSmsConversations(Array.isArray(data) ? data : []);
+    } catch (e) { console.error('fetchSmsConversations:', e); }
+  };
+
+  const fetchSmsThread = async (contactNumber) => {
+    try {
+      const token = localStorage.getItem('winfi_token');
+      const encoded = encodeURIComponent(contactNumber);
+      const data = await fetch(`${API_URL}/sms/conversations/${encoded}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json());
+      setSmsMessages(Array.isArray(data) ? data : []);
+    } catch (e) { console.error('fetchSmsThread:', e); }
+  };
+
+  const sendSmsMessage = async () => {
+    if (!smsInput.trim() || !smsActiveThread) return;
+    setSmsSendingMsg(true);
+    try {
+      const token = localStorage.getItem('winfi_token');
+      const res = await fetch(`${API_URL}/sms/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ to: smsActiveThread, body: smsInput.trim() }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setSmsInput('');
+      await fetchSmsThread(smsActiveThread);
+    } catch (e) { alert('SMS failed: ' + e.message); }
+    finally { setSmsSendingMsg(false); }
+  };
+
   // End call - force resets everything regardless of SIP state
   const handleHangup = useCallback(() => {
     hangup();
@@ -634,9 +778,9 @@ export default function Agent() {
     if (!callLogId) {
       setRecentCalls(prev => [{
         lead: currentLead ? `${currentLead.firstName} ${currentLead.lastName}` : 'Manual',
-        status: 'Connected',
+        number: currentLead?.phone || dialNumber || '',
         time: new Date().toLocaleTimeString(),
-        disposition
+        disposition, direction: 'outbound',
       }, ...prev]);
       setStats(prev => ({
         ...prev,
@@ -661,9 +805,9 @@ export default function Agent() {
 
       setRecentCalls(prev => [{
         lead: currentLead ? `${currentLead.firstName} ${currentLead.lastName}` : 'Unknown',
-        status: 'Connected',
+        number: currentLead?.phone || dialNumber || '',
         time: new Date().toLocaleTimeString(),
-        disposition
+        disposition, direction: 'outbound',
       }, ...prev]);
 
       setStats(prev => ({
@@ -734,487 +878,640 @@ export default function Agent() {
   };
 
   return (
-    <div className="agent-workspace mt-4">
-      {/* Header */}
-      <div className="card full-width flex justify-between items-center" style={{ background: 'var(--grad-surface)' }}>
-        <div className="flex items-center gap-4">
-          <div style={{ width: 42, height: 42, background: 'var(--grad-brand)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '1.2rem', flexShrink: 0 }}>W</div>
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── HEADER ─────────────────────────────────────────────────── */}
+      <header style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1b2050 100%)',
+        padding: '0 2rem',
+        height: '64px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+        flexShrink: 0,
+      }}>
+        {/* Voxiq Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: 38, height: 38,
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            borderRadius: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: '0 4px 14px rgba(99,102,241,0.5)',
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.46 2 2 0 0 1 3.57 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
           <div>
-            <span className="stat-label">Agent Workspace</span>
-            <h1 className="font-head" style={{ color: 'var(--brand-dark)' }}>WinFi Dialer</h1>
+            <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 900, fontSize: '1.2rem', color: 'white', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Voxiq</div>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Agent Dashboard</div>
           </div>
         </div>
-        <div className="flex gap-4 items-center">
-          <div className="text-right">
-            <span className="stat-label">Caller ID</span>
-            <div className="pill-status" style={{ background: 'var(--indigo-50)', color: 'var(--primary)', fontWeight: 700 }}>
-              {profile?.callerNumber || 'Default'}
-              {` • ${profile?.callerName || 'RMESSAGES LLC'}`}
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="stat-label">System</span>
-            <div className={`pill-status ${isConnected ? 'pill-success' : 'pill-error'}`}>
-              {isConnected ? 'Connected' : 'Offline'}
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="stat-label">Status</span>
-            <div className="pill-status" style={{ background: 'var(--slate-100)', color: 'var(--slate-600)' }}>{status}</div>
-          </div>
-          <button className="btn" style={{ background: 'var(--slate-100)', fontSize: '0.75rem' }} onClick={handleLogout}>Sign Out</button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="dynamic-grid full-width">
-        <div className="card stat-card">
-          <span className="stat-label">Calls Today</span>
-          <span className="stat-val">{stats.calls}</span>
-        </div>
-        <div className="card stat-card">
-          <span className="stat-label">Appointments</span>
-          <span className="stat-val">{stats.appointments}</span>
-        </div>
-        <div className="card stat-card">
-          <span className="stat-label">Conversion Rate</span>
-          <span className="stat-val">
-            {stats.calls > 0 ? ((stats.appointments / stats.calls) * 100).toFixed(1) : '0.0'}%
-          </span>
-        </div>
-        <div className="card stat-card">
-          <span className="stat-label">Leads in Queue</span>
-          <span className="stat-val">{leads.length}</span>
-        </div>
-      </div >
-
-      {/* Main Controls */}
-      < div className="flex flex-col gap-4" >
-        <section className="card">
-          <div className="justify-between flex items-center mb-4">
-            <h2 className="font-head">Lead Profile</h2>
-            {currentLead && <span className="pill-status pill-success">{currentLead.status}</span>}
-          </div>
-
-          {/* Error / failed state banner */}
-          {callState === 'failed' && lastError && (
-            <div style={{
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: '10px',
-              padding: '0.75rem 1rem',
-              marginBottom: '1rem',
-              color: '#dc2626',
-              fontWeight: 600,
-              fontSize: '0.9rem'
-            }}>
-              {errorLabel(lastError)} — auto-clearing in 2.5s...
+        {/* Right: info pills + sign out */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          {profile && (
+            <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agent</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'white' }}>{profile.name || 'Agent'}</div>
             </div>
           )}
+          <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Caller ID</div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace' }}>
+              {profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259'}
+            </div>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 14px', borderRadius: 8,
+            background: isConnected ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+            border: `1px solid ${isConnected ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+          }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', boxShadow: isConnected ? '0 0 8px rgba(16,185,129,0.8)' : '0 0 8px rgba(239,68,68,0.8)' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#34d399' : '#fca5a5' }}>
+              {isConnected ? 'Online' : 'Offline'}
+            </span>
+          </div>
+          <div style={{
+            padding: '6px 12px', borderRadius: 8,
+            background: registered ? 'rgba(16,185,129,0.1)' : 'rgba(251,191,36,0.1)',
+            border: `1px solid ${registered ? 'rgba(16,185,129,0.25)' : 'rgba(251,191,36,0.25)'}`,
+            fontSize: '0.73rem', fontWeight: 700,
+            color: registered ? '#34d399' : '#fbbf24',
+          }}>
+            {registered ? '✓ SIP Ready' : '⚠ SIP...'}
+          </div>
+          <div style={{ padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.73rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {status}
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', color: 'white', border: '1px solid rgba(220,38,38,0.5)', borderRadius: 9, fontWeight: 700, fontSize: '0.85rem', fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.4)', letterSpacing: '0.01em' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      </header>
 
-          {currentLead ? (
-            <div className="grid dynamic-grid">
-              <div>
-                <span className="stat-label">Contact Name</span>
-                <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{currentLead.firstName} {currentLead.lastName}</p>
-              </div>
-              <div>
-                <span className="stat-label">Phone</span>
-                <p style={{ fontWeight: 700, fontSize: '1.1rem', fontFamily: 'monospace' }}>{currentLead.phone}</p>
-              </div>
-              <div>
-                <span className="stat-label">Source List</span>
-                <p style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>{currentLead.list?.name || 'Manual Assignment'}</p>
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span className="stat-label">Address</span>
-                <p className="text-dim">{currentLead.address || 'Not Provided'}</p>
-              </div>
-              {currentLead.metadata && Object.keys(currentLead.metadata).length > 0 && (
-                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--slate-200)', paddingTop: '0.5rem' }}>
-                  <span className="stat-label">Custom Fields</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.3rem' }}>
-                    {Object.entries(currentLead.metadata).map(([k, v]) => (
-                      <span key={k} style={{ background: 'var(--indigo-50)', borderRadius: '6px', padding: '2px 8px', fontSize: '0.75rem' }}>
-                        <b>{k}:</b> {v}
-                      </span>
+      {/* ── PAGE BODY ──────────────────────────────────────────────── */}
+      <div style={{ padding: '1.5rem 2rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+        {/* Tab Bar */}
+        <div style={{ display: 'flex', gap: 8, borderBottom: '2px solid #e5e7eb', paddingBottom: 0, marginBottom: -8 }}>
+          <button
+            onClick={() => setSmsTab(false)}
+            style={{ padding: '8px 18px', background: 'none', border: 'none', borderBottom: !smsTab ? '2px solid #6366f1' : '2px solid transparent', color: !smsTab ? '#6366f1' : '#64748b', fontWeight: !smsTab ? 700 : 500, cursor: 'pointer', fontSize: '0.9rem', marginBottom: -2, fontFamily: 'inherit' }}
+          >
+            Dialer
+          </button>
+          <button
+            onClick={() => { setSmsTab(true); fetchSmsConversations(); }}
+            style={{ padding: '8px 18px', background: 'none', border: 'none', borderBottom: smsTab ? '2px solid #6366f1' : '2px solid transparent', color: smsTab ? '#6366f1' : '#64748b', fontWeight: smsTab ? 700 : 500, cursor: 'pointer', fontSize: '0.9rem', marginBottom: -2, fontFamily: 'inherit' }}
+          >
+            Messages
+          </button>
+        </div>
+
+        {/* ── SMS MESSAGES PANEL ── */}
+        {smsTab && (
+          <div style={{ display: 'flex', height: '65vh', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff', marginTop: 12 }}>
+            {/* Left: conversation list */}
+            <div style={{ width: 260, borderRight: '1px solid #e5e7eb', overflowY: 'auto', background: '#f9fafb', flexShrink: 0 }}>
+              <div style={{ padding: '10px 14px', fontWeight: 700, borderBottom: '1px solid #e5e7eb', fontSize: 13 }}>Conversations</div>
+              {smsConversations.length === 0 && (
+                <div style={{ padding: 20, color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>No messages yet</div>
+              )}
+              {smsConversations.map(c => (
+                <div
+                  key={c.contactNumber}
+                  onClick={() => { setSmsActiveThread(c.contactNumber); fetchSmsThread(c.contactNumber); }}
+                  style={{
+                    padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                    background: smsActiveThread === c.contactNumber ? '#eff6ff' : 'transparent',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 12 }}>{c.contactNumber}</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {c.direction === 'outbound' ? 'You: ' : '← '}{c.lastMessage}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                    {new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right: thread view */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              {!smsActiveThread ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
+                  Select a conversation
+                </div>
+              ) : (
+                <>
+                  <div style={{ padding: '10px 14px', borderBottom: '1px solid #e5e7eb', fontWeight: 600, fontSize: 13 }}>
+                    {smsActiveThread}
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {smsMessages.map(m => (
+                      <div key={m.id} style={{ display: 'flex', justifyContent: m.direction === 'outbound' ? 'flex-end' : 'flex-start' }}>
+                        <div style={{
+                          maxWidth: '72%', padding: '7px 11px', borderRadius: 12,
+                          background: m.direction === 'outbound' ? '#2563eb' : '#f3f4f6',
+                          color: m.direction === 'outbound' ? '#fff' : '#111827',
+                          fontSize: 13,
+                        }}>
+                          {m.body}
+                          <div style={{ fontSize: 10, opacity: 0.65, marginTop: 3 }}>
+                            {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
+                  <div style={{ padding: 10, borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
+                    <input
+                      value={smsInput}
+                      onChange={e => setSmsInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendSmsMessage(); } }}
+                      placeholder="Type a message..."
+                      style={{ flex: 1, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, outline: 'none' }}
+                    />
+                    <button
+                      onClick={sendSmsMessage}
+                      disabled={smsSendingMsg || !smsInput.trim()}
+                      style={{ padding: '7px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                    >
+                      {smsSendingMsg ? '...' : 'Send'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Stats Row + Dialer panels (hidden when SMS tab is active) */}
+        {!smsTab && (<>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+          {[
+            { label: 'Calls Today', value: stats.calls, accent: '#6366f1' },
+            { label: 'Appointments', value: stats.appointments, accent: '#10b981' },
+            { label: 'Conversion Rate', value: `${stats.calls > 0 ? ((stats.appointments / stats.calls) * 100).toFixed(1) : '0.0'}%`, accent: '#f59e0b' },
+            { label: 'Leads in Queue', value: leads.length, accent: '#06b6d4' },
+          ].map(({ label, value, accent }) => (
+            <div key={label} className="card" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${accent}` }}>
+              <span className="stat-label">{label}</span>
+              <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', fontFamily: 'Outfit,sans-serif', letterSpacing: '-0.02em', lineHeight: 1.15, marginTop: '0.4rem' }}>
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main 2-column grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.25rem', alignItems: 'start' }}>
+
+        {/* ── LEFT COLUMN ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Lead Profile Card */}
+          <section className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>👤</span> Lead Profile
+              </h2>
+              {currentLead && <span className="pill-status pill-success" style={{ fontSize: '0.65rem' }}>{currentLead.status}</span>}
+            </div>
+
+            {callState === 'failed' && lastError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#dc2626', fontWeight: 600, fontSize: '0.9rem' }}>
+                {errorLabel(lastError)} — auto-clearing in 2.5s...
+              </div>
+            )}
+
+            {currentLead ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                <div>
+                  <span className="stat-label">Contact Name</span>
+                  <p style={{ fontWeight: 700, fontSize: '1.05rem', marginTop: '0.3rem', color: '#0f172a' }}>{currentLead.firstName} {currentLead.lastName}</p>
+                </div>
+                <div>
+                  <span className="stat-label">Phone</span>
+                  <p style={{ fontWeight: 700, fontSize: '1.05rem', fontFamily: 'monospace', marginTop: '0.3rem', color: '#0f172a' }}>{currentLead.phone}</p>
+                </div>
+                <div>
+                  <span className="stat-label">Source List</span>
+                  <p style={{ fontWeight: 700, fontSize: '1.05rem', color: '#6366f1', marginTop: '0.3rem' }}>{currentLead.list?.name || 'Manual Assignment'}</p>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span className="stat-label">Address</span>
+                  <p style={{ color: '#94a3b8', marginTop: '0.3rem' }}>{currentLead.address || 'Not provided'}</p>
+                </div>
+                {currentLead.metadata && Object.keys(currentLead.metadata).length > 0 && (
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                    <span className="stat-label">Custom Fields</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.4rem' }}>
+                      {Object.entries(currentLead.metadata).map(([k, v]) => (
+                        <span key={k} style={{ background: '#eff6ff', borderRadius: 6, padding: '2px 8px', fontSize: '0.75rem', color: '#3730a3' }}>
+                          <b>{k}:</b> {v}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', opacity: 0.3 }}>👤</div>
+                <p style={{ fontWeight: 600, color: '#64748b', fontSize: '0.95rem' }}>No lead selected</p>
+                <p style={{ fontSize: '0.82rem', marginTop: '0.25rem' }}>Select from the queue below or start auto-dial</p>
+              </div>
+            )}
+
+            <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: '#f8fafc', borderRadius: 10, border: '1px dashed #e2e8f0' }}>
+              <span className="stat-label">Live Script</span>
+              <p style={{ marginTop: '0.4rem', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem', lineHeight: 1.55 }}>
+                {currentLead
+                  ? `"Hi ${currentLead.firstName}, calling from Voxiq. Hope you're having a great day..."`
+                  : 'Script will appear here when a call is active.'}
+              </p>
+            </div>
+          </section>
+
+          {/* Disposition Card */}
+          <section className="card">
+            <h2 className="font-head mb-4" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>📋</span> Disposition
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button className="btn btn-primary" onClick={() => submitDisposition('Interested')} style={{ fontSize: '0.82rem' }}>✅ Interested <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4, background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: 3 }}>F1</kbd></button>
+              <button className="btn" onClick={() => submitDisposition('Callback')} style={{ background: '#eff6ff', color: '#3730a3', border: '1px solid #c7d2fe', fontSize: '0.82rem' }}>📅 Callback <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F2</kbd></button>
+              <button className="btn" onClick={() => submitDisposition('Voicemail')} style={{ background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', fontSize: '0.82rem' }}>📭 Voicemail <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F3</kbd></button>
+              <button className="btn" onClick={() => submitDisposition('No Answer')} style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d', fontSize: '0.82rem' }}>🔕 No Answer <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F4</kbd></button>
+              <button className="btn" onClick={() => submitDisposition('Unreachable')} style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5', fontSize: '0.82rem' }}>🚫 Unreachable <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F5</kbd></button>
+              <button className="btn" onClick={() => submitDisposition('DNC')} style={{ background: '#0f172a', color: 'white', border: 'none', fontSize: '0.82rem' }}>⛔ DNC</button>
+            </div>
+            <textarea
+              className="input-field mb-3"
+              placeholder="Interaction notes..."
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Schedule Callback</label>
+                <input type="datetime-local" className="input-field" value={callbackTime} onChange={e => setCallbackTime(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Deal Value ($)</label>
+                <input type="number" className="input-field" placeholder="e.g. 500.00" value={dealValue} onChange={e => setDealValue(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn" style={{ background: '#eff6ff', color: '#3730a3', fontSize: '0.8rem' }} onClick={() => setShowSmsPanel(!showSmsPanel)} disabled={!currentLead}>💬 SMS Follow-up</button>
+              {callActive && vmTemplates.length > 0 && (
+                <button className="btn" style={{ background: '#fffbeb', color: '#d97706', fontSize: '0.8rem' }} onClick={() => setShowVmDrop(!showVmDrop)}>📬 Drop Voicemail</button>
+              )}
+            </div>
+            {showSmsPanel && (
+              <div style={{ marginTop: '0.75rem', background: '#f8fafc', borderRadius: 10, padding: '0.875rem', border: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem' }}>SMS to: {currentLead?.phone}</p>
+                {smsTemplates.length > 0 && (
+                  <select className="input-field mb-2" onChange={e => setSmsMsg(e.target.value)} defaultValue="">
+                    <option value="">Pick template...</option>
+                    {smsTemplates.map(t => <option key={t.id} value={t.message}>{t.name}</option>)}
+                  </select>
+                )}
+                <textarea className="input-field mb-2" rows={2} placeholder="Or type custom message..." value={smsMsg} onChange={e => setSmsMsg(e.target.value)} />
+                <button className="btn btn-primary" style={{ fontSize: '0.8rem' }} onClick={handleSendSms} disabled={smsSending || !smsMsg}>
+                  {smsSending ? 'Sending...' : '📤 Send SMS'}
+                </button>
+              </div>
+            )}
+            {showVmDrop && (
+              <div style={{ marginTop: '0.75rem', background: '#fffbeb', borderRadius: 10, padding: '0.875rem' }}>
+                <p style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem' }}>Select voicemail:</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {vmTemplates.map(vm => (
+                    <div key={vm.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem' }}>📬 {vm.name}</span>
+                      <button className="btn" style={{ fontSize: '0.72rem', background: '#d97706', color: 'white' }} onClick={() => handleVmDrop(vm.id, vm.url)}>Drop</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div> {/* end LEFT COLUMN */}
+
+        {/* ── RIGHT COLUMN ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* Call Control / Softphone */}
+          <section className="card" style={{ background: 'linear-gradient(160deg, #0f172a 0%, #1b2050 100%)', border: 'none', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, color: 'white', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.46 2 2 0 0 1 3.57 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                Call Control
+              </h2>
+              <div style={{ padding: '3px 10px', borderRadius: 6, background: callState === 'connected' ? 'rgba(52,211,153,0.18)' : callState === 'connecting' || callState === 'ringing' ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.08)', border: `1px solid ${callState === 'connected' ? 'rgba(52,211,153,0.35)' : callState === 'connecting' || callState === 'ringing' ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.12)'}`, fontSize: '0.7rem', fontWeight: 800, color: callState === 'connected' ? '#34d399' : callState === 'connecting' || callState === 'ringing' ? '#fbbf24' : 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' }}>
+                {callState === 'connected' ? `LIVE • ${String(Math.floor(callTimer / 60)).padStart(2, '0')}:${String(callTimer % 60).padStart(2, '0')}` : callState === 'connecting' ? 'DIALING...' : callState === 'ringing' ? 'RINGING...' : registered ? '✓ READY' : 'STANDBY'}
+              </div>
+            </div>
+
+            <div style={{ background: callActive ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${callActive ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 12, padding: '1.25rem', marginBottom: '1rem', textAlign: 'center', transition: 'all 0.3s ease' }}>
+              <div style={{ fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.5rem' }}>CURRENT STATUS</div>
+              <div style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 900, fontSize: '1.5rem', color: callState === 'connected' ? '#34d399' : callState === 'failed' ? '#f87171' : 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em' }}>
+                {lineStatusText()}
+              </div>
+              {sipCause && callState === 'disconnected' && callOutcome === 'invalid' && (
+                <div style={{ marginTop: '0.5rem', background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, padding: '5px 10px', fontSize: '0.7rem', color: '#f87171', fontWeight: 600 }}>
+                  {sipCause === 'USER_BUSY' || sipCause === '486' ? '📵 Line busy' : sipCause === 'CALL_REJECTED' || sipCause === '403' ? '❌ Call rejected' : sipCause === 'UNALLOCATED_NUMBER' || sipCause === '404' ? '⚠️ Number not found' : `SIP: ${sipCause}`}
                 </div>
               )}
             </div>
-          ) : (
-            <div className="text-center py-8 text-soft">Awaiting next lead assignment...</div>
-          )}
 
-          <div className="card mt-4" style={{ background: 'var(--slate-50)', borderStyle: 'dashed' }}>
-            <span className="stat-label">Live Script</span>
-            <p className="mt-2 text-dim" style={{ fontStyle: 'italic', fontSize: '0.95rem' }}>
-              {currentLead
-                ? `"Hi ${currentLead.firstName}, calling from WinFi. Hope you're having a great day..."`
-                : 'The dynamic script will appear here once a call is active.'}
-            </p>
-          </div>
-        </section>
-
-        <section className="card">
-          <h2 className="font-head mb-4">Disposition</h2>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button className="btn btn-primary" onClick={() => submitDisposition('Interested')}>Interested (F1)</button>
-            <button className="btn" style={{ background: 'var(--slate-100)' }} onClick={() => submitDisposition('Callback')}>Callback (F2)</button>
-            <button className="btn" style={{ background: 'var(--slate-100)' }} onClick={() => submitDisposition('Voicemail')}>Voicemail (F3)</button>
-            <button className="btn" style={{ background: 'var(--slate-100)' }} onClick={() => submitDisposition('No Answer')}>No Answer (F4)</button>
-            <button className="btn" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5' }} onClick={() => submitDisposition('Unreachable')}>Unreachable (F5)</button>
-            <button className="btn pill-error" style={{ color: 'white' }} onClick={() => submitDisposition('DNC')}>DNC</button>
-          </div>
-          <textarea
-            className="input-field mb-3"
-            placeholder="Interaction notes here..."
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <div className="mb-3">
-            <label className="text-dim" style={{ fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Schedule Callback (Optional)</label>
-            <input
-              type="datetime-local"
-              className="input-field"
-              value={callbackTime}
-              onChange={e => setCallbackTime(e.target.value)}
-              style={{ maxWidth: '250px' }}
-            />
-          </div>
-          <div className="mb-3">
-            <label className="text-dim" style={{ fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>Deal Value ($) (Optional)</label>
-            <input
-              type="number"
-              className="input-field"
-              placeholder="e.g. 500.00"
-              value={dealValue}
-              onChange={e => setDealValue(e.target.value)}
-              style={{ maxWidth: '250px' }}
-            />
-          </div>
-          {/* SMS Follow-up */}
-          <div className="flex gap-2 mb-2">
-            <button
-              className="btn"
-              style={{ background: 'var(--indigo-50)', color: 'var(--primary)', fontSize: '0.8rem' }}
-              onClick={() => setShowSmsPanel(!showSmsPanel)}
-              disabled={!currentLead}
-            >💬 SMS Follow-up</button>
-            {callActive && vmTemplates.length > 0 && (
-              <button
-                className="btn"
-                style={{ background: 'var(--amber-50)', color: '#d97706', fontSize: '0.8rem' }}
-                onClick={() => setShowVmDrop(!showVmDrop)}
-              >📬 Drop Voicemail</button>
-            )}
-          </div>
-          {showSmsPanel && (
-            <div style={{ background: 'var(--slate-50)', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.5rem' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.4rem' }}>SMS to: {currentLead?.phone}</p>
-              {smsTemplates.length > 0 && (
-                <select className="input-field mb-2" onChange={e => setSmsMsg(e.target.value)} defaultValue="">
-                  <option value="">Pick template...</option>
-                  {smsTemplates.map(t => <option key={t.id} value={t.message}>{t.name}</option>)}
-                </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {!callActive && !currentLead && status !== 'Waiting for Lead...' && (
+                <button style={{ padding: '0.875rem', fontSize: '1rem', fontWeight: 800, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', boxShadow: '0 4px 16px rgba(99,102,241,0.45)', cursor: 'pointer', fontFamily: 'inherit', width: '100%', letterSpacing: '0.02em' }} onClick={handleStartDialing}>
+                  ▶ START CAMPAIGN DIALING
+                </button>
               )}
-              <textarea className="input-field mb-2" rows={2} placeholder="Or type custom message..." value={smsMsg} onChange={e => setSmsMsg(e.target.value)} />
-              <button className="btn btn-primary" style={{ fontSize: '0.8rem' }} onClick={handleSendSms} disabled={smsSending || !smsMsg}>
-                {smsSending ? 'Sending...' : '📤 Send SMS'}
-              </button>
+              {!callActive && status === 'Waiting for Lead...' && (
+                <button style={{ padding: '0.875rem', fontSize: '1rem', fontWeight: 800, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }} onClick={handlePause}>
+                  ⏸ PAUSE DIALING
+                </button>
+              )}
+              {callActive && (
+                <button style={{ padding: '0.875rem', fontSize: '1rem', fontWeight: 800, borderRadius: 10, background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: 'white', border: 'none', boxShadow: '0 6px 20px rgba(220,38,38,0.5)', animation: callState === 'connected' ? 'pulse-red 2s infinite' : 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }} onClick={handleHangup}>
+                  📵 END CALL
+                </button>
+              )}
             </div>
-          )}
-          {showVmDrop && (
-            <div style={{ background: 'var(--amber-50)', borderRadius: '8px', padding: '0.75rem' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem' }}>Select voicemail to drop:</p>
-              <div className="flex flex-col gap-2">
-                {vmTemplates.map(vm => (
-                  <div key={vm.id} className="flex justify-between items-center">
-                    <span style={{ fontSize: '0.82rem' }}>📬 {vm.name}</span>
-                    <button className="btn" style={{ fontSize: '0.72rem', background: '#d97706', color: 'white' }} onClick={() => handleVmDrop(vm.id, vm.url)}>Drop</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-      </div >
 
-      <div className="flex flex-col gap-4">
-        <section className="card" style={{ background: 'var(--grad-surface)', border: '1px solid var(--indigo-100)' }}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-head" style={{ color: 'var(--brand-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>📞</span> Softphone
-            </h2>
-            <div className="pill-status" style={{
-              background: callState === 'connected' ? 'rgba(16,185,129,0.15)' : callState === 'connecting' || callState === 'ringing' ? 'rgba(245,158,11,0.15)' : 'var(--white)',
-              color: callState === 'connected' ? 'var(--emerald-500)' : callState === 'connecting' || callState === 'ringing' ? '#d97706' : 'var(--slate-500)',
-              border: '1px solid var(--slate-100)',
-              fontSize: '0.75rem',
-              fontWeight: 700
-            }}>
-              {callState === 'connected'
-                ? `LIVE • ${String(Math.floor(callTimer / 60)).padStart(2, '0')}:${String(callTimer % 60).padStart(2, '0')}`
-                : callState === 'connecting' ? 'DIALING...'
-                  : callState === 'ringing' ? 'RINGING...'
-                    : registered ? '✅ REGISTERED' : 'STANDBY'}
-            </div>
-          </div>
-
-          <div className="text-center py-6 mb-6" style={{
-            background: 'white',
-            borderRadius: '12px',
-            border: callActive ? '2px solid var(--emerald-400)' : '1px dashed var(--slate-300)',
-            boxShadow: callActive ? '0 8px 24px rgba(16,185,129,0.1)' : 'none',
-            transition: 'all 0.3s ease'
-          }}>
-            <span className="stat-label" style={{ marginBottom: '8px', display: 'block', fontSize: '0.8rem', letterSpacing: '0.05em' }}>CURRENT STATUS</span>
-            <div className="font-head" style={{
-              fontSize: '1.75rem',
-              color: callState === 'connected' ? 'var(--emerald-600)' : callState === 'failed' ? '#dc2626' : 'var(--brand-dark)',
-              fontWeight: 900,
-              letterSpacing: '-0.02em'
-            }}>
-              {lineStatusText()}
-            </div>
-            {/* SIP failure reason — only visible after a rejected/failed call */}
-            {sipCause && callState === 'disconnected' && callOutcome === 'invalid' && (
-              <div style={{
-                marginTop: '8px',
-                background: 'rgba(239,68,68,0.08)',
-                border: '1px solid rgba(239,68,68,0.25)',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                fontSize: '0.75rem',
-                color: '#b91c1c',
-                fontWeight: 600,
-              }}>
-                {sipCause === 'USER_BUSY' || sipCause === '486'
-                  ? '📵 Line busy — destination phone is occupied or unreachable'
-                  : sipCause === 'CALL_REJECTED' || sipCause === '403'
-                    ? '❌ Call rejected — verify Telnyx outbound profile allows this destination'
-                    : sipCause === 'UNALLOCATED_NUMBER' || sipCause === '404'
-                      ? '⚠️ Number not found — check the number is correct'
-                      : `SIP error: ${sipCause}`
-                }
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {/* Campaign dialing controls */}
-            {!callActive && !currentLead && status !== 'Waiting for Lead...' && (
-              <button 
-                className="btn btn-primary w-full" 
-                style={{ 
-                  padding: '1rem', 
-                  fontSize: '1.1rem', 
-                  fontWeight: 800, 
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 15px rgba(var(--brand-primary-rgb), 0.3)'
-                }} 
-                onClick={handleStartDialing}
-              >
-                ▶ START CAMPAIGN DIALING
-              </button>
-            )}
-            {!callActive && status === 'Waiting for Lead...' && (
-              <button 
-                className="btn w-full" 
-                style={{ 
-                  background: 'var(--amber-500)', 
-                  color: 'white', 
-                  padding: '1rem', 
-                  fontSize: '1.1rem', 
-                  fontWeight: 800,
-                  borderRadius: '12px'
-                }} 
-                onClick={handlePause}
-              >
-                ⏸ PAUSE DIALING
-              </button>
-            )}
-
-            {/* END CALL button - with pulsing animation */}
-            {callActive && (
-              <button
-                className="btn w-full"
-                style={{
-                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                  color: 'white',
-                  padding: '1rem',
-                  fontSize: '1.1rem',
-                  fontWeight: 800,
-                  borderRadius: '12px',
-                  letterSpacing: '0.05em',
-                  boxShadow: '0 8px 20px rgba(220,38,38,0.4)',
-                  animation: callState === 'connected' ? 'pulse-red 2s infinite' : 'none',
-                }}
-                onClick={handleHangup}
-              >
-                📵 DISCONNECT CALL
-              </button>
-            )}
-
-            {/* DTMF Keypad - Auto Display when connected */}
             {callState === 'connected' && (
-              <div className="mt-2 pt-4" style={{ borderTop: '1px solid var(--slate-100)' }}>
-                <span className="stat-label block mb-4 text-center" style={{ fontWeight: 700 }}>DIAL PAD</span>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '10px',
-                  maxWidth: '260px',
-                  margin: '0 auto'
-                }}>
-                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(key => (
-                    <button
-                      key={key}
-                      onClick={() => sendDTMF(key)}
-                      className="btn"
-                      style={{
-                        background: 'var(--slate-50)',
-                        border: '1px solid var(--slate-200)',
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        padding: '14px 0',
-                        borderRadius: '12px',
-                        color: 'var(--brand-dark)',
-                        transition: 'all 0.1s ease',
-                      }}
-                    >
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginBottom: '0.75rem' }}>DIAL PAD</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', maxWidth: '240px', margin: '0 auto' }}>
+                  {['1','2','3','4','5','6','7','8','9','*','0','#'].map(key => (
+                    <button key={key} onClick={() => sendDTMF(key)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, fontSize: '1.2rem', fontWeight: 700, padding: '11px 0', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
                       {key}
                     </button>
                   ))}
                 </div>
               </div>
             )}
+          </section>
 
-            {/* Manual dial section - High visibility when idle */}
-            {!callActive && !currentLead && status !== 'Waiting for Lead...' && (
-              <div className="mt-4 pt-6" style={{ borderTop: '1px solid var(--slate-100)' }}>
-                <span className="stat-label block mb-3 text-center" style={{ fontWeight: 700, fontSize: '0.75rem' }}>OR DIAL MANUALLY</span>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="+1 (555) 000-0000"
-                    value={dialNumber}
-                    onChange={(e) => setDialNumber(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleManualInputDial()}
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      height: '52px', 
-                      borderRadius: '12px', 
-                      border: '2px solid var(--indigo-100)',
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      letterSpacing: '0.05em'
-                    }}
-                  />
+          {/* ── MANUAL DIAL CARD (dedicated) ── */}
+          <section className="card" style={{ border: '1.5px solid #e0e7ff' }}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.46 2 2 0 0 1 3.57 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.54a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="font-head" style={{ fontSize: '1rem', lineHeight: 1.1 }}>Manual Dial</h2>
+                  <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '1px' }}>Enter any number to call directly</p>
+                </div>
+              </div>
+              {/* Keypad toggle */}
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowDialpad(p => !p)}
+                style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${showDialpad ? '#6366f1' : '#e0e7ff'}`, background: showDialpad ? '#eff6ff' : 'white', color: showDialpad ? '#6366f1' : '#64748b', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}
+                title="Toggle dialpad"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="4" height="4" rx="1"/><rect x="10" y="2" width="4" height="4" rx="1"/><rect x="18" y="2" width="4" height="4" rx="1"/>
+                  <rect x="2" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/>
+                  <rect x="2" y="18" width="4" height="4" rx="1"/><rect x="10" y="18" width="4" height="4" rx="1"/><rect x="18" y="18" width="4" height="4" rx="1"/>
+                </svg>
+                Keypad
+              </button>
+            </div>
+
+            {/* Name field */}
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Contact name (optional)"
+              value={dialName}
+              onChange={(e) => setDialName(e.target.value)}
+              style={{ marginBottom: '0.5rem', fontSize: '0.9rem', height: '40px', borderRadius: 9, border: '1.5px solid #e2e8f0' }}
+            />
+
+            {/* Number display + call button */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              {/* Country code — manually typeable with datalist suggestions */}
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  list="country-codes-list"
+                  value={dialCountryCode}
+                  onChange={(e) => setDialCountryCode(e.target.value)}
+                  style={{ width: '72px', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'monospace', background: '#f8fafc', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
+                  placeholder="+92"
+                />
+                <datalist id="country-codes-list">
+                  {countries.map(c => (
+                    <option key={`${c.name}-${c.code}`} value={c.code}>{c.name} ({c.code})</option>
+                  ))}
+                </datalist>
+              </div>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="300 0000000"
+                value={dialNumber}
+                onChange={(e) => setDialNumber(e.target.value.replace(/[^\d\s\-]/g, ''))}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualInputDial()}
+                style={{ flex: 1, fontSize: '1.1rem', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'monospace' }}
+              />
+              <button
+                style={{ height: '52px', padding: '0 1.25rem', fontSize: '1.3rem', borderRadius: 10, minWidth: '54px', border: 'none', cursor: callActive ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: dialNumber && !callActive ? 'linear-gradient(135deg,#10b981,#059669)' : '#f1f5f9', color: dialNumber && !callActive ? 'white' : '#94a3b8', boxShadow: dialNumber && !callActive ? '0 4px 14px rgba(16,185,129,0.4)' : 'none', transition: 'all 0.2s' }}
+                onClick={() => handleManualInputDial()}
+                disabled={!dialNumber || callActive}
+                title="Call (Enter)"
+              >📞</button>
+            </div>
+
+            {/* Inline Dialpad */}
+            {showDialpad && (
+              <div style={{ marginTop: '0.75rem', padding: '0.875rem', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', userSelect: 'none' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[
+                    { key: '1', sub: '' }, { key: '2', sub: 'ABC' }, { key: '3', sub: 'DEF' },
+                    { key: '4', sub: 'GHI' }, { key: '5', sub: 'JKL' }, { key: '6', sub: 'MNO' },
+                    { key: '7', sub: 'PQRS' }, { key: '8', sub: 'TUV' }, { key: '9', sub: 'WXYZ' },
+                    { key: '*', sub: '' }, { key: '0', sub: '+' }, { key: '#', sub: '' },
+                  ].map(({ key, sub }) => (
+                    <button
+                      key={key}
+                      onClick={() => setDialNumber(prev => prev + key)}
+                      style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 0', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1px', touchAction: 'manipulation' }}
+                      className="dialpad-key"
+                    >
+                      <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{key}</span>
+                      {sub && <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em' }}>{sub}</span>}
+                    </button>
+                  ))}
+                </div>
+                {/* Backspace + Clear row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
                   <button
-                    className="btn"
-                    style={{ 
-                      height: '52px', 
-                      padding: '0 1.5rem', 
-                      fontSize: '1rem', 
-                      fontWeight: 800,
-                      borderRadius: '12px',
-                      background: 'var(--brand-dark)',
-                      color: 'white'
-                    }}
-                    onClick={handleManualInputDial}
-                    disabled={!dialNumber}
-                  >
-                    DIAL
-                  </button>
+                    onClick={() => setDialNumber(prev => prev.slice(0, -1))}
+                    style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1.1rem', color: '#64748b', fontWeight: 700, touchAction: 'manipulation' }}
+                    className="dialpad-key dialpad-backspace"
+                    title="Backspace"
+                  >⌫</button>
+                  <button
+                    onClick={() => handleManualInputDial()}
+                    disabled={!dialNumber || callActive}
+                    style={{ background: dialNumber && !callActive ? 'linear-gradient(135deg,#10b981,#059669)' : '#f1f5f9', border: 'none', borderRadius: 10, padding: '10px 0', cursor: dialNumber && !callActive ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: '1.1rem', color: dialNumber && !callActive ? 'white' : '#94a3b8', fontWeight: 800, boxShadow: dialNumber && !callActive ? '0 4px 12px rgba(16,185,129,0.35)' : 'none', transition: 'all 0.2s', touchAction: 'manipulation' }}
+                  >📞</button>
                 </div>
               </div>
             )}
-          </div>
-        </section>
 
-        <section className="card">
-          <h2 className="font-head mb-4">Recent Activity</h2>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Lead</th>
-                  <th>Time</th>
-                  <th>Outcome</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentCalls.map((call, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{call.lead}</td>
-                    <td className="text-soft">{call.time}</td>
-                    <td><span className="pill-status pill-success" style={{ fontSize: '0.65rem' }}>{call.disposition}</span></td>
-                  </tr>
-                ))}
-                {recentCalls.length === 0 && (
-                  <tr>
-                    <td colSpan="3" className="text-center py-4 text-soft">No calls in current session</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
-      {/* Lead Queue */}
-      <section className="card full-width" style={{ gridColumn: '1 / -1' }}>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="font-head">Lead Queue</h2>
-            <p className="text-dim" style={{ fontSize: '0.85rem' }}>
-              {autoDial
-                ? <><span style={{ color: 'var(--brand-orange)', fontWeight: 700 }}>⚡ Auto Dialing</span> — {autoDialIndex + 1} of {autoDialLeadsRef.current.length} leads{autoDialCountdown !== null ? <span style={{ marginLeft: 8, color: '#ef4444', fontWeight: 700 }}>Next in {autoDialCountdown}s...</span> : null}</>
-                : <>{leads.length} leads available • Click a lead to dial</>}
-            </p>
-          </div>
-          <div className="flex gap-2 items-center">
-            {/* Power Dialer Controls */}
-            <button
-              className="btn"
-              style={{
-                fontSize: '0.8rem', fontWeight: 700, padding: '0.5rem 1rem',
-                background: autoDial ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)',
-                color: 'white', border: 'none', borderRadius: 8,
-                boxShadow: autoDial ? '0 4px 12px rgba(239,68,68,0.35)' : '0 4px 12px rgba(16,185,129,0.35)',
-              }}
-              onClick={toggleAutoDial}
-              title={autoDial ? 'Pause auto-dialing' : 'Start power dialer — auto-advances on no-answer'}
-            >
-              {autoDial ? '⏸ Pause' : autoDialLeadsRef.current.length > 0 && leadSearch.toLowerCase() === lastSearchRef.current ? '▶️ Resume' : '⚡ Auto Dial'}
-            </button>
-            {autoDial && (
+            {/* Redial */}
+            {lastDialedNumber && (
               <button
-                className="btn"
-                style={{ fontSize: '0.75rem', background: 'var(--slate-100)', fontWeight: 600 }}
-                onClick={handleAutoSkip}
-                title="Skip to next lead"
+                style={{ marginTop: '0.75rem', width: '100%', padding: '0.6rem', borderRadius: 9, border: '1.5px dashed #d1fae5', background: '#f0fdf4', color: '#059669', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                onClick={() => handleManualInputDial(lastDialedNumber)}
+                disabled={callActive}
+                title={`Redial ${lastDialedNumber}`}
               >
-                Skip →
+                🔄 Redial <span style={{ fontFamily: 'monospace', fontWeight: 600, letterSpacing: '0.03em' }}>{lastDialedNumber}</span>
               </button>
             )}
-            <input
-              className="input-field"
-              style={{ width: '180px', padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
-              placeholder="Search name or phone..."
-              value={leadSearch}
-              onChange={e => setLeadSearch(e.target.value)}
-              disabled={autoDial}
-            />
-            <button className="btn" style={{ fontSize: '0.75rem', background: 'var(--slate-100)' }} onClick={() => fetchLeads(agentId)} disabled={autoDial}>
-              {leadsLoading ? 'Loading...' : 'Refresh'}
-            </button>
+          </section>
+
+          {/* Recent Activity */}
+          <section className="card">
+            <h2 className="font-head mb-4" style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>🕐</span> Recent Activity
+            </h2>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Caller / Lead</th>
+                    <th>Number</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentCalls.map((call, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 600 }}>
+                        {call.direction === 'inbound' ? '📲 ' : '📞 '}
+                        {call.lead}
+                      </td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>
+                        {call.number || '—'}
+                      </td>
+                      <td style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{call.time}</td>
+                      <td>
+                        <span className={`pill-status ${call.disposition === 'Missed' ? 'pill-error' : 'pill-success'}`}
+                          style={{ fontSize: '0.65rem' }}>
+                          {call.disposition === 'Missed' ? '📵 Missed' : call.disposition === 'Received' ? '✅ Received' : call.disposition}
+                        </span>
+                      </td>
+                      <td>
+                        {call.number && (
+                          <button
+                            disabled={callActive}
+                            onClick={() => {
+                              const num = call.number.replace(/\D/g, '');
+                              setDialNumber(num);
+                              setDialName(call.lead || num);
+                              setShowDialpad(true);
+                            }}
+                            style={{
+                              background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
+                              color: callActive ? '#94a3b8' : '#fff',
+                              border: 'none', borderRadius: 8,
+                              padding: '4px 10px', fontSize: '0.75rem',
+                              cursor: callActive ? 'not-allowed' : 'pointer',
+                              fontWeight: 700, whiteSpace: 'nowrap',
+                            }}
+                          >
+                            📞 Call Back
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {recentCalls.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>No calls yet this session</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div> {/* end RIGHT COLUMN */}
+        </div> {/* end main 2-col grid */}
+
+        {/* ── LEAD QUEUE ── */}
+        <section className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div>
+              <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>⚡</span> Lead Queue
+              </h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: '2px' }}>
+                {autoDial
+                  ? <><span style={{ color: '#f59e0b', fontWeight: 700 }}>⚡ Auto Dialing</span> — {autoDialIndex + 1} of {autoDialLeadsRef.current.length} leads{autoDialCountdown !== null ? <span style={{ marginLeft: 8, color: '#ef4444', fontWeight: 700 }}>Next in {autoDialCountdown}s...</span> : null}</>
+                  : <>{leads.length} leads available • Click a lead to dial</>}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                className="btn"
+                style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.5rem 1.25rem', background: autoDial ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none', borderRadius: 8, boxShadow: autoDial ? '0 4px 12px rgba(239,68,68,0.35)' : '0 4px 12px rgba(16,185,129,0.35)' }}
+                onClick={toggleAutoDial}
+                title={autoDial ? 'Pause auto-dialing' : 'Start power dialer'}
+              >
+                {autoDial ? '⏸ Pause' : autoDialLeadsRef.current.length > 0 && leadSearch.toLowerCase() === lastSearchRef.current ? '▶️ Resume' : '⚡ Auto Dial'}
+              </button>
+              {autoDial && (
+                <button className="btn" style={{ fontSize: '0.75rem', background: '#f1f5f9' }} onClick={handleAutoSkip} title="Skip to next lead">Skip →</button>
+              )}
+              <input
+                className="input-field"
+                style={{ width: '180px', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                placeholder="Search name or phone..."
+                value={leadSearch}
+                onChange={e => setLeadSearch(e.target.value)}
+                disabled={autoDial}
+              />
+              <button className="btn" style={{ fontSize: '0.75rem', background: '#f1f5f9' }} onClick={() => fetchLeads(agentId)} disabled={autoDial}>
+                {leadsLoading ? 'Loading...' : '↻ Refresh'}
+              </button>
+            </div>
           </div>
-        </div>
         <div className="table-container">
           <table>
             <thead>
@@ -1351,8 +1648,8 @@ export default function Agent() {
                         {lead.firstName} {lead.lastName}
                       </td>
                       <td style={{ fontFamily: 'monospace' }}>{lead.phone}</td>
-                      <td><span className="pill-status" style={{ fontSize: '0.65rem', background: 'var(--indigo-50)' }}>{lead.list?.name || 'Unknown'}</span></td>
-                      <td className="text-dim">{lead.address || '—'}</td>
+                      <td><span className="pill-status" style={{ fontSize: '0.65rem', background: '#eff6ff', color: '#3730a3' }}>{lead.list?.name || 'Unknown'}</span></td>
+                      <td style={{ color: '#94a3b8' }}>{lead.address || '—'}</td>
                       <td>{statusBadge}</td>
                       <td>
                         <button
@@ -1371,7 +1668,7 @@ export default function Agent() {
                 });
               })() : (
                 <tr>
-                  <td colSpan="6" className="text-center py-6 text-soft">
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8' }}>
                     {leadsLoading ? 'Loading leads...' : leads.length === 0 ? 'No leads found. Upload a CSV from Admin panel.' : 'No leads match your search.'}
                   </td>
                 </tr>
@@ -1379,15 +1676,24 @@ export default function Agent() {
             </tbody>
           </table>
         </div>
-      </section>
+        </section>
+        </>)} {/* end !smsTab */}
+      </div> {/* end page body */}
 
-      {/* Pulsing red animation for active call */}
       <style>{`
         @keyframes pulse-red {
-          0%, 100% { box-shadow: 0 4px 15px rgba(220,38,38,0.4); }
-          50% { box-shadow: 0 4px 25px rgba(220,38,38,0.7); }
+          0%, 100% { box-shadow: 0 6px 20px rgba(220,38,38,0.5); }
+          50% { box-shadow: 0 6px 30px rgba(220,38,38,0.75); }
         }
+        @keyframes pulse-ring {
+          0%, 100% { box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 0 rgba(34,197,94,0.15); }
+          50% { box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 16px rgba(34,197,94,0); }
+        }
+        .dialpad-key:hover { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+        .dialpad-key:active { background: #eff6ff !important; border-color: #6366f1 !important; transform: scale(0.95); }
+        .dialpad-backspace:hover { background: #fef2f2 !important; border-color: #fca5a5 !important; color: #dc2626 !important; }
+        .dialpad-backspace:active { transform: scale(0.95); }
       `}</style>
-    </div >
+    </div>
   );
 }
