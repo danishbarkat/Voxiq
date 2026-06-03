@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BarChart3, 
-  Mic, 
-  Trophy, 
-  Users, 
-  Rocket, 
-  Settings, 
-  ShieldCheck, 
-  LogOut, 
-  Plus, 
+import {
+  LayoutDashboard,
+  BarChart3,
+  Mic,
+  Trophy,
+  Users,
+  Rocket,
+  Settings,
+  ShieldCheck,
+  LogOut,
+  Plus,
   RefreshCcw,
   Building2,
   ListTodo,
@@ -19,7 +19,8 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
-  Menu
+  Menu,
+  MessageSquare
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { API_URL } from '../config/env';
@@ -497,11 +498,29 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('voxiq_sidebar_collapsed') === 'true'; } catch { return false; }
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('voxiq_sidebar_collapsed', String(next)); } catch {}
+      return next;
+    });
+  };
   const { socket, isConnected, reconnect } = useSocket();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    try { return localStorage.getItem('voxiq_active_tab') || 'dashboard'; } catch { return 'dashboard'; }
+  });
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    try { localStorage.setItem('voxiq_active_tab', tab); } catch {}
+  };
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
+  const [resetRequests, setResetRequests] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [isLoading, setIsLoading] = useState(!!getToken());
   const [error, setError] = useState(null);
@@ -520,6 +539,14 @@ export default function Admin() {
   const [scorecards, setScorecards] = useState([]);
   const [recordings, setRecordings] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
+
+  // SMS Messaging tab
+  const [smsConversations, setSmsConversations] = useState([]);
+  const [smsActiveThread, setSmsActiveThread] = useState(null);
+  const [smsMessages, setSmsMessages] = useState([]);
+  const [smsInput, setSmsInput] = useState('');
+  const [smsSendingMsg, setSmsSendingMsg] = useState(false);
+  const [smsAgentFilter, setSmsAgentFilter] = useState('all');
 
   // Integrations
   const [webhooks, setWebhooks] = useState([]);
@@ -547,6 +574,9 @@ export default function Admin() {
   const [campaignForm, setCampaignForm] = useState({ id: null, name: '', accountId: '', mode: 'PREDICTIVE', pacing: 3, localPresence: false, record: false, numberPool: [] });
   const [manageAccount, setManageAccount] = useState(null); // For account edit modal
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null });
+  const [importResult, setImportResult] = useState(null);
+  const [editAgentModal, setEditAgentModal] = useState(null);
+  const [editAgentForm, setEditAgentForm] = useState({ name: '', email: '', password: '' });
   const [selectedLists, setSelectedLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState('');
 
@@ -557,16 +587,29 @@ export default function Admin() {
     user: null,
     loginError: null,
   });
+  const currentRole = authState.user?.role?.toLowerCase() || '';
+  const isSuperAdmin = currentRole === 'superadmin';
+  const isAdmin = currentRole === 'admin';
+  const companyAccountId = authState.user?.accountId || accounts[0]?.id || '';
+  const isInactiveAccount = authState.user?.accountStatus === 'INACTIVE';
+  const companyName = accounts.find(a => a.id === companyAccountId)?.name || '';
+  const [activationMessage, setActivationMessage] = useState('');
+  const [activationLoading, setActivationLoading] = useState(false);
 
   useEffect(() => {
     if (authState.token) {
-      if (!authState.user) fetchProfile();
-      fetchInitialData();
-      fetchRoles();
+      if (!authState.user) {
+        fetchProfile();
+      } else if (!isInactiveAccount) {
+        fetchInitialData();
+        fetchRoles();
+      } else {
+        setIsLoading(false);
+      }
     } else {
       setIsLoading(false);
     }
-  }, [authState.token, !!authState.user]);
+  }, [authState.token, !!authState.user, isInactiveAccount]);
 
   useEffect(() => {
     if (importForm.accountId) fetchLists(importForm.accountId);
@@ -594,7 +637,9 @@ export default function Admin() {
     }
     if (activeTab === 'agents') {
       fetchUsers();
+      fetchResetRequests();
     }
+    if (activeTab === 'sms') fetchAdminSmsConversations();
   }, [activeTab]);
 
   const fetchProfile = async () => {
@@ -625,11 +670,26 @@ export default function Admin() {
     navigate('/login');
   };
 
+  const handleRequestActivation = async () => {
+    try {
+      setActivationLoading(true);
+      await fetchJson(`${API_URL}/auth/reactivation-request`, {
+        method: 'POST',
+        body: JSON.stringify({ message: activationMessage }),
+      });
+      alert('Activation request sent to the Voxiq super admin team.');
+    } catch (e) {
+      alert(`Failed: ${e.message}`);
+    } finally {
+      setActivationLoading(false);
+    }
+  };
+
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      await Promise.allSettled([fetchCampaigns(), fetchUsers(), fetchLeads(), fetchAccounts()]);
+      await Promise.allSettled([fetchCampaigns(), fetchUsers(), fetchLeads(), fetchAccounts(), fetchResetRequests()]);
     } catch (err) {
       setError('Failed to load dashboard. Please refresh.');
     } finally {
@@ -642,8 +702,14 @@ export default function Admin() {
       const data = await fetchJson(`${API_URL}/leads/accounts`);
       const sanitized = Array.isArray(data) ? data : [];
       setAccounts(sanitized);
-      if (sanitized.length > 0 && !importForm.accountId) {
-        setImportForm(prev => ({ ...prev, accountId: sanitized[0].id }));
+      const defaultAccountId = authState.user?.accountId || sanitized[0]?.id || '';
+      if (defaultAccountId && !importForm.accountId) {
+        setImportForm(prev => ({ ...prev, accountId: defaultAccountId }));
+      }
+      if (defaultAccountId) {
+        setListForm(prev => ({ ...prev, accountId: prev.accountId || defaultAccountId }));
+        setUserForm(prev => ({ ...prev, accountId: prev.accountId || defaultAccountId }));
+        setCampaignForm(prev => ({ ...prev, accountId: prev.accountId || defaultAccountId }));
       }
     } catch (e) { console.error('accounts:', e); }
   };
@@ -678,6 +744,13 @@ export default function Admin() {
       const data = await fetchJson(`${API_URL}/users`);
       setUsers(Array.isArray(data) ? data : []);
     } catch (e) { console.error('users:', e); }
+  };
+
+  const fetchResetRequests = async () => {
+    try {
+      const data = await fetchJson(`${API_URL}/auth/reset-requests`);
+      setResetRequests(Array.isArray(data) ? data : []);
+    } catch (e) { setResetRequests([]); }
   };
 
   const fetchRoles = async () => {
@@ -760,10 +833,9 @@ export default function Admin() {
 
   const formatCallerOption = (entry) => {
     if (!entry) return '';
-    const name = (entry.callerName || '').trim();
     const number = entry.number || '';
-    const area = entry.areaCode ? ` (${entry.areaCode})` : '';
-    return `${name ? `${name} - ` : ''}${number}${area}`;
+    const area = entry.areaCode ? ` ${entry.areaCode}` : '';
+    return `${number}${area}`;
   };
 
   // ─── Integrations fetchers ───────────────────────────────────────────────
@@ -830,6 +902,35 @@ export default function Admin() {
     } catch (e) { }
   };
 
+  const fetchAdminSmsConversations = async () => {
+    try {
+      const data = await fetchJson(`${API_URL}/sms/conversations`);
+      setSmsConversations(Array.isArray(data) ? data : []);
+    } catch (e) { console.error('fetchAdminSmsConversations:', e); }
+  };
+
+  const fetchAdminSmsThread = async (contactNumber) => {
+    try {
+      const encoded = encodeURIComponent(contactNumber);
+      const data = await fetchJson(`${API_URL}/sms/conversations/${encoded}`);
+      setSmsMessages(Array.isArray(data) ? data : []);
+    } catch (e) { console.error('fetchAdminSmsThread:', e); }
+  };
+
+  const sendAdminSmsMessage = async () => {
+    if (!smsInput.trim() || !smsActiveThread) return;
+    setSmsSendingMsg(true);
+    try {
+      await fetchJson(`${API_URL}/sms/send`, {
+        method: 'POST',
+        body: JSON.stringify({ to: smsActiveThread, body: smsInput.trim() }),
+      });
+      setSmsInput('');
+      await fetchAdminSmsThread(smsActiveThread);
+    } catch (e) { alert('SMS failed: ' + e.message); }
+    finally { setSmsSendingMsg(false); }
+  };
+
   // ─── CRUD handlers ───────────────────────────────────────────────────────
   const handleStartCampaign = async (id) => {
     try { await fetchJson(`${API_URL}/dialer/campaign/${id}/start`, { method: 'POST' }); }
@@ -863,13 +964,13 @@ export default function Admin() {
       });
       const r = await res.json();
       if (res.ok) {
-        alert(`Import done\n✅ ${r.imported || 0} imported\n⏭️ ${r.duplicates || 0} dupes\n❌ ${r.errors || 0} errors`);
+        setImportResult({ imported: r.imported || 0, duplicates: r.duplicates || 0, errors: r.errors || 0 });
         setSelectedFile(null);
         setImportForm(p => ({ ...p, newListName: '' }));
         fetchLeads(importForm.accountId);
         fetchLists(importForm.accountId);
       } else {
-        alert(`Import failed: ${r.message}`);
+        setImportResult({ error: r.message || 'Import failed' });
       }
     } catch (e) { alert('Network error.'); }
     finally { setIsImporting(false); }
@@ -890,21 +991,63 @@ export default function Admin() {
     try {
       await fetchJson(`${API_URL}/leads/lists`, { method: 'POST', body: JSON.stringify(listForm) });
       setShowListModal(false);
-      setListForm({ name: '', accountId: '', description: '' });
+      setListForm({ name: '', accountId: companyAccountId, description: '' });
       fetchLists(importForm.accountId);
     } catch (e) { alert(`Failed: ${e.message}`); }
   };
 
+  const [createdAgentCreds, setCreatedAgentCreds] = useState(null);
+
   const handleCreateUser = async () => {
-    if (!userForm.email || !userForm.password || !userForm.roleId || !userForm.accountId) return alert('All fields required');
+    if (!userForm.email || !userForm.password || !userForm.accountId) return alert('Email, password and account are required');
+    if (userForm.password.length < 8) return alert('Password must be at least 8 characters');
+    // auto-pick Agent role if not superadmin
+    let roleId = userForm.roleId;
+    if (!roleId) {
+      const agentRole = roles.find(r => r.name.toLowerCase() === 'agent');
+      if (!agentRole) return alert('Agent role not found. Contact support.');
+      roleId = agentRole.id;
+    }
     try {
       await fetchJson(`${API_URL}/users`, {
         method: 'POST',
-        body: JSON.stringify({ name: userForm.name, email: userForm.email, password: userForm.password, roleId: userForm.roleId, accountId: userForm.accountId }),
+        body: JSON.stringify({ name: userForm.name, email: userForm.email, password: userForm.password, roleId, accountId: userForm.accountId }),
       });
       setShowUserModal(false);
-      setUserForm({ name: '', email: '', password: '', roleId: '', accountId: '' });
+      setCreatedAgentCreds({ name: userForm.name, email: userForm.email, password: userForm.password });
+      setUserForm({ name: '', email: '', password: '', roleId: '', accountId: companyAccountId });
       fetchUsers();
+    } catch (e) { alert(`Failed: ${e.message}`); }
+  };
+
+  const handleEditAgent = async () => {
+    if (!editAgentModal) return;
+    const payload = {};
+    if (editAgentForm.name.trim())  payload.name = editAgentForm.name.trim();
+    if (editAgentForm.email.trim()) payload.email = editAgentForm.email.trim();
+    if (editAgentForm.password.trim()) {
+      if (editAgentForm.password.length < 8) return alert('Password must be at least 8 characters');
+      payload.password = editAgentForm.password.trim();
+    }
+    if (!Object.keys(payload).length) return alert('No changes made');
+    try {
+      // If password is being reset and there's a reset request, use the dedicated endpoint
+      if (payload.password && resetRequests.some(r => r.id === editAgentModal.id)) {
+        await fetchJson(`${API_URL}/users/${editAgentModal.id}/admin-reset-password`, {
+          method: 'POST',
+          body: JSON.stringify({ newPassword: payload.password }),
+        });
+        delete payload.password;
+      }
+      if (Object.keys(payload).length) {
+        await fetchJson(`${API_URL}/users/${editAgentModal.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      }
+      setEditAgentModal(null);
+      fetchUsers();
+      fetchResetRequests();
     } catch (e) { alert(`Failed: ${e.message}`); }
   };
 
@@ -1022,6 +1165,17 @@ export default function Admin() {
     setShowCampaignModal(true);
   };
 
+  const generateAgentId = (companyName, adminEmail, existingUsers) => {
+    // prefix: first word of company name, lowercase, alphanumeric only, max 8 chars
+    const prefix = (companyName || 'agent').split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'agent';
+    // count existing agents + 1
+    const agentCount = existingUsers.filter(u => u.role?.name?.toLowerCase() === 'agent').length + 1;
+    const num = String(agentCount).padStart(3, '0');
+    // domain from admin email
+    const domain = (adminEmail || '').split('@')[1] || 'voxiq.internal';
+    return { username: `${prefix}${num}`, email: `${prefix}${num}@${domain}` };
+  };
+
   const TABS = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} /> },
@@ -1033,6 +1187,7 @@ export default function Admin() {
     { id: 'integrations', label: 'Integrations', icon: <Webhook size={18} /> },
     { id: 'accounts', label: 'Accounts', icon: <Building2 size={18} /> },
     { id: 'compliance', label: 'Compliance', icon: <ShieldCheck size={18} /> },
+    { id: 'sms', label: 'SMS', icon: <MessageSquare size={18} /> },
   ];
 
   const ConfirmModal = () => {
@@ -1059,24 +1214,16 @@ export default function Admin() {
     <div className={`admin-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
         {/* Logo */}
-        <div className="sidebar-logo">
-          <img src="/logo.png" alt="Voxiq" style={{ height: '26px', filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
-          {!isSidebarCollapsed && <span>Voxiq Admin</span>}
-          <button 
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            style={{ 
-              marginLeft: 'auto', 
-              background: 'none', 
-              border: 'none', 
-              color: '#94a3b8', 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '4px'
-            }}
-          >
-            {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: isSidebarCollapsed ? 'center' : 'flex-start', gap: 8, padding: '4px 2px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: '6px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src="/logo.png" alt="Voxiq" style={{ height: isSidebarCollapsed ? 22 : 28, display: 'block' }} />
+          </div>
+          {!isSidebarCollapsed && (
+            <div style={{ paddingLeft: 2 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff', lineHeight: 1.2 }}>{companyName || 'Voxiq'}</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginTop: 2 }}>Admin Dashboard</div>
+            </div>
+          )}
         </div>
 
         <nav className="sidebar-nav">
@@ -1086,7 +1233,7 @@ export default function Admin() {
               href={`#${t.id}`} 
               title={isSidebarCollapsed ? t.label : ''}
               className={activeTab === t.id ? 'active' : ''} 
-              onClick={e => { e.preventDefault(); setActiveTab(t.id); }}
+              onClick={e => { e.preventDefault(); switchTab(t.id); }}
             >
               {t.icon}
               {!isSidebarCollapsed && t.label}
@@ -1098,13 +1245,19 @@ export default function Admin() {
         {!isSidebarCollapsed && (
           <div className="sidebar-tools">
             <div className="sidebar-section-label">Quick Actions</div>
-            <button className="sidebar-btn" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>
-              <Plus size={14} /> Account
-            </button>
-            <button className="sidebar-btn" onClick={() => { setListForm({ name: '', accountId: '', description: '' }); fetchAccounts(); setShowListModal(true); }}>
+            {isSuperAdmin && (
+              <button className="sidebar-btn" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>
+                <Plus size={14} /> Account
+              </button>
+            )}
+            <button className="sidebar-btn" onClick={() => { setListForm({ name: '', accountId: companyAccountId, description: '' }); fetchAccounts(); setShowListModal(true); }}>
               <Plus size={14} /> List
             </button>
-            <button className="sidebar-btn" onClick={() => { setUserForm({ name: '', email: '', password: '', roleId: '', accountId: '' }); fetchAccounts(); fetchRoles(); setShowUserModal(true); }}>
+            <button className="sidebar-btn" onClick={() => {
+              const { email } = generateAgentId(companyName, authState.user?.email, users);
+              setUserForm({ name: '', email, password: '', roleId: '', accountId: companyAccountId });
+              fetchAccounts(); fetchRoles(); setShowUserModal(true);
+            }}>
               <Plus size={14} /> Agent
             </button>
           </div>
@@ -1131,9 +1284,39 @@ export default function Admin() {
         </div>
       </aside>
 
+      {/* Sidebar toggle — fixed so it's always visible regardless of overflow */}
+      <button
+        onClick={toggleSidebar}
+        title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        style={{
+          position: 'fixed',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          left: isSidebarCollapsed ? 58 : 246,
+          zIndex: 300,
+          width: 28, height: 28, borderRadius: '50%',
+          background: '#6366f1', border: '2.5px solid #fff',
+          boxShadow: '0 2px 10px rgba(99,102,241,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: '#fff',
+          transition: 'left 0.25s ease',
+        }}
+      >
+        {isSidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+      </button>
+
       <main className="admin-content">
         {isLoading && !authState.user && (
-          <div className="flex justify-center items-center py-20"><div className="spinner">Configuring Admin Workspace...</div></div>
+          <div style={{ position: 'fixed', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <img src="/logo.png" alt="Voxiq" style={{ height: 48, marginBottom: 28, opacity: 0.9 }} />
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              border: '4px solid #e0e7ff',
+              borderTopColor: '#6366f1',
+              animation: 'vx-spin 0.75s linear infinite',
+            }} />
+            <style>{`@keyframes vx-spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         )}
 
         {overview?.isDummy && (
@@ -1141,22 +1324,51 @@ export default function Admin() {
             ✨ Viewing Preview Data (Systems Operational)
           </div>
         )}
-        {authState.user && (
+        {authState.user && isInactiveAccount && (
+          <div className="container">
+            <div className="card" style={{ maxWidth: '760px', margin: '2rem auto', borderLeft: '4px solid #f59e0b' }}>
+              <h1 className="font-head" style={{ fontSize: '1.8rem', marginBottom: '0.75rem' }}>Company Access Paused</h1>
+              <p className="text-dim" style={{ marginBottom: '1rem', lineHeight: 1.7 }}>
+                Your company workspace is currently inactive. Agents and managers cannot log in or use dialing, SMS, leads, or campaigns until the Voxiq super admin reactivates your account.
+              </p>
+              <p className="text-dim" style={{ marginBottom: '1rem', lineHeight: 1.7 }}>
+                As company admin, you can still sign in here to request reactivation.
+              </p>
+              <textarea
+                className="input-field"
+                rows={4}
+                placeholder="Optional note for the super admin team"
+                value={activationMessage}
+                onChange={(e) => setActivationMessage(e.target.value)}
+                style={{ marginBottom: '1rem' }}
+              />
+              <div className="flex gap-2">
+                <button className="btn btn-primary" onClick={handleRequestActivation} disabled={activationLoading}>
+                  {activationLoading ? 'Sending Request...' : 'Request Activation'}
+                </button>
+                <button className="btn" style={{ background: 'var(--vx-gray-100)' }} onClick={handleLogout}>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {authState.user && !isInactiveAccount && (
           <div className="container">
             {/* ── DASHBOARD ──────────────────────────────────────────────── */}
             {activeTab === 'dashboard' && (
               <>
-                <header className="card flex justify-between items-center mb-8" style={{ background: 'linear-gradient(to right, #ffffff, #f8fafc)', borderLeft: '4px solid var(--vx-accent)' }}>
-                  <div>
-                    <h1 className="font-head" style={{ fontSize: '1.75rem' }}>Operations Control</h1>
-                    <p className="text-dim" style={{ fontSize: '0.9rem' }}>Real-time oversight and system management</p>
+                <header className="card mb-8" style={{ background: 'linear-gradient(to right, #ffffff, #f8fafc)', borderLeft: '4px solid var(--vx-accent)', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', minWidth: 0 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h1 className="font-head" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Operations Control</h1>
+                    <p className="text-dim" style={{ fontSize: '0.85rem' }}>Real-time oversight and system management</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '6px 12px', borderRadius: '12px' }}>
-                      <div className={isConnected ? 'pulse-green' : ''} style={{ width: '8px', height: '8px', borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#059669' : '#dc2626' }}>{isConnected ? 'System Live' : 'System Offline'}</span>
+                      <div className={isConnected ? 'pulse-green' : ''} style={{ width: '8px', height: '8px', borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#059669' : '#dc2626', whiteSpace: 'nowrap' }}>{isConnected ? 'System Live' : 'System Offline'}</span>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setActiveTab('leads')}>
+                    <button className="btn btn-primary" onClick={() => switchTab('leads')}>
                       <Rocket size={16} style={{ marginRight: '8px' }} />
                       Import Leads
                     </button>
@@ -1204,6 +1416,16 @@ export default function Admin() {
                     </div>
                     <span className="stat-val" style={{ color: '#f59e0b' }}>${(overview?.revenue || 0).toLocaleString()}</span>
                   </div>
+                  {resetRequests.length > 0 && (
+                    <div className="card stat-card" style={{ borderLeft: '4px solid #f59e0b', cursor: 'pointer' }} onClick={() => switchTab('agents')}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span className="stat-label">Reset Requests</span>
+                        <span style={{ fontSize: '1.2rem' }}>🔑</span>
+                      </div>
+                      <span className="stat-val" style={{ color: '#f59e0b' }}>{resetRequests.length}</span>
+                      <span style={{ fontSize: '0.7rem', color: '#92400e' }}>Click to view agents</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="dynamic-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
@@ -1213,7 +1435,8 @@ export default function Admin() {
                       <table>
                         <thead><tr><th>Name</th><th>Email</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
                         <tbody>
-                          {users.length > 0 ? users.map(u => (
+                          {users.filter(u => u.role?.name?.toLowerCase() === 'agent').length > 0
+                            ? users.filter(u => u.role?.name?.toLowerCase() === 'agent').map(u => (
                             <tr key={u.id}>
                               <td style={{ fontWeight: 600 }}>{u.name}</td>
                               <td className="text-dim">{u.email}</td>
@@ -1324,9 +1547,11 @@ export default function Admin() {
             {/* ── SCORECARDS ──────────────────────────────────────────────── */}
             {activeTab === 'scorecards' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">Agent Scorecards</h1>
-                  <button className="btn" style={{ fontSize: '0.8rem' }} onClick={fetchScorecards}>🔄 Refresh</button>
+                <div className="page-header">
+                  <h1>Agent Scorecards</h1>
+                  <div className="page-actions">
+                    <button className="btn" style={{ fontSize: '0.8rem' }} onClick={fetchScorecards}>🔄 Refresh</button>
+                  </div>
                 </div>
                 <div className="table-container card">
                   <table>
@@ -1389,38 +1614,57 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="card mb-6" style={{ background: 'var(--vx-accent-soft)', border: '1px solid var(--vx-gray-200)', padding: '1.25rem' }}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-head" style={{ fontSize: '1.1rem', color: 'var(--vx-accent)' }}>🚀 Fast Import Leads</h3>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)' }}>Assign to list or create new one on the fly.</div>
+                <div className="card mb-6" style={{ padding: '1.5rem', border: '1.5px solid #e0e7ff', background: '#fafbff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem' }}>
+                    <span style={{ fontSize: 22 }}>🚀</span>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1e1b4b' }}>Import Leads</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)', marginTop: 2 }}>Upload a CSV and assign to an existing list or create a new one.</div>
+                    </div>
                   </div>
 
-                  <div className="flex gap-4 items-end">
-                    <div style={{ flex: 1 }}>
-                      <label className="stat-label">Select Existing List</label>
-                      <select className="input-field" value={importForm.listId} onChange={e => setImportForm(p => ({ ...p, listId: e.target.value, newListName: '' }))}>
-                        <option value="">-- Choose Existing --</option>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'start', marginBottom: '1rem' }}>
+                    <div>
+                      <label className="stat-label" style={{ marginBottom: 6, display: 'block' }}>Select Existing List</label>
+                      <select className="input-field" style={{ width: '100%' }} value={importForm.listId}
+                        onChange={e => setImportForm(p => ({ ...p, listId: e.target.value, newListName: '' }))}>
+                        <option value="">-- Choose list --</option>
                         {availableLists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                     </div>
 
-                    <div style={{ textAlign: 'center', padding: '0 0.5rem', fontWeight: 700, color: 'var(--vx-gray-400)' }}>OR</div>
-
-                    <div style={{ flex: 1 }}>
-                      <label className="stat-label">Create New List Name</label>
-                      <input className="input-field" placeholder="e.g. Feb 25 Leads" value={importForm.newListName} onChange={e => setImportForm(p => ({ ...p, newListName: e.target.value, listId: '' }))} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 28 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.8rem', color: '#94a3b8', background: '#f1f5f9', borderRadius: 20, padding: '4px 10px' }}>OR</span>
                     </div>
 
-                    <div style={{ flex: 1 }}>
-                      <label className="stat-label">Upload CSV</label>
-                      <div className="flex gap-2">
-                        <input type="file" onChange={handleFileSelect} style={{ fontSize: '0.8rem' }} />
-                        <button className="btn btn-primary" style={{ whiteSpace: 'nowrap' }} onClick={handleCsvUpload} disabled={isImporting || (!importForm.listId && !importForm.newListName)}>
-                          {isImporting ? '⌛ Importing...' : '⬆️ Start Import'}
-                        </button>
-                      </div>
+                    <div>
+                      <label className="stat-label" style={{ marginBottom: 6, display: 'block' }}>Create New List</label>
+                      <input className="input-field" style={{ width: '100%' }} placeholder="e.g. June 2026 Leads"
+                        value={importForm.newListName}
+                        onChange={e => setImportForm(p => ({ ...p, newListName: e.target.value, listId: '' }))} />
                     </div>
                   </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1.5px dashed #c7d2fe', borderRadius: 10, padding: '0.6rem 1rem', cursor: 'pointer' }}>
+                      <span style={{ fontSize: 18 }}>📂</span>
+                      <span style={{ fontSize: '0.85rem', color: selectedFile ? '#4f46e5' : '#94a3b8', fontWeight: selectedFile ? 700 : 400 }}>
+                        {selectedFile ? selectedFile.name : 'Choose CSV file…'}
+                      </span>
+                      <input type="file" accept=".csv" onChange={handleFileSelect} style={{ display: 'none' }} />
+                    </label>
+                    <button className="btn btn-primary" style={{ whiteSpace: 'nowrap', padding: '0.7rem 1.5rem', fontSize: '0.9rem' }}
+                      onClick={handleCsvUpload}
+                      disabled={isImporting || !selectedFile || (!importForm.listId && !importForm.newListName)}>
+                      {isImporting ? '⌛ Importing…' : '⬆ Start Import'}
+                    </button>
+                  </div>
+
+                  {!selectedFile && (
+                    <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+                      CSV columns: <code>firstName, lastName, phone, address</code> — phone is required.
+                    </p>
+                  )}
                 </div>
 
                 <div className="card mb-6" style={{ background: 'var(--vx-gray-50)', border: '1px dashed var(--vx-gray-300)' }}>
@@ -1515,20 +1759,30 @@ export default function Admin() {
             {/* ── AGENTS ─────────────────────────────────────────────────── */}
             {activeTab === 'agents' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">Agent Management</h1>
-                  <div className="flex gap-2">
-                    <button className="btn" style={{ background: 'white', border: '1px solid var(--vx-gray-200)' }} onClick={fetchUsers}>🔄 Refresh Agents</button>
-                    <button className="btn btn-primary" onClick={() => { setUserForm({ name: '', email: '', password: '', roleId: '', accountId: '' }); fetchAccounts(); fetchRoles(); setShowUserModal(true); }}>➕ Add Agent</button>
+                <div className="page-header">
+                  <h1>Agent Management</h1>
+                  <div className="page-actions">
+                    <button className="btn" style={{ background: 'white', border: '1px solid var(--vx-gray-200)', fontSize: '0.8rem' }} onClick={fetchUsers}>🔄 Refresh</button>
+                    <button className="btn btn-primary" onClick={() => {
+                      const { email } = generateAgentId(companyName, authState.user?.email, users);
+                      setUserForm({ name: '', email, password: '', roleId: '', accountId: companyAccountId });
+                      fetchAccounts(); fetchRoles(); setShowUserModal(true);
+                    }}>+ Add Agent</button>
                   </div>
                 </div>
 
-                <div className="card table-container">
-                  <table>
+                <div className="card table-responsive">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <colgroup>
+                      <col style={{ width: '20%', minWidth: 150 }} />
+                      <col style={{ width: '22%', minWidth: 160 }} />
+                      <col style={{ width: '30%', minWidth: 200 }} />
+                      <col style={{ width: '12%', minWidth: 80 }} />
+                      <col style={{ width: '10%', minWidth: 80 }} />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>Agent</th>
-                        <th>Account</th>
                         <th>Outbound Number</th>
                         <th>Assigned Lists</th>
                         <th>Status</th>
@@ -1536,27 +1790,40 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.length === 0 ? (
+                      {users.filter(u => u.role?.name?.toLowerCase() === 'agent').length === 0 ? (
                         <tr>
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--vx-gray-400)' }}>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--vx-gray-400)' }}>
                             <div style={{ marginBottom: '0.5rem' }}>👥 No agents found</div>
-                            <div style={{ fontSize: '0.8rem' }}>Try adding a new agent or clicking refresh.</div>
+                            <div style={{ fontSize: '0.8rem' }}>Click "+ Add Agent" to create one.</div>
                           </td>
                         </tr>
-                      ) : users.map(u => {
-                        const account = accounts.find(a => a.id === u.accountId);
-                        const numberPool = account?.numberPool || [];
+                      ) : users.filter(u => u.role?.name?.toLowerCase() === 'agent').map(u => {
+                        const numberPool = Array.isArray(u.account?.numberPool) ? u.account.numberPool : [];
                         const assignedListIds = u.AgentList?.map(al => al.listId) || [];
 
                         return (
                           <tr key={u.id}>
                             <td>
-                              <div style={{ fontWeight: 700 }}>{u.name}</div>
+                              <div style={{ fontWeight: 700 }}>
+                                {u.name}
+                                {resetRequests.some(r => r.id === u.id) && (
+                                  <span style={{ marginLeft: 6, fontSize: '0.65rem', background: '#fef3c7', color: '#92400e', borderRadius: 5, padding: '1px 6px', fontWeight: 700, verticalAlign: 'middle' }}>
+                                    🔑 Reset
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-dim" style={{ fontSize: '0.75rem' }}>{u.email}</div>
                             </td>
-                            <td>{account?.name || '---'}</td>
                             <td>
-                              <div className="text-dim mb-1" style={{ fontSize: '0.65rem' }}>Pool Size: {numberPool.length}</div>
+                              {u.callerNumber && (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ede9fe', color: '#5b21b6', borderRadius: 8, padding: '3px 10px', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace', marginBottom: 6 }}>
+                                  📞 {u.callerNumber}
+                                </div>
+                              )}
+                              {!u.callerNumber && numberPool.length === 0 && (
+                                <div className="text-dim" style={{ fontSize: '0.7rem', marginBottom: 4 }}>No numbers — ask super admin to assign</div>
+                              )}
+                              {numberPool.length > 0 && (
                               <select
                                 className="input-field"
                                 style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
@@ -1580,6 +1847,7 @@ export default function Admin() {
                                   );
                                 })}
                               </select>
+                              )}
                             </td>
                             <td>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '350px', marginBottom: '8px' }}>
@@ -1644,15 +1912,21 @@ export default function Admin() {
                               <span className={`badge ${u.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`}>{u.status}</span>
                             </td>
                             <td>
-                              <button className="btn" style={{ padding: '0.4rem', color: '#f43f5e' }} onClick={() => setConfirmModal({
-                                show: true,
-                                title: 'Remove User?',
-                                message: `Are you sure you want to remove ${u.name}?`,
-                                onConfirm: async () => {
-                                  await fetch(`${API_URL}/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
-                                  fetchUsers();
-                                }
-                              })}>🗑</button>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                                  onClick={() => { setEditAgentModal(u); setEditAgentForm({ name: u.name || '', email: u.email || '', password: '' }); }}>
+                                  ✏️
+                                </button>
+                                <button className="btn" style={{ padding: '0.3rem 0.6rem', color: '#f43f5e', fontSize: '0.75rem' }}
+                                  onClick={() => setConfirmModal({
+                                    show: true, title: 'Remove Agent?',
+                                    message: `Remove ${u.name}?`,
+                                    onConfirm: async () => {
+                                      await fetch(`${API_URL}/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
+                                      fetchUsers();
+                                    }
+                                  })}>🗑</button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1666,9 +1940,9 @@ export default function Admin() {
             {/* ── CAMPAIGNS ──────────────────────────────────────────────── */}
             {activeTab === 'campaigns' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">Campaign Management</h1>
-                  <div className="flex gap-2">
+                <div className="page-header">
+                  <h1>Campaign Management</h1>
+                  <div className="page-actions">
                     <button className="btn btn-primary" onClick={() => openCampaignModal()}>+ New Campaign</button>
                     <button className="btn" onClick={fetchCampaigns}>🔄 Refresh</button>
                   </div>
@@ -1701,8 +1975,10 @@ export default function Admin() {
             {activeTab === 'accounts' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">Accounts & Numbers</h1>
-                  <button className="btn btn-primary" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>+ New Account</button>
+                  <h1 className="font-head">{isSuperAdmin ? 'Accounts & Numbers' : 'Company & Numbers'}</h1>
+                  {isSuperAdmin && (
+                    <button className="btn btn-primary" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>+ New Account</button>
+                  )}
                 </div>
                 <div className="flex flex-col gap-4">
                   {accounts.map(a => (
@@ -1718,7 +1994,9 @@ export default function Admin() {
                         </div>
                         <div className="flex gap-2">
                           <button className="btn" style={{ background: 'var(--vx-gray-100)' }} onClick={() => setManageAccount({ ...a, numberPool: a.numberPool || [] })}>⚙️ Manage</button>
-                          <button className="btn" style={{ background: '#fee2e2', color: '#b91c1c' }} onClick={() => handleDeleteAccount(a.id)}>🗑️ Delete</button>
+                          {isSuperAdmin && (
+                            <button className="btn" style={{ background: '#fee2e2', color: '#b91c1c' }} onClick={() => handleDeleteAccount(a.id)}>🗑️ Delete</button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1802,12 +2080,118 @@ export default function Admin() {
                 </div>
               </div>
             )}
+
+            {/* ── SMS ──────────────────────────────────────────────────────── */}
+            {activeTab === 'sms' && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>SMS Conversations</h2>
+                  <select
+                    value={smsAgentFilter}
+                    onChange={e => setSmsAgentFilter(e.target.value)}
+                    style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                  >
+                    <option value="all">All Agents</option>
+                    {[...new Map(smsConversations.filter(c => c.agentId).map(c => [c.agentId, c.agentName])).entries()].map(([id, name]) => (
+                      <option key={id} value={id}>{name || id}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', height: '70vh', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+                  {/* Conversation list */}
+                  <div style={{ width: 300, borderRight: '1px solid #e5e7eb', overflowY: 'auto', background: '#f9fafb', flexShrink: 0 }}>
+                    {smsConversations
+                      .filter(c => smsAgentFilter === 'all' || c.agentId === smsAgentFilter)
+                      .map(c => (
+                        <div
+                          key={c.contactNumber}
+                          onClick={() => { setSmsActiveThread(c.contactNumber); fetchAdminSmsThread(c.contactNumber); }}
+                          style={{
+                            padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                            background: smsActiveThread === c.contactNumber ? '#eff6ff' : 'transparent',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                            <span style={{ fontWeight: 600, fontSize: 13 }}>{c.contactNumber}</span>
+                            {c.agentName && (
+                              <span style={{ fontSize: 11, background: '#e0e7ff', color: '#3730a3', padding: '1px 7px', borderRadius: 10 }}>
+                                {c.agentName}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {c.direction === 'outbound' ? 'Agent: ' : '← '}{c.lastMessage}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                            {new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      ))}
+                    {smsConversations.length === 0 && (
+                      <div style={{ padding: 24, color: '#9ca3af', fontSize: 13, textAlign: 'center' }}>No conversations yet</div>
+                    )}
+                  </div>
+
+                  {/* Thread view */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    {!smsActiveThread ? (
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>
+                        Select a conversation
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 600, fontSize: 14 }}>
+                          {smsActiveThread}
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {smsMessages.map(m => (
+                            <div key={m.id} style={{ display: 'flex', justifyContent: m.direction === 'outbound' ? 'flex-end' : 'flex-start' }}>
+                              <div style={{
+                                maxWidth: '70%', padding: '8px 12px', borderRadius: 12,
+                                background: m.direction === 'outbound' ? '#2563eb' : '#f3f4f6',
+                                color: m.direction === 'outbound' ? '#fff' : '#111827',
+                                fontSize: 14,
+                              }}>
+                                {m.direction === 'outbound' && m.agentName && (
+                                  <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 2 }}>{m.agentName}</div>
+                                )}
+                                {m.body}
+                                <div style={{ fontSize: 11, opacity: 0.65, marginTop: 4 }}>
+                                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ padding: 12, borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
+                          <input
+                            value={smsInput}
+                            onChange={e => setSmsInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdminSmsMessage(); } }}
+                            placeholder="Type a message..."
+                            style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                          />
+                          <button
+                            onClick={sendAdminSmsMessage}
+                            disabled={smsSendingMsg || !smsInput.trim()}
+                            style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {smsSendingMsg ? '...' : 'Send'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
-      {showAccountModal && (
+      {showAccountModal && isSuperAdmin && (
         <div className="flex-center" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }}>
           <div className="card" style={{ width: '400px' }}>
             <h2 className="font-head mb-4">Create New Account</h2>
@@ -1824,7 +2208,7 @@ export default function Admin() {
         <div className="flex-center" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }}>
           <div className="card" style={{ width: '400px' }}>
             <h2 className="font-head mb-4">Create New List</h2>
-            <select className="input-field mb-2" value={listForm.accountId} onChange={e => setListForm(p => ({ ...p, accountId: e.target.value }))}>
+            <select className="input-field mb-2" value={listForm.accountId} onChange={e => setListForm(p => ({ ...p, accountId: e.target.value }))} disabled={!isSuperAdmin && !!companyAccountId}>
               <option value="">Select Account</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
@@ -1841,22 +2225,147 @@ export default function Admin() {
       {showUserModal && (
         <div className="flex-center" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, padding: '1rem' }}>
           <div className="card" style={{ width: '450px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 className="font-head mb-4">Add New Agent</h2>
+            <h2 className="font-head mb-4">Create New Agent</h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-soft)', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+              The agent will use these credentials to log in and make calls.
+            </p>
             <div className="flex flex-col gap-3">
-              <input className="input-field" placeholder="Full Name" autoFocus value={userForm.name} onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))} />
-              <input className="input-field" placeholder="Email" type="email" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
-              <input className="input-field" placeholder="Password (min 8 chars)" type="password" value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
-              <select className="input-field" value={userForm.accountId} onChange={e => setUserForm(p => ({ ...p, accountId: e.target.value }))}>
-                <option value="">Assign Account</option>
-                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-              <select className="input-field" value={userForm.roleId} onChange={e => setUserForm(p => ({ ...p, roleId: e.target.value }))}>
-                <option value="">Select Role</option>
-                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-soft)', display: 'block', marginBottom: 4 }}>Full Name</label>
+                <input className="input-field" placeholder="Jane Doe" autoFocus value={userForm.name} onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-soft)', display: 'block', marginBottom: 4 }}>Login Email</label>
+                <input className="input-field" placeholder="agent@company.com" type="email" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-soft)', marginTop: '-10px' }}>
+                  Auto-generated ID. Agent will use this to login.
+                </p>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-soft)', display: 'block', marginBottom: 4 }}>Password</label>
+                <input className="input-field" placeholder="Min 8 characters" type="password" value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
+              </div>
+              {isSuperAdmin && (
+                <>
+                  <select className="input-field" value={userForm.accountId} onChange={e => setUserForm(p => ({ ...p, accountId: e.target.value }))}>
+                    <option value="">Assign Account</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                  <select className="input-field" value={userForm.roleId} onChange={e => setUserForm(p => ({ ...p, roleId: e.target.value }))}>
+                    <option value="">Select Role</option>
+                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </>
+              )}
               <div className="flex gap-2 mt-2">
                 <button className="btn btn-primary flex-1" onClick={handleCreateUser}>Create Agent</button>
                 <button className="btn flex-1" style={{ background: 'var(--vx-gray-100)' }} onClick={() => setShowUserModal(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {createdAgentCreds && (
+        <div className="flex-center" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1001, padding: '1rem' }}>
+          <div className="card" style={{ width: '420px', textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+            <h2 className="font-head mb-2">Agent Created!</h2>
+            <p style={{ color: 'var(--text-soft)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+              Share these credentials with <strong>{createdAgentCreds.name || 'the agent'}</strong> so they can log in.
+            </p>
+            <div style={{ background: 'var(--vx-gray-50)', borderRadius: 12, padding: '1rem', marginBottom: '1.25rem', textAlign: 'left' }}>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: 3 }}>Login Email</div>
+                <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {createdAgentCreds.email}
+                  <button onClick={() => navigator.clipboard.writeText(createdAgentCreds.email)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--vx-accent)', fontWeight: 700 }}>Copy</button>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: 3 }}>Password</div>
+                <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {createdAgentCreds.password}
+                  <button onClick={() => navigator.clipboard.writeText(createdAgentCreds.password)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--vx-accent)', fontWeight: 700 }}>Copy</button>
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)', marginBottom: '1rem' }}>
+              Now assign a <strong>caller number</strong> and <strong>lead list</strong> to this agent from the Agents tab.
+            </div>
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setCreatedAgentCreds(null)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {importResult && (
+        <div style={{ position: 'fixed', top: 0, left: isSidebarCollapsed ? 72 : 260, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem' }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: '2rem', width: 380, maxWidth: '92vw', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+            {importResult.error ? (
+              <>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>❌</div>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#111827', marginBottom: 8 }}>Import Failed</h2>
+                <p style={{ color: '#6b7280', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{importResult.error}</p>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#111827', marginBottom: 6 }}>Import Complete!</h2>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Your leads have been imported successfully.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: '1.75rem' }}>
+                  <div style={{ background: '#f0fdf4', borderRadius: 14, padding: '14px 8px' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#16a34a' }}>{importResult.imported}</div>
+                    <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Imported</div>
+                  </div>
+                  <div style={{ background: '#fef3c7', borderRadius: 14, padding: '14px 8px' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: '#d97706' }}>{importResult.duplicates}</div>
+                    <div style={{ fontSize: 11, color: '#92400e', fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dupes</div>
+                  </div>
+                  <div style={{ background: importResult.errors > 0 ? '#fee2e2' : '#f9fafb', borderRadius: 14, padding: '14px 8px' }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: importResult.errors > 0 ? '#dc2626' : '#9ca3af' }}>{importResult.errors}</div>
+                    <div style={{ fontSize: 11, color: importResult.errors > 0 ? '#991b1b' : '#6b7280', fontWeight: 700, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Errors</div>
+                  </div>
+                </div>
+              </>
+            )}
+            <button onClick={() => setImportResult(null)}
+              style={{ width: '100%', padding: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editAgentModal && (
+        <div className="flex-center" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1001, padding: '1rem' }}>
+          <div className="card" style={{ width: 420 }}>
+            <h2 className="font-head mb-1">Edit Agent</h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-soft)', marginBottom: '1.25rem' }}>
+              Leave a field blank to keep it unchanged.
+            </p>
+            {resetRequests.some(r => r.id === editAgentModal.id) && (
+              <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#92400e', fontWeight: 600 }}>
+                🔑 This agent has requested a password reset. Set a new password below.
+              </div>
+            )}
+            <div className="flex flex-col gap-3">
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-soft)', display: 'block', marginBottom: 4 }}>Full Name</label>
+                <input className="input-field" value={editAgentForm.name} onChange={e => setEditAgentForm(f => ({ ...f, name: e.target.value }))} placeholder={editAgentModal.name} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-soft)', display: 'block', marginBottom: 4 }}>Email</label>
+                <input className="input-field" type="email" value={editAgentForm.email} onChange={e => setEditAgentForm(f => ({ ...f, email: e.target.value }))} placeholder={editAgentModal.email} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-soft)', display: 'block', marginBottom: 4 }}>New Password <span style={{ fontWeight: 400 }}>(leave blank to keep current)</span></label>
+                <input className="input-field" type="password" value={editAgentForm.password} onChange={e => setEditAgentForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" />
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button className="btn btn-primary flex-1" onClick={handleEditAgent}>Save Changes</button>
+                <button className="btn flex-1" style={{ background: 'var(--vx-gray-100)' }} onClick={() => setEditAgentModal(null)}>Cancel</button>
               </div>
             </div>
           </div>
