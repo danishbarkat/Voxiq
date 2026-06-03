@@ -1,14 +1,22 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { SuperAdminService } from './superadmin.service';
 
+class NumberEntryDto {
+  @IsString() number: string;
+  @IsString() callerName: string;
+  @IsString() @IsOptional() areaCode: string;
+}
+
 class ApproveDto {
-  agentLimit: number;
-  numberPool: Array<{ number: string; callerName: string; areaCode: string }>;
+  @IsInt() @Min(1) agentLimit: number;
+  @IsArray() @ValidateNested({ each: true }) @Type(() => NumberEntryDto) numberPool: NumberEntryDto[];
 }
 
 class RejectDto {
-  reason: string;
+  @IsString() reason: string;
 }
 
 @Controller('superadmin')
@@ -16,9 +24,24 @@ class RejectDto {
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 
+  @Get('overview')
+  getOverview() {
+    return this.superAdminService.getOverview();
+  }
+
   @Get('companies')
   getAllCompanies() {
     return this.superAdminService.getAllCompanies();
+  }
+
+  @Get('companies/:id/details')
+  getCompanyDetails(@Param('id') id: string) {
+    return this.superAdminService.getCompanyDetails(id);
+  }
+
+  @Post('companies/:id/access-code/regenerate')
+  regenerateAccessCode(@Param('id') id: string) {
+    return this.superAdminService.regenerateAccessCode(id);
   }
 
   @Post('companies/:id/approve')
@@ -39,6 +62,21 @@ export class SuperAdminController {
   @Post('companies/:id/activate')
   activateCompany(@Param('id') id: string) {
     return this.superAdminService.activateCompany(id);
+  }
+
+  @Get('numbers')
+  getAvailableNumbers() {
+    return this.superAdminService.getAvailableNumbers();
+  }
+
+  @Post('companies/:id/assign-numbers')
+  assignNumbers(@Param('id') id: string, @Body() dto: ApproveDto) {
+    return this.superAdminService.assignNumbers(id, dto.numberPool);
+  }
+
+  @Post('companies/:id/unassign-number')
+  unassignNumber(@Param('id') id: string, @Body('number') number: string) {
+    return this.superAdminService.unassignNumber(id, number);
   }
 
   @Get('analytics')

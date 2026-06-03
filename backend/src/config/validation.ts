@@ -22,4 +22,10 @@ export const validationSchema = Joi.object({
   QUIET_HOURS_ENABLED: Joi.boolean().default(true),
   TELNYX_CALL_CONTROL_APP_ID: Joi.string().allow('').default(''),
   TELNYX_WEBHOOK_URL: Joi.string().allow('').default(''),
+  MAIL_HOST: Joi.string().allow('').default(''),
+  MAIL_PORT: Joi.number().default(587),
+  MAIL_USER: Joi.string().allow('').default(''),
+  MAIL_PASS: Joi.string().allow('').default(''),
+  MAIL_FROM: Joi.string().allow('').default(''),
+  FRONTEND_URL: Joi.string().allow('').default(''),
 });

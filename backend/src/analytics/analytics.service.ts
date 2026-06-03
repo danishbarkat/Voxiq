@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CallStatus } from '@prisma/client';
 import { getStateFromE164 } from '../utils/areaCodes';
@@ -9,7 +9,8 @@ export class AnalyticsService {
 
     constructor(private prisma: PrismaService) { }
 
-    async getCampaignStats(campaignId: string, startDate?: Date, endDate?: Date) {
+    async getCampaignStats(campaignId: string, startDate?: Date, endDate?: Date, requester?: any) {
+        await this.assertCampaignAccess(campaignId, requester);
         let whereSql = `WHERE "campaignId" = '${campaignId}'`;
         if (startDate || endDate) {
             if (startDate && endDate) {
@@ -61,7 +62,8 @@ export class AnalyticsService {
         };
     }
 
-    async getAgentStats(agentId: string, startDate?: Date, endDate?: Date) {
+    async getAgentStats(agentId: string, startDate?: Date, endDate?: Date, requester?: any) {
+        await this.assertAgentAccess(agentId, requester);
         let whereSql = `WHERE "agentId" = '${agentId}'`;
         if (startDate || endDate) {
             if (startDate && endDate) {
@@ -106,17 +108,18 @@ export class AnalyticsService {
     }
 
     /** Overview stats – all time + today */
-    async getOverview() {
+    async getOverview(requester?: any) {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
+        const where = this.buildCallLogWhereForRequester(requester);
 
         const [totalCalls, todayCalls, connected, appointments, recordings, revenueAgg] = await Promise.all([
-            this.prisma.callLog.count(),
-            this.prisma.callLog.count({ where: { startedAt: { gte: todayStart } } }),
-            this.prisma.callLog.count({ where: { callStatus: { in: [CallStatus.CONNECTED, CallStatus.COMPLETED] } } }),
-            this.prisma.callLog.count({ where: { disposition: { in: ['Interested', 'Booked', 'interested', 'booked'] } } }),
-            this.prisma.callLog.count({ where: { recordingUrl: { not: null } } }),
-            (this.prisma.callLog as any).aggregate({ _sum: { dealValue: true } }),
+            this.prisma.callLog.count({ where }),
+            this.prisma.callLog.count({ where: { ...where, startedAt: { gte: todayStart } } }),
+            this.prisma.callLog.count({ where: { ...where, callStatus: { in: [CallStatus.CONNECTED, CallStatus.COMPLETED] } } }),
+            this.prisma.callLog.count({ where: { ...where, disposition: { in: ['Interested', 'Booked', 'interested', 'booked'] } } }),
+            this.prisma.callLog.count({ where: { ...where, recordingUrl: { not: null } } }),
+            (this.prisma.callLog as any).aggregate({ where, _sum: { dealValue: true } }),
         ]);
         const connectionRate = totalCalls > 0 ? ((connected / totalCalls) * 100).toFixed(1) : '0.0';
         const appointmentRate = totalCalls > 0 ? ((appointments / totalCalls) * 100).toFixed(1) : '0.0';
@@ -125,7 +128,7 @@ export class AnalyticsService {
     }
 
     /** Calls per hour for a given date (defaults to today) */
-    async getHourlyStats(dateStr?: string) {
+    async getHourlyStats(dateStr?: string, requester?: any) {
         const date = dateStr ? new Date(dateStr) : new Date();
         const dayStart = new Date(date);
         dayStart.setHours(0, 0, 0, 0);
@@ -133,7 +136,7 @@ export class AnalyticsService {
         dayEnd.setHours(23, 59, 59, 999);
 
         const logs = await this.prisma.callLog.findMany({
-            where: { startedAt: { gte: dayStart, lte: dayEnd } },
+            where: { ...this.buildCallLogWhereForRequester(requester), startedAt: { gte: dayStart, lte: dayEnd } },
             select: { startedAt: true, callStatus: true },
         });
 
@@ -148,10 +151,10 @@ export class AnalyticsService {
     }
 
     /** Export all call logs as CSV string */
-    async exportCsv(startDate?: Date, endDate?: Date): Promise<string> {
-        const where: any = {};
+    async exportCsv(startDate?: Date, endDate?: Date, requester?: any): Promise<string> {
+        const where: any = this.buildCallLogWhereForRequester(requester);
         if (startDate || endDate) {
-            where.startedAt = {};
+            where.startedAt = where.startedAt || {};
             if (startDate) where.startedAt.gte = startDate;
             if (endDate) where.startedAt.lte = endDate;
         }
@@ -176,10 +179,11 @@ export class AnalyticsService {
     }
 
     /** All agents ranked by performance */
-    async getAllAgentScores() {
-        const agents = await this.prisma.user.findMany({ select: { id: true, name: true, email: true } });
+    async getAllAgentScores(requester?: any) {
+        const where = this.buildUserWhereForRequester(requester);
+        const agents = await this.prisma.user.findMany({ where, select: { id: true, name: true, email: true } });
         const scores = await Promise.all(agents.map(async agent => {
-            const stats = await this.getAgentStats(agent.id);
+            const stats = await this.getAgentStats(agent.id, undefined, undefined, requester);
             const score = (stats.connected * 10) + (stats.appointments * 25);
             return { ...agent, ...stats, score };
         }));
@@ -193,11 +197,12 @@ export class AnalyticsService {
         agentId?: string;
         dateFrom?: string;
         dateTo?: string;
-    }) {
+    }, requester?: any) {
         const limit = filters?.limit ?? 200;
 
         // Build where clause
         const where: any = {
+            ...this.buildCallLogWhereForRequester(requester),
             OR: [
                 { recordingUrl: { not: null } },
                 { vmRecordingUrl: { not: null } },
@@ -205,6 +210,7 @@ export class AnalyticsService {
         };
 
         if (filters?.agentId) {
+            await this.assertAgentAccess(filters.agentId, requester);
             where.agentId = filters.agentId;
         }
 
@@ -258,7 +264,8 @@ export class AnalyticsService {
     }
 
     /** Update tags for a specific call log */
-    async updateCallTags(id: string, tags: string[]) {
+    async updateCallTags(id: string, tags: string[], requester?: any) {
+        await this.assertCallLogAccess(id, requester);
         return this.prisma.callLog.update({
             where: { id },
             data: { tags } as any,
@@ -266,18 +273,30 @@ export class AnalyticsService {
     }
 
     /** Aggregates calls by US State from area codes */
-    async getStateHeatmap() {
-        // Optimized to use raw query instead of fetching every lead and loading relations into memory
-        const rows = await this.prisma.$queryRaw<any[]>`
-            SELECT l.phone FROM "CallLog" c
-            JOIN "Lead" l ON c."leadId" = l.id
-            WHERE l.phone IS NOT NULL AND l.phone != ''
-        `;
+    async getStateHeatmap(requester?: any) {
+        const logs = await this.prisma.callLog.findMany({
+            where: {
+                ...this.buildCallLogWhereForRequester(requester),
+                lead: {
+                    phone: {
+                        not: '',
+                    },
+                },
+            },
+            select: {
+                lead: {
+                    select: {
+                        phone: true,
+                    },
+                },
+            },
+            take: 5000,
+        });
 
         const stateCounts: Record<string, number> = {};
-        for (const log of rows) {
-            if (log.phone) {
-                const state = getStateFromE164(log.phone);
+        for (const log of logs) {
+            if (log.lead?.phone) {
+                const state = getStateFromE164(log.lead.phone);
                 if (state) {
                     stateCounts[state] = (stateCounts[state] || 0) + 1;
                 }
@@ -293,5 +312,85 @@ export class AnalyticsService {
             acc[val] = (acc[val] || 0) + 1;
             return acc;
         }, {});
+    }
+
+    private buildCallLogWhereForRequester(requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return {};
+        }
+        if (!requester?.accountId) {
+            throw new ForbiddenException('Company context is required');
+        }
+        return {
+            agent: {
+                accountId: requester.accountId,
+            },
+        };
+    }
+
+    private buildUserWhereForRequester(requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return {};
+        }
+        if (!requester?.accountId) {
+            throw new ForbiddenException('Company context is required');
+        }
+        return {
+            accountId: requester.accountId,
+        };
+    }
+
+    private async assertAgentAccess(agentId: string, requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return;
+        }
+        const agent = await this.prisma.user.findUnique({
+            where: { id: agentId },
+            select: { accountId: true },
+        });
+        if (!agent) {
+            throw new NotFoundException('Agent not found');
+        }
+        if (agent.accountId !== requester?.accountId) {
+            throw new ForbiddenException('You can only access agents from your own company');
+        }
+    }
+
+    private async assertCampaignAccess(campaignId: string, requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return;
+        }
+        const campaign = await this.prisma.campaign.findUnique({
+            where: { id: campaignId },
+            select: { accountId: true },
+        });
+        if (!campaign) {
+            throw new NotFoundException('Campaign not found');
+        }
+        if (campaign.accountId !== requester?.accountId) {
+            throw new ForbiddenException('You can only access campaigns from your own company');
+        }
+    }
+
+    private async assertCallLogAccess(callLogId: string, requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return;
+        }
+        const log = await this.prisma.callLog.findUnique({
+            where: { id: callLogId },
+            select: {
+                agent: {
+                    select: {
+                        accountId: true,
+                    },
+                },
+            },
+        });
+        if (!log) {
+            throw new NotFoundException('Call log not found');
+        }
+        if (log.agent?.accountId !== requester?.accountId) {
+            throw new ForbiddenException('You can only access call logs from your own company');
+        }
     }
 }

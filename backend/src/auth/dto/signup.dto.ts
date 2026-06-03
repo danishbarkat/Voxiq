@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsString, Min, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from 'class-validator';
 
 export class SignupDto {
   @IsString()
@@ -10,23 +10,21 @@ export class SignupDto {
   lastName: string;
 
   @IsEmail()
+  @MaxLength(320)
   email: string;
 
   @IsString()
   @MinLength(8)
   password: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  phone: string;
+  @Matches(/^\+?[0-9]{7,15}$/, { message: 'Phone number must be 7 to 15 digits' })
+  phone?: string;
 
   @IsString()
   @MinLength(1)
   companyName: string;
-
-  @IsString()
-  @MinLength(1)
-  adminCode: string;
 
   @IsInt()
   @Min(1)

@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LeadStatus } from '@prisma/client';
 import { Readable } from 'stream';
@@ -30,7 +30,10 @@ export class LeadsService {
         accountId: string,
         listId?: string,
         newListName?: string,
+        requester?: any,
     ): Promise<{ imported: number; duplicates: number; errors: number }> {
+        await this.assertAccountAccess(accountId, requester);
+
         // 1. Resolve or create list
         let targetListId = listId;
 
@@ -48,6 +51,7 @@ export class LeadsService {
         if (!targetListId) {
             throw new BadRequestException('No list specified or created');
         }
+        await this.assertListAccess(targetListId, requester, accountId);
 
         this.logger.log(`Starting CSV import for list ${targetListId}`);
 
@@ -215,7 +219,9 @@ export class LeadsService {
     /**
      * Create a single lead
      */
-    async create(createLeadDto: CreateLeadDto) {
+    async create(createLeadDto: CreateLeadDto, requester?: any) {
+        await this.assertAccountAccess(createLeadDto.accountId, requester);
+        await this.assertListAccess(createLeadDto.listId, requester, createLeadDto.accountId);
         return this.prisma.lead.create({
             data: {
                 firstName: createLeadDto.firstName,
@@ -241,15 +247,28 @@ export class LeadsService {
         agentId?: string;
         limit?: number;
         offset?: number;
-    }) {
+    }, requester?: any) {
         const where: any = {};
+        const requesterRole = requester?.role?.toLowerCase();
 
-        if (filters?.accountId) where.accountId = filters.accountId;
+        if (requesterRole !== 'superadmin') {
+            if (!requester?.accountId) {
+                throw new ForbiddenException('Company context is required');
+            }
+            where.accountId = requester.accountId;
+            if (filters?.accountId && filters.accountId !== requester.accountId) {
+                throw new ForbiddenException('You can only view leads from your own company');
+            }
+        } else if (filters?.accountId) {
+            where.accountId = filters.accountId;
+        }
+
         if (filters?.listId) where.listId = filters.listId;
         if (filters?.status) where.status = filters.status;
 
         // Filter by agent's assigned lists
         if (filters?.agentId) {
+            await this.assertUserAccess(filters.agentId, requester);
             const agentLists = await this.prisma.agentList.findMany({
                 where: { agentId: filters.agentId },
                 select: { listId: true },
@@ -305,8 +324,8 @@ export class LeadsService {
     /**
      * Find one lead
      */
-    async findOne(id: string) {
-        return this.prisma.lead.findUnique({
+    async findOne(id: string, requester?: any) {
+        const lead = await this.prisma.lead.findUnique({
             where: { id },
             include: {
                 list: true,
@@ -315,12 +334,19 @@ export class LeadsService {
                 },
             },
         });
+        if (!lead) {
+            throw new NotFoundException('Lead not found');
+        }
+        await this.assertLeadAccess(lead, requester);
+        return lead;
     }
 
     /**
      * Update lead
      */
-    async update(id: string, updateLeadDto: UpdateLeadDto) {
+    async update(id: string, updateLeadDto: UpdateLeadDto, requester?: any) {
+        const existing = await this.ensureLeadExists(id);
+        await this.assertLeadAccess(existing, requester);
         return this.prisma.lead.update({
             where: { id },
             data: {
@@ -338,17 +364,26 @@ export class LeadsService {
     /**
      * Update lead status
      */
-    async updateStatus(id: string, status: LeadStatus) {
-        return this.prisma.lead.update({
-            where: { id },
-            data: { status },
-        });
+    async updateStatus(id: string, status: LeadStatus, requester?: any) {
+        try {
+            const existing = await this.ensureLeadExists(id);
+            await this.assertLeadAccess(existing, requester);
+            return await this.prisma.lead.update({
+                where: { id },
+                data: { status },
+            });
+        } catch (error: any) {
+            if (error?.code === 'P2025') throw new NotFoundException(`Lead ${id} not found`);
+            throw error;
+        }
     }
 
     /**
      * Delete lead
      */
-    async remove(id: string) {
+    async remove(id: string, requester?: any) {
+        const existing = await this.ensureLeadExists(id);
+        await this.assertLeadAccess(existing, requester);
         return this.prisma.lead.delete({
             where: { id },
         });
@@ -357,7 +392,9 @@ export class LeadsService {
     /**
      * Get call history for a lead
      */
-    async getCallHistory(id: string) {
+    async getCallHistory(id: string, requester?: any) {
+        const existing = await this.ensureLeadExists(id);
+        await this.assertLeadAccess(existing, requester);
         return this.prisma.callLog.findMany({
             where: { leadId: id },
             orderBy: { createdAt: 'desc' },
@@ -382,9 +419,10 @@ export class LeadsService {
     /**
      * Get all lists
      */
-    async findAllLists(accountId?: string) {
+    async findAllLists(accountId?: string, requester?: any) {
+        const resolvedAccountId = await this.resolveScopedAccountId(accountId, requester);
         return this.prisma.list.findMany({
-            where: accountId ? { accountId } : undefined,
+            where: resolvedAccountId ? { accountId: resolvedAccountId } : undefined,
             orderBy: { name: 'asc' },
             include: {
                 _count: {
@@ -397,8 +435,15 @@ export class LeadsService {
     /**
      * Get all accounts
      */
-    async findAllAccounts() {
+    async findAllAccounts(requester?: any) {
+        const where = requester?.role?.toLowerCase() === 'superadmin'
+            ? undefined
+            : requester?.accountId
+                ? { id: requester.accountId }
+                : { id: '__no_account__' };
+
         return this.prisma.account.findMany({
+            where,
             orderBy: { name: 'asc' },
         });
     }
@@ -406,7 +451,8 @@ export class LeadsService {
     /**
      * Create a new account
      */
-    async createAccount(name: string) {
+    async createAccount(name: string, requester?: any) {
+        this.assertSuperAdmin(requester);
         return this.prisma.account.create({
             data: { name },
         });
@@ -415,7 +461,8 @@ export class LeadsService {
     /**
      * Update account (name or numberPool)
      */
-    async updateAccount(id: string, data: { name?: string; numberPool?: any }) {
+    async updateAccount(id: string, data: { name?: string; numberPool?: any }, requester?: any) {
+        await this.assertAccountAccess(id, requester);
         return this.prisma.account.update({
             where: { id },
             data,
@@ -425,7 +472,8 @@ export class LeadsService {
     /**
      * Delete account (handles cascade via Prisma logic if configured, but manual check for safety)
      */
-    async deleteAccount(id: string) {
+    async deleteAccount(id: string, requester?: any) {
+        this.assertSuperAdmin(requester);
         return this.prisma.account.delete({
             where: { id },
         });
@@ -434,7 +482,8 @@ export class LeadsService {
     /**
      * Delete a list and all its leads (handling foreign keys)
      */
-    async deleteList(id: string) {
+    async deleteList(id: string, requester?: any) {
+        await this.assertListAccess(id, requester);
         // 1. Get all leads in this list
         const leads = await this.prisma.lead.findMany({
             where: { listId: id },
@@ -473,7 +522,9 @@ export class LeadsService {
     /**
      * Delete a single lead
      */
-    async deleteLead(id: string) {
+    async deleteLead(id: string, requester?: any) {
+        const existing = await this.ensureLeadExists(id);
+        await this.assertLeadAccess(existing, requester);
         return this.prisma.lead.delete({
             where: { id },
         });
@@ -482,7 +533,8 @@ export class LeadsService {
     /**
      * Create a new list
      */
-    async createList(dto: { name: string; accountId: string; description?: string }) {
+    async createList(dto: { name: string; accountId: string; description?: string }, requester?: any) {
+        await this.assertAccountAccess(dto.accountId, requester);
         return this.prisma.list.create({
             data: {
                 name: dto.name,
@@ -490,5 +542,76 @@ export class LeadsService {
                 description: dto.description,
             },
         });
+    }
+
+    private async ensureLeadExists(id: string) {
+        const lead = await this.prisma.lead.findUnique({
+            where: { id },
+            select: { id: true, accountId: true, listId: true },
+        });
+        if (!lead) {
+            throw new NotFoundException('Lead not found');
+        }
+        return lead;
+    }
+
+    private async resolveScopedAccountId(accountId?: string, requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return accountId;
+        }
+        if (!requester?.accountId) {
+            throw new ForbiddenException('Company context is required');
+        }
+        if (accountId && accountId !== requester.accountId) {
+            throw new ForbiddenException('You can only access your own company');
+        }
+        return requester.accountId;
+    }
+
+    private assertSuperAdmin(requester?: any) {
+        if (requester?.role?.toLowerCase() !== 'superadmin') {
+            throw new ForbiddenException('Only the super admin can manage companies');
+        }
+    }
+
+    private async assertAccountAccess(accountId: string, requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return;
+        }
+        if (!requester?.accountId || requester.accountId !== accountId) {
+            throw new ForbiddenException('You can only access data from your own company');
+        }
+    }
+
+    private async assertListAccess(listId: string, requester?: any, expectedAccountId?: string) {
+        const list = await this.prisma.list.findUnique({
+            where: { id: listId },
+            select: { id: true, accountId: true },
+        });
+        if (!list) {
+            throw new NotFoundException('List not found');
+        }
+        if (expectedAccountId && list.accountId !== expectedAccountId) {
+            throw new ForbiddenException('List does not belong to the selected company');
+        }
+        await this.assertAccountAccess(list.accountId, requester);
+    }
+
+    private async assertUserAccess(userId: string, requester?: any) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return;
+        }
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { accountId: true },
+        });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        await this.assertAccountAccess(user.accountId, requester);
+    }
+
+    private async assertLeadAccess(lead: { accountId: string }, requester?: any) {
+        await this.assertAccountAccess(lead.accountId, requester);
     }
 }

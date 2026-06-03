@@ -16,6 +16,32 @@
   background: #f8fafc;
 }
 
+.sidebar {
+  transition: width 0.25s ease;
+}
+
+.admin-layout.sidebar-collapsed .sidebar {
+  width: 72px;
+  padding: 20px 8px;
+}
+
+.admin-layout.sidebar-collapsed .sidebar-logo span,
+.admin-layout.sidebar-collapsed .sidebar-section-label,
+.admin-layout.sidebar-collapsed .sidebar-signout span,
+.admin-layout.sidebar-collapsed .sidebar-btn span {
+  display: none;
+}
+
+.admin-layout.sidebar-collapsed .sidebar-nav a {
+  justify-content: center;
+  padding: 10px;
+}
+
+.admin-layout.sidebar-collapsed .sidebar-health,
+.admin-layout.sidebar-collapsed .sidebar-tools {
+  display: none;
+}
+
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebar {
   width: 260px;
@@ -23,6 +49,7 @@
   padding: 20px 14px;
   flex-shrink: 0;
   overflow-y: auto;
+  overflow-x: visible;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -31,12 +58,6 @@
 }
 
 .sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
@@ -160,9 +181,11 @@
 /* ── Admin Content Area ──────────────────────────────────────────────────── */
 .admin-content {
   flex: 1;
-  padding: 32px 36px;
+  padding: 28px 28px;
   background: #f8fafc;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
@@ -228,6 +251,44 @@
   font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.02em;
+}
+
+/* Page header row — title + actions on one line, no wrapping */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.page-header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  min-width: 0;
+}
+.page-header .page-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Responsive table */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-responsive table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
 .text-dim, .text-soft {
@@ -490,6 +551,6 @@ textarea.input-field {
 .w-full { width: 100%; }
 
 /* ── Misc ────────────────────────────────────────────────────────────────── */
-.container  { max-width: 1200px; }
+.container  { max-width: 100%; width: 100%; }
 .rounded    { border-radius: 8px; }
 .bg-slate-50 { background: #f8fafc; }

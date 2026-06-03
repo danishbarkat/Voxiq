@@ -11,6 +11,12 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
+    const allowInactiveAccount =
+      this.reflector.getAllAndOverride<boolean>('allowInactiveAccount', [
+        context.getHandler(),
+        context.getClass(),
+      ]) || false;
+
     const requiredRoles =
       this.reflector.getAllAndOverride<string[]>('roles', [
         context.getHandler(),
@@ -27,6 +33,11 @@ export class RolesGuard implements CanActivate {
     }
 
     const userRole = (user.role || '').toString().toLowerCase().trim();
+    const accountStatus = (user.accountStatus || '').toString().toUpperCase().trim();
+
+    if (accountStatus === 'INACTIVE' && userRole !== 'superadmin' && !allowInactiveAccount) {
+      throw new ForbiddenException('Account is inactive');
+    }
     
     // SuperAdmin bypasses all role checks
     if (userRole === 'superadmin') {

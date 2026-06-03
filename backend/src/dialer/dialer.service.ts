@@ -336,7 +336,7 @@ export class DialerService {
                     };
 
                 const result = await this.voipService.initiateCall({
-                    to: lead.phone,
+                    to: this.normalizePhone(lead.phone),
                     from: callerIdentity.number,
                     callerName: callerIdentity.callerName,
                     connectionId: process.env.TELNYX_SIP_CONNECTION_ID || '',
@@ -432,7 +432,7 @@ export class DialerService {
             },
             select: { leadId: true },
         });
-        const currentlyBeingDialed = activeCallLogs.map(cl => cl.leadId).filter(Boolean);
+        const currentlyBeingDialed = activeCallLogs.map(cl => cl.leadId).filter((id): id is string => id !== null);
         this.logger.debug(`Leads currently locked by active calls: ${currentlyBeingDialed.length}`);
         // ─────────────────────────────────────────────────────────────────────
 
@@ -599,6 +599,20 @@ export class DialerService {
             : { number: defaultNumber, callerName: defaultCallerName };
     }
 
+    private normalizePhone(phone: string): string {
+        const original = (phone || '').trim();
+        if (original.startsWith('+')) return '+' + original.slice(1).replace(/\D/g, '');
+        let d = original.replace(/\D/g, '');
+        if (!d) return original;
+        if (d.startsWith('0092')) d = d.slice(2);
+        else if (d.startsWith('92') && d.length >= 12) return '+' + d;
+        else if (d.length === 11 && d.startsWith('0')) return '+92' + d.slice(1);
+        else if (d.length === 10 && d.startsWith('3')) return '+92' + d;
+        else if (d.length === 10) return '+1' + d;
+        else if (d.length === 11 && d.startsWith('1')) return '+' + d;
+        return '+' + d;
+    }
+
     /**
      * Handle call disposition
      */
@@ -659,18 +673,20 @@ export class DialerService {
             case 'dnc':
                 leadStatus = LeadStatus.DNC;
                 // Add to DNC registry (upsert to avoid unique constraint failure)
-                await this.prisma.dncRegistry.upsert({
-                    where: { phone: callLog.lead.phone },
-                    update: {
-                        accountId: callLog.lead.accountId,
-                        source: 'agent_request',
-                    },
-                    create: {
-                        phone: callLog.lead.phone,
-                        accountId: callLog.lead.accountId,
-                        source: 'agent_request',
-                    },
-                });
+                if (callLog.lead) {
+                    await this.prisma.dncRegistry.upsert({
+                        where: { phone: callLog.lead.phone },
+                        update: {
+                            accountId: callLog.lead.accountId,
+                            source: 'agent_request',
+                        },
+                        create: {
+                            phone: callLog.lead.phone,
+                            accountId: callLog.lead.accountId,
+                            source: 'agent_request',
+                        },
+                    });
+                }
                 break;
             default:
                 // Unknown dispositions: mark CONTACTED to prevent unlimited recycling
@@ -678,13 +694,15 @@ export class DialerService {
                 leadStatus = LeadStatus.CONTACTED;
         }
 
-        await this.prisma.lead.update({
-            where: { id: callLog.leadId },
-            data: {
-                status: leadStatus,
-                ...(callbackAt && leadStatus === LeadStatus.CALLBACK ? { callbackAt: new Date(callbackAt) } : {})
-            },
-        });
+        if (callLog.leadId) {
+            await this.prisma.lead.update({
+                where: { id: callLog.leadId },
+                data: {
+                    status: leadStatus,
+                    ...(callbackAt && leadStatus === LeadStatus.CALLBACK ? { callbackAt: new Date(callbackAt) } : {})
+                },
+            });
+        }
 
         this.logger.log(`Call ${callLogId} dispositioned as ${disposition}`);
     }
@@ -692,7 +710,7 @@ export class DialerService {
     /**
      * Create a call log entry for a manual or client-side initiated call
      */
-    async logCall(data: { leadId?: string; agentId: string; callControlId?: string; campaignId?: string; manualNumber?: string; isManual?: boolean }): Promise<any> {
+    async logCall(data: { leadId?: string; agentId: string; callControlId?: string; campaignId?: string; manualNumber?: string; manualName?: string; isManual?: boolean }): Promise<any> {
         let campaignId = data.campaignId;
         let leadId = data.leadId;
 
@@ -719,6 +737,11 @@ export class DialerService {
                     });
                 }
 
+                // Parse name if provided
+                const nameParts = (data.manualName || '').trim().split(' ');
+                const firstName = nameParts[0] || 'Manual';
+                const lastName = nameParts.slice(1).join(' ') || 'Dial';
+
                 // Check if this number already exists as a lead
                 let lead = await this.prisma.lead.findFirst({
                     where: { phone: data.manualNumber, accountId: agent.accountId }
@@ -727,13 +750,19 @@ export class DialerService {
                 if (!lead) {
                     lead = await this.prisma.lead.create({
                         data: {
-                            firstName: 'Manual',
-                            lastName: 'Dial',
+                            firstName,
+                            lastName,
                             phone: data.manualNumber,
                             accountId: agent.accountId,
                             listId: list.id,
                             customFields: {}
                         }
+                    });
+                } else if (data.manualName && (lead.firstName === 'Manual' || !lead.firstName)) {
+                    // Update name if it was a placeholder and agent now provided a real name
+                    lead = await this.prisma.lead.update({
+                        where: { id: lead.id },
+                        data: { firstName, lastName }
                     });
                 }
                 leadId = lead.id;
@@ -760,13 +789,28 @@ export class DialerService {
         }
 
         if (!campaignId) {
-            // Fallback to any campaign to avoid FK failure
             const fallback = await this.prisma.campaign.findFirst({ select: { id: true } });
             campaignId = fallback?.id;
         }
 
         if (!campaignId) {
-            throw new Error('No campaign found to associate call with');
+            // No campaign at all — auto-create a default one so the FK is satisfied
+            const agent = await this.prisma.user.findUnique({
+                where: { id: data.agentId },
+                select: { accountId: true },
+            });
+            if (!agent) throw new Error('Agent not found');
+            const defaultCampaign = await this.prisma.campaign.create({
+                data: {
+                    name: 'Default Campaign',
+                    accountId: agent.accountId,
+                    status: CampaignStatus.ACTIVE,
+                    mode: CampaignMode.PREVIEW,
+                    pacing: 1,
+                },
+            });
+            campaignId = defaultCampaign.id;
+            this.logger.log(`Auto-created default campaign ${campaignId} for account ${agent.accountId}`);
         }
 
         return this.prisma.callLog.create({

@@ -10,7 +10,7 @@ import {
     UseInterceptors,
     UploadedFile,
     BadRequestException,
-    SetMetadata,
+    Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { LeadsService } from './leads.service';
@@ -31,6 +31,7 @@ export class LeadsController {
         @Body('accountId') accountId: string,
         @Body('listId') listId?: string,
         @Body('newListName') newListName?: string,
+        @Req() req?: any,
     ) {
         if (!file) {
             throw new BadRequestException('No file uploaded');
@@ -44,7 +45,7 @@ export class LeadsController {
             throw new BadRequestException('Either listId or newListName is required');
         }
 
-        const result = await this.leadsService.importCsv(file, accountId, listId, newListName);
+        const result = await this.leadsService.importCsv(file, accountId, listId, newListName, req?.user);
         return {
             message: 'Import completed',
             ...result,
@@ -53,11 +54,11 @@ export class LeadsController {
 
     @Roles('Admin', 'Manager')
     @Post()
-    create(@Body() createLeadDto: CreateLeadDto) {
-        return this.leadsService.create(createLeadDto);
+    create(@Body() createLeadDto: CreateLeadDto, @Req() req: any) {
+        return this.leadsService.create(createLeadDto, req?.user);
     }
 
-    @SetMetadata('isPublic', true)
+    @Roles('Admin', 'Manager', 'Agent')
     @Get()
     findAll(
         @Query('accountId') accountId?: string,
@@ -66,6 +67,7 @@ export class LeadsController {
         @Query('agentId') agentId?: string,
         @Query('limit') limit?: string,
         @Query('offset') offset?: string,
+        @Req() req?: any,
     ) {
         return this.leadsService.findAll({
             accountId,
@@ -74,39 +76,39 @@ export class LeadsController {
             agentId,
             limit: limit ? parseInt(limit) : undefined,
             offset: offset ? parseInt(offset) : undefined,
-        });
+        }, req?.user);
     }
 
     // IMPORTANT: Static routes ('accounts', 'lists') MUST come BEFORE dynamic ':id' route
     @Roles('Admin', 'Manager')
     @Get('lists')
-    findAllLists(@Query('accountId') accountId?: string) {
-        return this.leadsService.findAllLists(accountId);
+    findAllLists(@Query('accountId') accountId?: string, @Req() req?: any) {
+        return this.leadsService.findAllLists(accountId, req?.user);
     }
 
     @Roles('Admin')
     @Get('accounts')
-    findAllAccounts() {
-        return this.leadsService.findAllAccounts();
+    findAllAccounts(@Req() req?: any) {
+        return this.leadsService.findAllAccounts(req?.user);
     }
 
     @Roles('Admin')
     @Post('accounts')
-    createAccount(@Body('name') name: string) {
+    createAccount(@Body('name') name: string, @Req() req?: any) {
         if (!name) throw new BadRequestException('Account name is required');
-        return this.leadsService.createAccount(name);
+        return this.leadsService.createAccount(name, req?.user);
     }
 
     @Roles('Admin')
     @Patch('accounts/:id')
-    updateAccount(@Param('id') id: string, @Body() data: { name?: string; numberPool?: any }) {
-        return this.leadsService.updateAccount(id, data);
+    updateAccount(@Param('id') id: string, @Body() data: { name?: string; numberPool?: any }, @Req() req?: any) {
+        return this.leadsService.updateAccount(id, data, req?.user);
     }
 
     @Roles('Admin')
     @Delete('accounts/:id')
-    deleteAccount(@Param('id') id: string) {
-        return this.leadsService.deleteAccount(id);
+    deleteAccount(@Param('id') id: string, @Req() req?: any) {
+        return this.leadsService.deleteAccount(id, req?.user);
     }
 
     @Roles('Admin', 'Manager')
@@ -115,30 +117,31 @@ export class LeadsController {
         @Body('name') name: string,
         @Body('accountId') accountId: string,
         @Body('description') description?: string,
+        @Req() req?: any,
     ) {
         if (!name || !accountId) {
             throw new BadRequestException('list name and accountId are required');
         }
-        return this.leadsService.createList({ name, accountId, description });
+        return this.leadsService.createList({ name, accountId, description }, req?.user);
     }
 
     // Dynamic ':id' routes AFTER static routes
     @Roles('Admin', 'Manager', 'Agent')
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.leadsService.findOne(id);
+    findOne(@Param('id') id: string, @Req() req?: any) {
+        return this.leadsService.findOne(id, req?.user);
     }
 
     @Roles('Admin', 'Manager', 'Agent')
     @Get(':id/history')
-    getCallHistory(@Param('id') id: string) {
-        return this.leadsService.getCallHistory(id);
+    getCallHistory(@Param('id') id: string, @Req() req?: any) {
+        return this.leadsService.getCallHistory(id, req?.user);
     }
 
     @Roles('Admin', 'Manager')
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateLeadDto: UpdateLeadDto) {
-        return this.leadsService.update(id, updateLeadDto);
+    update(@Param('id') id: string, @Body() updateLeadDto: UpdateLeadDto, @Req() req?: any) {
+        return this.leadsService.update(id, updateLeadDto, req?.user);
     }
 
     @Roles('Admin', 'Manager', 'Agent')
@@ -146,25 +149,20 @@ export class LeadsController {
     updateStatus(
         @Param('id') id: string,
         @Body('status') status: LeadStatus,
+        @Req() req?: any,
     ) {
-        return this.leadsService.updateStatus(id, status);
+        return this.leadsService.updateStatus(id, status, req?.user);
     }
 
     @Roles('Admin', 'Manager')
     @Delete('lists/:id')
-    removeList(@Param('id') id: string) {
-        return this.leadsService.deleteList(id);
+    removeList(@Param('id') id: string, @Req() req?: any) {
+        return this.leadsService.deleteList(id, req?.user);
     }
 
     @Roles('Admin', 'Manager')
     @Delete(':id')
-    removeLead(@Param('id') id: string) {
-        return this.leadsService.deleteLead(id);
-    }
-
-    @Roles('Admin')
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.leadsService.remove(id);
+    removeLead(@Param('id') id: string, @Req() req?: any) {
+        return this.leadsService.deleteLead(id, req?.user);
     }
 }

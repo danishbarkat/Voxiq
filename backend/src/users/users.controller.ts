@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -21,8 +20,8 @@ export class UsersController {
 
   @Roles('Admin')
   @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  create(@Body() dto: CreateUserDto, @Req() req: any) {
+    return this.usersService.create(dto, req?.user);
   }
 
   @Roles('Admin', 'Manager')
@@ -33,58 +32,72 @@ export class UsersController {
 
   @Roles('Admin')
   @Get('roles')
-  findAllRoles() {
-    return this.usersService.findAllRoles();
+  findAllRoles(@Req() req: any) {
+    return this.usersService.findAllRoles(req?.user);
   }
 
   @Roles('Admin', 'Manager', 'Agent')
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.usersService.findOne(id, req?.user);
   }
 
   @Roles('Admin')
   @Patch(':id')
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateUserDto,
+    @Req() req: any,
   ) {
-    return this.usersService.update(id, dto);
+    return this.usersService.update(id, dto, req?.user);
   }
 
   /** Assign SIP credentials (Telnyx WebRTC login) to an agent */
   @Roles('Admin', 'Manager')
   @Patch(':id/sip-credentials')
   updateSipCredentials(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() body: { sipUri?: string; sipPassword?: string },
+    @Req() req: any,
   ) {
-    return this.usersService.update(id, body as any);
+    return this.usersService.update(id, body as any, req?.user);
   }
 
   /** Assign a Telnyx caller number to an agent */
   @Roles('Admin', 'Manager')
   @Patch(':id/caller-number')
   updateCallerNumber(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body('callerNumber') callerNumber: string | null,
+    @Req() req: any,
   ) {
-    return this.usersService.updateCallerNumber(id, callerNumber);
+    return this.usersService.updateCallerNumber(id, callerNumber, req?.user);
   }
 
   /** Replace an agent's assigned lists */
   @Roles('Admin', 'Manager')
   @Put(':id/lists')
   updateAgentLists(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body('listIds') listIds: string[],
+    @Req() req: any,
   ) {
-    return this.usersService.updateAgentLists(id, listIds ?? []);
+    return this.usersService.updateAgentLists(id, listIds ?? [], req?.user);
+  }
+
+  @Roles('Admin')
+  @Post(':id/admin-reset-password')
+  adminResetPassword(
+    @Param('id') id: string,
+    @Body('newPassword') newPassword: string,
+    @Req() req: any,
+  ) {
+    return this.usersService.adminResetPassword(id, newPassword, req?.user);
   }
 
   @Roles('Admin')
   @Delete(':id')
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.usersService.remove(id, req?.user);
   }
 }

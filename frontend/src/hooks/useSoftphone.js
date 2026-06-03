@@ -63,6 +63,10 @@ export const useSoftphone = (config) => {
     const [callControlId, setCallControlId] = useState(null);
     // callOutcome: tracks WHY a call ended — 'invalid' | 'no_answer' | 'answered' | null
     const [callOutcome, setCallOutcome] = useState(null);
+    // inbound call state
+    const [incomingCall, setIncomingCall] = useState(null);
+    const [incomingCallInfo, setIncomingCallInfo] = useState(null);
+    const incomingCallRef = useRef(null);
 
     const clientRef = useRef(null);
     const registeredRef = useRef(false);
@@ -314,6 +318,23 @@ export const useSoftphone = (config) => {
             }
 
             switch (call.state) {
+                case 'ringing': {
+                    console.log('[Softphone] ringing — direction:', call.direction, 'remoteCallerNumber:', call.options?.remoteCallerNumber);
+                    // Inbound: SDK sets direction='inbound' OR remoteCallerNumber is present at ringing
+                    // (outbound calls never have remoteCallerNumber at ringing stage)
+                    const isInbound = call.direction === 'inbound'
+                        || !!call.options?.remoteCallerNumber;
+                    if (isInbound) {
+                        const from = call.options?.remoteCallerNumber || call.from || call.callerNumber || 'Unknown';
+                        const callerName = call.options?.remoteCallerName || call.callerName || from;
+                        console.log(`[Softphone] ✅ Incoming call from: ${from} (${callerName})`);
+                        incomingCallRef.current = call;
+                        setIncomingCall(call);
+                        setIncomingCallInfo({ from, callerName });
+                    }
+                    break;
+                }
+
                 case 'new': {
                     // New call started — reset dedup guard so fresh call isn't
                     // misidentified as a duplicate of the previous call
@@ -393,6 +414,13 @@ export const useSoftphone = (config) => {
 
                 case 'hangup':
                 case 'destroy': {
+                    // Clear incoming call banner if the rejected/missed call ended
+                    if (incomingCallRef.current?.id === call.id) {
+                        incomingCallRef.current = null;
+                        setIncomingCall(null);
+                        setIncomingCallInfo(null);
+                    }
+
                     // ── Dedup guard ─────────────────────────────────────────
                     // Both 'hangup' AND 'destroy' fire for the same call.
                     // We only process the FIRST one; the second is ignored.
@@ -537,17 +565,27 @@ export const useSoftphone = (config) => {
                     return null;
                 }
 
-                let to = digits;
-                if (digits.startsWith('92')) {
+                const original = (target || '').trim();
+                let to;
+                if (original.startsWith('+')) {
+                    // Explicit + prefix — already E.164
                     to = '+' + digits;
-                } else if (digits.length === 10 && (digits.startsWith('3'))) {
-                    // Pakistan mobile heuristic
-                    to = '+92' + digits;
-                } else if (digits.length === 11 && digits.startsWith('03')) {
-                    // Pakistan mobile with 0 prefix
+                } else if (digits.startsWith('0092')) {
+                    // 0092... international dialing prefix → strip 00
+                    to = '+' + digits.slice(2);
+                } else if (digits.startsWith('92') && digits.length >= 12) {
+                    // Pakistan country code without + (923XXXXXXXXX)
+                    to = '+' + digits;
+                } else if (digits.length === 11 && digits.startsWith('0')) {
+                    // Any Pakistan number with leading 0: mobiles (03XX) and landlines (021, 042, 051...)
                     to = '+92' + digits.slice(1);
+                } else if (digits.length === 10 && digits.startsWith('3')) {
+                    // Pakistan mobile without leading 0: 3XXXXXXXXX
+                    to = '+92' + digits;
                 } else if (digits.length === 10) {
                     to = '+1' + digits;
+                } else if (digits.length === 11 && digits.startsWith('1')) {
+                    to = '+' + digits;
                 } else {
                     to = '+' + digits;
                 }
@@ -656,6 +694,36 @@ export const useSoftphone = (config) => {
         if (audioEl) audioEl.srcObject = null;
     }, [stopCustomRecording]);
 
+    const answerCall = useCallback(async () => {
+        const call = incomingCallRef.current;
+        if (!call) return;
+        try {
+            micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } catch (e) {
+            console.warn('[Softphone] Mic permission during answer:', e);
+        }
+        call.answer();
+        activeCallRef.current = call;
+        callReachedRingingRef.current = true;
+        callReachedActiveRef.current = false;
+        lastProcessedCallIdRef.current = null;
+        incomingCallRef.current = null;
+        setIncomingCall(null);
+        setIncomingCallInfo(null);
+        setCallState('connected');
+        setLastError(null);
+        setSipCause(null);
+    }, []);
+
+    const rejectCall = useCallback(() => {
+        const call = incomingCallRef.current;
+        if (!call) return;
+        call.hangup();
+        incomingCallRef.current = null;
+        setIncomingCall(null);
+        setIncomingCallInfo(null);
+    }, []);
+
     const sendDTMF = useCallback((digit) => {
         if (activeCallRef.current) {
             console.log(`[Softphone] Sending DTMF: ${digit}`);
@@ -702,5 +770,5 @@ export const useSoftphone = (config) => {
         }
     }, [ensureRecordingStarted, stopCustomRecording]);
 
-    return { registered, callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, callControlId, handleWebSocketCallUpdate, sendDTMF, ua: null, session: null };
+    return { registered, callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, callControlId, handleWebSocketCallUpdate, sendDTMF, incomingCall, incomingCallInfo, answerCall, rejectCall, ua: null, session: null };
 };
