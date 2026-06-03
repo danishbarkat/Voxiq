@@ -162,6 +162,18 @@ export class WebsocketGateway
         this.logger.log(`Broadcasted campaign update: ${campaignId}`);
     }
 
+    /** Broadcast inbound SMS to all clients in the account */
+    broadcastSmsReceived(accountId: string, message: {
+        id: string;
+        fromNumber: string;
+        toNumber: string;
+        body: string;
+        createdAt: Date;
+    }) {
+        this.server.emit(`sms:received:${accountId}`, message);
+        this.logger.log(`Broadcasted inbound SMS for account ${accountId} from ${message.fromNumber}`);
+    }
+
     /**
      * Broadcast agent status to all connected clients
      */

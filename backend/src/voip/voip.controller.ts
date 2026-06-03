@@ -7,6 +7,7 @@ import { promises as fs } from 'fs';
 import { extname, join } from 'path';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { VoipService } from './voip.service';
+import { SmsService } from '../sms/sms.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 interface TelnyxEvent {
@@ -34,6 +35,7 @@ export class VoipController {
         private config: ConfigService,
         private ws: WebsocketGateway,
         private voipService: VoipService,
+        private smsService: SmsService,
     ) { }
 
     private getPublicBaseUrl(): string {
@@ -197,6 +199,28 @@ export class VoipController {
         const event = body?.data?.event_type;
         const callId = body?.data?.payload?.call_control_id;
 
+        // ── Inbound SMS — handle before call_control_id guard ────────────────
+        if (event === 'message.received') {
+            const payload = body?.data?.payload as any;
+            const from: string = payload?.from?.phone_number || payload?.from || '';
+            const to: string = payload?.to?.[0]?.phone_number || payload?.to || '';
+            const text: string = payload?.text || payload?.body || '';
+            const msgId: string | null = (body?.data as any)?.id || null;
+            this.logger.log(`[SMS] Inbound from=${from} to=${to} text="${text.slice(0, 50)}"`);
+            try {
+                const accountId = await this.smsService.findAccountByNumber(to);
+                const saved = await this.smsService.saveInbound(from, to, text, msgId, accountId || 'unknown');
+                if (accountId) {
+                    this.ws.broadcastSmsReceived(accountId, {
+                        id: saved.id, fromNumber: from, toNumber: to, body: text, createdAt: saved.createdAt,
+                    });
+                }
+            } catch (err) {
+                this.logger.warn(`[SMS] Failed to save inbound: ${err?.message}`);
+            }
+            return { received: true };
+        }
+
         if (!callId) {
             this.logger.debug('Webhook received without call_control_id', event);
             return { received: true };
@@ -214,6 +238,32 @@ export class VoipController {
             body?.data?.payload?.public_recording_urls?.wav ||
             body?.data?.payload?.recording_urls?.[0] ||
             body?.data?.payload?.recording_url;
+
+        // ── Inbound call initiated — create CallLog for tracking ─────────────
+        if (event === 'call.initiated' && direction === 'inbound') {
+            this.logger.log(`[Inbound] call.initiated from=${fromNum} to=${toNum}`);
+            try {
+                const lead = await this.prisma.lead.findFirst({
+                    where: { phone: { in: [fromNum, fromNum?.replace(/\D/g, '')] } },
+                    select: { id: true, firstName: true, lastName: true },
+                });
+                await this.prisma.callLog.create({
+                    data: {
+                        callControlId: callId,
+                        startedAt: new Date(),
+                        callStatus: CallStatus.RINGING,
+                        direction: 'inbound',
+                        fromNumber: fromNum,
+                        toNumber: toNum,
+                        callerName: lead ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : null,
+                        leadId: lead?.id ?? null,
+                    } as any,
+                });
+                this.logger.log(`[Inbound] CallLog created for ${callId}`);
+            } catch (err) {
+                this.logger.warn(`[Inbound] Could not create CallLog: ${err?.message}`);
+            }
+        }
 
         if (event === 'call.answered') {
             // EXPLICITLY start recording for WebRTC outbound calls which missed the initial flag
@@ -255,24 +305,29 @@ export class VoipController {
         if (event === 'call.hangup' || event === 'call.ended') {
             const endedLogs = await this.prisma.callLog.findMany({
                 where: { callControlId: callId },
-                select: { id: true, recordingUrl: true },
+                select: { id: true, recordingUrl: true, callStatus: true, direction: true },
             });
 
             for (const log of endedLogs) {
                 const finalRecordingUrl = log.recordingUrl || recordingUrl;
+                // Inbound calls that were still RINGING (never answered) → MISSED
+                const wasNeverAnswered = log.callStatus === CallStatus.RINGING;
+                const isInbound = (log as any).direction === 'inbound';
+                const finalStatus = wasNeverAnswered && isInbound ? CallStatus.MISSED : CallStatus.COMPLETED;
                 await this.prisma.callLog.update({
                     where: { id: log.id },
                     data: {
-                        callStatus: CallStatus.COMPLETED,
+                        callStatus: finalStatus,
                         endedAt: new Date(),
                         recordingUrl: finalRecordingUrl || undefined,
                     },
                 });
-                this.ws.broadcastCallUpdate(log.id, { status: 'completed', recordingUrl: finalRecordingUrl });
+                const statusLabel = finalStatus === CallStatus.MISSED ? 'missed' : 'completed';
+                this.ws.broadcastCallUpdate(log.id, { status: statusLabel, recordingUrl: finalRecordingUrl });
             }
             this.ws.broadcastCallUpdate(callId, { status: 'completed', recordingUrl });
 
-            this.logger.log(`Call ${callId} completed. Recording URL: ${recordingUrl || 'None'}`);
+            this.logger.log(`Call ${callId} ended. Recording URL: ${recordingUrl || 'None'}`);
         }
 
         if (event === 'call.machine.detection.ended' || event === 'call.recording.saved' || event === 'recording.saved') {
