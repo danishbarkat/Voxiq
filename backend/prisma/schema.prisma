@@ -13,6 +13,9 @@ model Account {
   id                  String              @id @default(uuid())
   name                String
   status              AccountStatus       @default(PENDING)
+  accessCode          String?
+  accessCodeIssuedAt  DateTime?
+  accessCodeUsedAt    DateTime?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   numberPool          Json?
@@ -29,6 +32,17 @@ model Account {
   teams               Team[]
   users               User[]
   VoicemailTemplate   VoicemailTemplate[]
+  smsMessages         SmsMessage[]
+}
+
+model SignupVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  otpCode   String
+  payload   Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Team {
@@ -74,6 +88,10 @@ model User {
   name         String
   email        String      @unique
   passwordHash String
+  mfaSecret                    String?
+  mfaEnabled                   Boolean     @default(false)
+  passwordResetRequested        Boolean     @default(false)
+  passwordResetRequestedAt      DateTime?
   status       UserStatus  @default(ACTIVE)
   roleId       String
   accountId    String
@@ -85,6 +103,7 @@ model User {
   sipPassword  String?
   AgentList    AgentList[]
   callLogs     CallLog[]   @relation("AgentCalls")
+  smsMessages  SmsMessage[] @relation("AgentSmsMessages")
   account      Account     @relation(fields: [accountId], references: [id])
   role         Role        @relation(fields: [roleId], references: [id])
   team         Team?       @relation(fields: [teamId], references: [id])
@@ -201,6 +220,22 @@ model VoicemailTemplate {
   duration  Int
   createdAt DateTime @default(now())
   Account   Account  @relation(fields: [accountId], references: [id])
+}
+
+model SmsMessage {
+  id              String   @id @default(uuid())
+  accountId       String
+  agentId         String?
+  direction       String
+  fromNumber      String
+  toNumber        String
+  body            String
+  status          String   @default("sent")
+  telnyxMessageId String?
+  createdAt       DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  agent   User?   @relation("AgentSmsMessages", fields: [agentId], references: [id])
 }
 
 enum AccountStatus {
