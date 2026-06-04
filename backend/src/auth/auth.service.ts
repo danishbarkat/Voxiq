@@ -49,7 +49,17 @@ export class AuthService {
       where: { email: dto.email.toLowerCase() },
     });
     if (existing) {
-      throw new BadRequestException('Email already registered');
+      throw new BadRequestException('This email is already registered. Each admin can only register one company.');
+    }
+
+    // One company per email domain — prevent same person registering multiple companies
+    const emailDomain = dto.email.toLowerCase().split('@')[1];
+    const domainExists = await this.prisma.user.findFirst({
+      where: { email: { endsWith: `@${emailDomain}` } },
+      select: { id: true, accountId: true },
+    });
+    if (domainExists) {
+      throw new BadRequestException('A company is already registered with this email domain. Contact your company admin to add you as an agent.');
     }
 
     const otpCode = this.generateOtpCode();
@@ -66,6 +76,7 @@ export class AuthService {
           passwordHash,
           phone: this.normalizeOptionalPhone(dto.phone),
           companyName: dto.companyName,
+          website: dto.website || null,
           requestedAgentLimit: dto.requestedAgentLimit,
           requestedNumbers: dto.requestedNumbers,
           ntn: dto.ntn || null,
@@ -83,6 +94,7 @@ export class AuthService {
           passwordHash,
           phone: this.normalizeOptionalPhone(dto.phone),
           companyName: dto.companyName,
+          website: dto.website || null,
           requestedAgentLimit: dto.requestedAgentLimit,
           requestedNumbers: dto.requestedNumbers,
           ntn: dto.ntn || null,
@@ -143,6 +155,7 @@ export class AuthService {
         requestedAgentLimit: Number(payload.requestedAgentLimit),
         requestedNumbers: Number(payload.requestedNumbers),
         adminPhone: payload.phone || null,
+        website: payload.website || null,
         ntn: payload.ntn || null,
         termsAccepted: payload.termsAccepted === true,
       } as any,

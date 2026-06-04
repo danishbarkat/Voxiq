@@ -40,6 +40,10 @@ export class SignupDto {
 
   @IsOptional()
   @IsString()
+  website?: string;
+
+  @IsOptional()
+  @IsString()
   ntn?: string;
 
   @IsBoolean()

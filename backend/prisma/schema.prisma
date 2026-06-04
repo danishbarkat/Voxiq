@@ -26,6 +26,7 @@ model Account {
   rejectionReason     String?
   approvedAt          DateTime?
   adminPhone          String?
+  website             String?
   ntn                 String?
   termsAccepted       Boolean             @default(false)
   campaigns           Campaign[]

@@ -58,6 +58,7 @@ export default function Signup() {
         countryCode: '+92',
         phone: '',
         companyName: '',
+        website: '',
         ntn: '',
         requestedAgentLimit: 1,
         requestedNumbers: 1,
@@ -117,6 +118,7 @@ export default function Signup() {
                     password: formData.password,
                     phone: formData.phone ? `${formData.countryCode}${formData.phone}` : undefined,
                     companyName: formData.companyName,
+                    website: formData.website || undefined,
                     ntn: formData.ntn || undefined,
                     requestedAgentLimit: formData.requestedAgentLimit,
                     requestedNumbers: formData.requestedNumbers,
@@ -224,9 +226,17 @@ export default function Signup() {
                                 <input name="companyName" type="text" placeholder="Acme Inc." value={formData.companyName} onChange={handleChange} required />
                             </div>
                             <div className="auth-field">
+                                <label>Company Website <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                                <input name="website" type="url" placeholder="https://yourcompany.com" value={formData.website} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="auth-field-row">
+                            <div className="auth-field">
                                 <label>NTN Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
                                 <input name="ntn" type="text" placeholder="e.g. 1234567-8" value={formData.ntn} onChange={handleChange} maxLength={20} />
                             </div>
+                            <div className="auth-field" />
                         </div>
 
                         <div className="auth-field">
