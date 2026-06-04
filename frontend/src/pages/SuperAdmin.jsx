@@ -255,6 +255,76 @@ function RejectModal({ company, onClose, onRejected }) {
   );
 }
 
+// ─── chart helpers ────────────────────────────────────────────────────────────
+
+function BarChart({ data = [], valueKey = 'value', labelKey = 'label', color = '#6366f1', height = 160 }) {
+  const max = Math.max(...data.map(d => d[valueKey] || 0), 1);
+  const W = 100, barW = W / data.length;
+  return (
+    <svg viewBox={`0 0 100 ${height}`} style={{ width: '100%' }} preserveAspectRatio="none">
+      {data.map((d, i) => {
+        const val = d[valueKey] || 0;
+        const barH = (val / max) * (height - 20);
+        const x = i * barW + barW * 0.15;
+        const w = barW * 0.7;
+        return (
+          <g key={i}>
+            <rect x={x} y={height - 20 - barH} width={w} height={barH} fill={color} rx="1" opacity="0.85" />
+            {barW > 8 && (
+              <text x={x + w / 2} y={height - 4} textAnchor="middle" fontSize="3.5" fill="#6b7280">
+                {String(d[labelKey] || '').slice(0, 4)}
+              </text>
+            )}
+            {barH > 10 && (
+              <text x={x + w / 2} y={height - 22 - barH} textAnchor="middle" fontSize="3.5" fill={color} fontWeight="700">
+                {val}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      <line x1={0} y1={height - 20} x2={100} y2={height - 20} stroke="#e5e7eb" strokeWidth="0.5" />
+    </svg>
+  );
+}
+
+function DonutChart({ segments = [], size = 120 }) {
+  const total = segments.reduce((s, seg) => s + (seg.value || 0), 0);
+  if (total === 0) return <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 12, padding: 20 }}>No data</div>;
+  const cx = size / 2, cy = size / 2, r = size * 0.38, ir = size * 0.24;
+  let angle = -Math.PI / 2;
+  const paths = segments.map(seg => {
+    const pct = seg.value / total;
+    const sweep = pct * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+    const x2 = cx + r * Math.cos(angle + sweep), y2 = cy + r * Math.sin(angle + sweep);
+    const ix1 = cx + ir * Math.cos(angle), iy1 = cy + ir * Math.sin(angle);
+    const ix2 = cx + ir * Math.cos(angle + sweep), iy2 = cy + ir * Math.sin(angle + sweep);
+    const large = sweep > Math.PI ? 1 : 0;
+    const d = `M${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${ir},${ir} 0 ${large},0 ${ix1},${iy1} Z`;
+    angle += sweep;
+    return { d, color: seg.color, label: seg.label, value: seg.value, pct: Math.round(pct * 100) };
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <svg width={size} height={size} style={{ flexShrink: 0 }}>
+        {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} stroke="#fff" strokeWidth="1" />)}
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize={size * 0.12} fontWeight="800" fill="#111827">{total.toLocaleString()}</text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={size * 0.08} fill="#6b7280">total</text>
+      </svg>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {paths.map((p, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: p.color, flexShrink: 0 }} />
+            <span style={{ color: '#374151', fontWeight: 600 }}>{p.label}</span>
+            <span style={{ color: '#6b7280', marginLeft: 'auto', paddingLeft: 8 }}>{p.value} ({p.pct}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── tab panels ───────────────────────────────────────────────────────────────
 
 const CAMPAIGN_MODE_COLORS = {
@@ -292,11 +362,47 @@ function DashboardTab({ overview, overviewLoading }) {
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: '#111827' }}>World Call Activity Map — All Companies</div>
         <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>Bubble size = call volume. Hover for details.</div>
-        {topCountries.length > 0
-          ? <WorldMap data={topCountries} />
-          : <div style={{ padding: '40px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No call geo data yet — start dialing to see the map.</div>
-        }
+        <WorldMap data={topCountries} />
+        {topCountries.length === 0 && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Bubbles will appear here as companies start dialing
+          </div>
+        )}
       </div>
+
+      {/* ── Graphs row ── */}
+      {!overviewLoading && overview && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
+
+          {/* Companies by calls bar chart */}
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#111827' }}>Companies by Calls</div>
+            {topCompanies.length > 0
+              ? <BarChart data={topCompanies.map(c => ({ label: c.companyName?.slice(0, 8), value: c.totalCalls }))} color="#6366f1" height={140} />
+              : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>No data yet</div>
+            }
+          </div>
+
+          {/* Call status donut */}
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#111827' }}>Call Status</div>
+            <DonutChart segments={[
+              { label: 'Connected', value: overview.connectedCalls || 0,  color: '#10b981' },
+              { label: 'Missed',    value: Math.max(0, (overview.totalCalls || 0) - (overview.connectedCalls || 0) - (overview.inboundCalls || 0)), color: '#f59e0b' },
+              { label: 'Inbound',   value: overview.inboundCalls || 0,   color: '#6366f1' },
+            ]} size={110} />
+          </div>
+
+          {/* Top states bar chart */}
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#111827' }}>Top States Called</div>
+            {topStates.length > 0
+              ? <BarChart data={topStates.slice(0, 10).map(s => ({ label: s.id, value: s.value }))} color="#0f766e" height={140} />
+              : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>No data yet</div>
+            }
+          </div>
+        </div>
+      )}
 
       {/* ── Companies + State breakdown ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: 18 }}>
