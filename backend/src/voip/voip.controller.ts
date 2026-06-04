@@ -239,9 +239,28 @@ export class VoipController {
             body?.data?.payload?.recording_urls?.[0] ||
             body?.data?.payload?.recording_url;
 
-        // ── Inbound call initiated — create CallLog for tracking ─────────────
+        // ── Inbound call initiated — answer it and create CallLog ────────────
         if (event === 'call.initiated' && direction === 'inbound') {
             this.logger.log(`[Inbound] call.initiated from=${fromNum} to=${toNum}`);
+
+            // Answer the call so Telnyx doesn't clear it (Q.850 code 16)
+            try {
+                const apiKey = this.config.get<string>('TELNYX_API_KEY');
+                const answerRes = await fetch(`https://api.telnyx.com/v2/calls/${callId}/actions/answer`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                });
+                if (!answerRes.ok) {
+                    const err = await answerRes.json() as any;
+                    this.logger.error(`[Inbound] Failed to answer call ${callId}: ${JSON.stringify(err?.errors?.[0])}`);
+                } else {
+                    this.logger.log(`[Inbound] Answered call ${callId}`);
+                }
+            } catch (err) {
+                this.logger.error(`[Inbound] Answer action threw: ${err?.message}`);
+            }
+
             try {
                 const lead = await this.prisma.lead.findFirst({
                     where: { phone: { in: [fromNum, fromNum?.replace(/\D/g, '')] } },

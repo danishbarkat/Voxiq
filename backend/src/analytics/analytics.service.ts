@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CallStatus } from '@prisma/client';
+import { CallStatus, Prisma } from '@prisma/client';
 import { getStateFromE164 } from '../utils/areaCodes';
 
 @Injectable()
@@ -9,33 +9,31 @@ export class AnalyticsService {
 
     constructor(private prisma: PrismaService) { }
 
+    private buildDateFilter(startDate?: Date, endDate?: Date): Prisma.Sql {
+        if (startDate && endDate) return Prisma.sql`AND "startedAt" >= ${startDate} AND "startedAt" <= ${endDate}`;
+        if (startDate) return Prisma.sql`AND "startedAt" >= ${startDate}`;
+        if (endDate) return Prisma.sql`AND "startedAt" <= ${endDate}`;
+        return Prisma.empty;
+    }
+
     async getCampaignStats(campaignId: string, startDate?: Date, endDate?: Date, requester?: any) {
         await this.assertCampaignAccess(campaignId, requester);
-        let whereSql = `WHERE "campaignId" = '${campaignId}'`;
-        if (startDate || endDate) {
-            if (startDate && endDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}' AND "startedAt" <= '${endDate.toISOString()}'`;
-            } else if (startDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}'`;
-            } else if (endDate) {
-                whereSql += ` AND "startedAt" <= '${endDate.toISOString()}'`;
-            }
-        }
+        const dateFilter = this.buildDateFilter(startDate, endDate);
 
-        const statsQuery = await this.prisma.$queryRawUnsafe<any[]>(`
-            SELECT 
+        const statsQuery = await this.prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT
                 COUNT(*) as "totalCalls",
                 COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
                 SUM("dealValue") as "revenue",
                 AVG(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) as "avgDuration"
             FROM "CallLog"
-            ${whereSql}
+            WHERE "campaignId" = ${campaignId} ${dateFilter}
         `);
 
-        const dispositionQuery = await this.prisma.$queryRawUnsafe<any[]>(`
-            SELECT "disposition", COUNT(*) as count 
-            FROM "CallLog" 
-            ${whereSql} 
+        const dispositionQuery = await this.prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT "disposition", COUNT(*) as count
+            FROM "CallLog"
+            WHERE "campaignId" = ${campaignId} ${dateFilter}
             GROUP BY "disposition"
         `);
 
@@ -64,26 +62,17 @@ export class AnalyticsService {
 
     async getAgentStats(agentId: string, startDate?: Date, endDate?: Date, requester?: any) {
         await this.assertAgentAccess(agentId, requester);
-        let whereSql = `WHERE "agentId" = '${agentId}'`;
-        if (startDate || endDate) {
-            if (startDate && endDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}' AND "startedAt" <= '${endDate.toISOString()}'`;
-            } else if (startDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}'`;
-            } else if (endDate) {
-                whereSql += ` AND "startedAt" <= '${endDate.toISOString()}'`;
-            }
-        }
+        const dateFilter = this.buildDateFilter(startDate, endDate);
 
-        const statsQuery = await this.prisma.$queryRawUnsafe<any[]>(`
-            SELECT 
+        const statsQuery = await this.prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT
                 COUNT(*) as "totalCalls",
                 COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
                 COUNT(*) FILTER (WHERE LOWER("disposition") IN ('interested', 'booked')) as "appointments",
                 SUM("dealValue") as "revenue",
                 SUM(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) as "totalTalkTime"
             FROM "CallLog"
-            ${whereSql}
+            WHERE "agentId" = ${agentId} ${dateFilter}
         `);
 
         const stats = statsQuery[0];

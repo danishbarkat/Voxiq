@@ -68,6 +68,8 @@ export class AuthService {
           companyName: dto.companyName,
           requestedAgentLimit: dto.requestedAgentLimit,
           requestedNumbers: dto.requestedNumbers,
+          ntn: dto.ntn || null,
+          termsAccepted: dto.termsAccepted,
         } as any,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
@@ -83,6 +85,8 @@ export class AuthService {
           companyName: dto.companyName,
           requestedAgentLimit: dto.requestedAgentLimit,
           requestedNumbers: dto.requestedNumbers,
+          ntn: dto.ntn || null,
+          termsAccepted: dto.termsAccepted,
         } as any,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
@@ -139,7 +143,9 @@ export class AuthService {
         requestedAgentLimit: Number(payload.requestedAgentLimit),
         requestedNumbers: Number(payload.requestedNumbers),
         adminPhone: payload.phone || null,
-      },
+        ntn: payload.ntn || null,
+        termsAccepted: payload.termsAccepted === true,
+      } as any,
     });
 
     await this.prisma.user.create({

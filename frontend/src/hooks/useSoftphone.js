@@ -553,7 +553,7 @@ export const useSoftphone = (config) => {
                 // Force browser to request microphone right before dialing!
                 // This guarantees the mic is active and bypasses strict autoplay blocks for incoming audio.
                 try {
-                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
                 } catch (micErr) {
                     console.error('[Softphone] Microphone access denied/failed:', micErr);
                     alert('Error: Please allow microphone access in your browser to make WebRTC calls.');
@@ -666,7 +666,7 @@ export const useSoftphone = (config) => {
         setCallState('ringing');
         // Capture mic early for campaign calls (makeCall is not used, so getUserMedia never fires)
         if (!micStreamRef.current) {
-            navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false })
                 .then(stream => { micStreamRef.current = stream; })
                 .catch(err => console.warn('[Softphone] attachCall mic capture failed:', err));
         }
@@ -698,7 +698,7 @@ export const useSoftphone = (config) => {
         const call = incomingCallRef.current;
         if (!call) return;
         try {
-            micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
         } catch (e) {
             console.warn('[Softphone] Mic permission during answer:', e);
         }

@@ -715,15 +715,76 @@ const COUNTRY_NAMES = {
   '+212': 'Morocco', '+213': 'Algeria', '+216': 'Tunisia', '+218': 'Libya',
 };
 
+function AssignNumberModal({ number, companies, onClose, onAssigned }) {
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleAssign = async () => {
+    if (!selectedCompanyId) return;
+    setLoading(true);
+    setError(null);
+    const company = companies.find(c => c.id === selectedCompanyId);
+    try {
+      await fetchJson(`${API_URL}/superadmin/companies/${selectedCompanyId}/assign-numbers`, {
+        method: 'POST',
+        body: JSON.stringify({
+          numbers: [{ number: number.number, callerName: company?.name || '', areaCode: number.countryCode || '' }],
+        }),
+      });
+      onAssigned();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={OVERLAY}>
+      <div style={{ ...modal(420) }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>Assign Number</h3>
+        <p style={{ color: '#6b7280', margin: '0 0 18px', fontSize: 13, fontFamily: 'monospace' }}>{number.number}</p>
+        {error && <div style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 8, padding: '9px 12px', marginBottom: 14, fontSize: 13 }}>{error}</div>}
+        <label style={labelStyle}>Select Company</label>
+        <select value={selectedCompanyId} onChange={e => setSelectedCompanyId(e.target.value)} style={{ ...inputStyle, marginBottom: 18 }}>
+          <option value="">— Choose company —</option>
+          {companies.map(c => (
+            <option key={c.id} value={c.id}>{c.name} ({c.status})</option>
+          ))}
+        </select>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Cancel</button>
+          <button onClick={handleAssign} disabled={!selectedCompanyId || loading}
+            style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: selectedCompanyId ? '#2563eb' : '#93c5fd', color: '#fff', cursor: selectedCompanyId ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13 }}>
+            {loading ? 'Assigning…' : 'Assign'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NumbersTab() {
   const [numbers, setNumbers] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
-    try { const d = await fetchJson(`${API_URL}/superadmin/numbers`); setNumbers(Array.isArray(d) ? d : []); }
-    finally { setLoading(false); setRefreshing(false); }
+    try {
+      const [nums, comps] = await Promise.all([
+        fetchJson(`${API_URL}/superadmin/numbers`),
+        fetchJson(`${API_URL}/superadmin/companies`),
+      ]);
+      setNumbers(Array.isArray(nums) ? nums : []);
+      setCompanies(Array.isArray(comps) ? comps : []);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -732,7 +793,16 @@ function NumbersTab() {
   const assigned = numbers.filter(n => n.assigned);
 
   return (
-    <div style={{ display: 'grid', gap: 18, maxWidth: 800 }}>
+    <div style={{ display: 'grid', gap: 18, maxWidth: 860 }}>
+      {assignTarget && (
+        <AssignNumberModal
+          number={assignTarget}
+          companies={companies}
+          onClose={() => setAssignTarget(null)}
+          onAssigned={() => { setAssignTarget(null); load(true); }}
+        />
+      )}
+
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 18 }}>ℹ️</span>
         Numbers are pulled directly from your <strong>Telnyx account</strong>. Purchase numbers on Telnyx and they'll appear here automatically.
@@ -763,7 +833,7 @@ function NumbersTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['Number', 'Country', 'Status'].map(h => (
+                {['Number', 'Country', 'Status', 'Action'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
                 ))}
               </tr>
@@ -772,7 +842,7 @@ function NumbersTab() {
               {numbers.map((n, i) => {
                 const countryName = COUNTRY_NAMES[n.countryCode] || 'Unknown';
                 return (
-                  <tr key={n.number} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa', opacity: n.assigned ? 0.6 : 1 }}>
+                  <tr key={n.number} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa', opacity: n.assigned ? 0.7 : 1 }}>
                     <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14 }}>{n.number}</span>
                     </td>
@@ -788,6 +858,14 @@ function NumbersTab() {
                       <Badge bg={n.assigned ? '#fee2e2' : '#d1fae5'} color={n.assigned ? '#991b1b' : '#065f46'}>
                         {n.assigned ? 'Assigned' : 'Available'}
                       </Badge>
+                    </td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      {!n.assigned && (
+                        <button onClick={() => setAssignTarget(n)}
+                          style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                          Assign to Company
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

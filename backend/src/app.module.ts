@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validationSchema } from './config/validation';
@@ -29,6 +30,10 @@ import { RolesGuard } from './auth/guards/roles.guard';
       envFilePath: '.env',
       validationSchema,
     }),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 60000, limit: 20 },   // 20 req/min per IP
+      { name: 'long',  ttl: 900000, limit: 100 },  // 100 req/15min per IP
+    ]),
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
@@ -53,14 +58,9 @@ import { RolesGuard } from './auth/guards/roles.guard';
   controllers: [AppController],
   providers: [
     AppService,
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule { }

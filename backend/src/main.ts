@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import express from 'express';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -13,6 +14,13 @@ async function bootstrap() {
   if (!existsSync(uploadsDir)) {
     mkdirSync(uploadsDir, { recursive: true });
   }
+
+  // Security headers
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+  }));
+
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
   const origins =
     corsOrigin && corsOrigin.includes(',')
@@ -22,7 +30,10 @@ async function bootstrap() {
   app.enableCors({
     origin: origins,
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

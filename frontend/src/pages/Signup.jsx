@@ -1,8 +1,51 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { countries } from '../lib/countries';
+
+function checkPassword(pw) {
+    return {
+        length:    pw.length >= 8,
+        uppercase: /[A-Z]/.test(pw),
+        lowercase: /[a-z]/.test(pw),
+        number:    /\d/.test(pw),
+        special:   /[@$!%*?&_#^()\-+=~`|\\:;"'<>,./[\]{}]/.test(pw),
+    };
+}
+
+function PasswordStrength({ password }) {
+    const checks = useMemo(() => checkPassword(password), [password]);
+    if (!password) return null;
+    const passed = Object.values(checks).filter(Boolean).length;
+    const strength = passed <= 2 ? 'Weak' : passed <= 4 ? 'Fair' : 'Strong';
+    const color = passed <= 2 ? '#ef4444' : passed <= 4 ? '#f59e0b' : '#10b981';
+    const labels = {
+        length:    'At least 8 characters',
+        uppercase: 'One uppercase letter (A–Z)',
+        lowercase: 'One lowercase letter (a–z)',
+        number:    'One number (0–9)',
+        special:   'One special character (!@#$...)',
+    };
+    return (
+        <div style={{ marginTop: 6, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ flex: 1, height: 4, borderRadius: 4, background: '#e5e7eb', overflow: 'hidden' }}>
+                    <div style={{ width: `${(passed / 5) * 100}%`, height: '100%', background: color, transition: 'all 0.3s' }} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color }}>{strength}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
+                {Object.entries(labels).map(([key, label]) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: checks[key] ? '#10b981' : '#9ca3af' }}>
+                        <span style={{ fontSize: 10 }}>{checks[key] ? '✓' : '✗'}</span>
+                        {label}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 export default function Signup() {
     const [signupStep, setSignupStep] = useState('form');
@@ -12,14 +55,16 @@ export default function Signup() {
         firstName: '',
         lastName: '',
         email: '',
-        countryCode: '+1',
+        countryCode: '+92',
         phone: '',
         companyName: '',
+        ntn: '',
         requestedAgentLimit: 1,
         requestedNumbers: 1,
         password: '',
         confirmPassword: '',
     });
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +85,15 @@ export default function Signup() {
             setError('Passwords do not match. Please make sure both fields are the same.');
             return;
         }
-        if (formData.password.length < 8) {
-            setError('Password must be at least 8 characters.');
+        const pwChecks = checkPassword(formData.password);
+        const pwFailLabels = { length: 'at least 8 characters', uppercase: 'one uppercase letter (A–Z)', lowercase: 'one lowercase letter (a–z)', number: 'one number (0–9)', special: 'one special character (!@#$...)' };
+        const pwFailed = Object.entries(pwChecks).filter(([,v]) => !v).map(([k]) => pwFailLabels[k]);
+        if (pwFailed.length > 0) {
+            setError(`Strong password required. Missing: ${pwFailed.join(', ')}.`);
+            return;
+        }
+        if (!termsAccepted) {
+            setError('You must accept the Terms and Conditions to continue.');
             return;
         }
         const emailDomain = (formData.email.split('@')[1] || '').toLowerCase();
@@ -65,11 +117,13 @@ export default function Signup() {
                     password: formData.password,
                     phone: formData.phone ? `${formData.countryCode}${formData.phone}` : undefined,
                     companyName: formData.companyName,
+                    ntn: formData.ntn || undefined,
                     requestedAgentLimit: formData.requestedAgentLimit,
                     requestedNumbers: formData.requestedNumbers,
+                    termsAccepted: true,
                 }),
             });
-            setVerificationPreview(response.verificationCodePreview || '');
+            if (import.meta.env.DEV) setVerificationPreview(response.verificationCodePreview || '');
             setSignupStep('verify');
         } catch (err) {
             setError(err.message || 'Signup failed. Please try again.');
@@ -170,25 +224,31 @@ export default function Signup() {
                                 <input name="companyName" type="text" placeholder="Acme Inc." value={formData.companyName} onChange={handleChange} required />
                             </div>
                             <div className="auth-field">
-                                <label>Phone Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
-                                <div className="auth-phone-row">
-                                    <input
-                                        name="countryCode"
-                                        type="text"
-                                        list="country-codes-list"
-                                        value={formData.countryCode}
-                                        onChange={handleChange}
-                                        className="auth-phone-code"
-                                        placeholder="+1"
-                                        style={{ cursor: 'auto' }}
-                                    />
-                                    <datalist id="country-codes-list">
-                                        {countries.map(c => (
-                                            <option key={`${c.name}-${c.code}`} value={c.code}>{c.name} ({c.code})</option>
-                                        ))}
-                                    </datalist>
-                                    <input name="phone" type="tel" placeholder="Digits only, max 15" value={formData.phone} onChange={handleChange} maxLength={15} />
-                                </div>
+                                <label>NTN Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                                <input name="ntn" type="text" placeholder="e.g. 1234567-8" value={formData.ntn} onChange={handleChange} maxLength={20} />
+                            </div>
+                        </div>
+
+                        <div className="auth-field">
+                            <label>Phone Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                            <div className="auth-phone-row">
+                                <input
+                                    name="countryCode"
+                                    type="text"
+                                    list="country-codes-list"
+                                    value={formData.countryCode}
+                                    onChange={handleChange}
+                                    onFocus={e => e.target.select()}
+                                    className="auth-phone-code"
+                                    placeholder="+92"
+                                    style={{ cursor: 'auto' }}
+                                />
+                                <datalist id="country-codes-list">
+                                    {countries.map(c => (
+                                        <option key={`${c.name}-${c.code}`} value={c.code}>{c.name} ({c.code})</option>
+                                    ))}
+                                </datalist>
+                                <input name="phone" type="tel" placeholder="Digits only, max 15" value={formData.phone} onChange={handleChange} maxLength={15} />
                             </div>
                         </div>
 
@@ -219,6 +279,7 @@ export default function Signup() {
                                         }
                                     </button>
                                 </div>
+                                <PasswordStrength password={formData.password} />
                             </div>
                             <div className="auth-field">
                                 <label>Confirm Password</label>
@@ -238,7 +299,25 @@ export default function Signup() {
                             </div>
                         </div>
 
-                        <button type="submit" className="auth-btn-primary" disabled={isLoading}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '4px 0 16px' }}>
+                            <input
+                                id="termsCheckbox"
+                                type="checkbox"
+                                checked={termsAccepted}
+                                onChange={e => setTermsAccepted(e.target.checked)}
+                                style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', accentColor: '#2563eb', flexShrink: 0 }}
+                            />
+                            <label htmlFor="termsCheckbox" style={{ fontSize: 13, color: '#374151', cursor: 'pointer', lineHeight: 1.5 }}>
+                                I have read and agree to the{' '}
+                                <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>
+                                    Terms and Conditions
+                                </Link>
+                                {' '}of Voxiq. I confirm that my company will use this platform lawfully and in compliance with all applicable laws including PTA regulations and PECA 2016.
+                            </label>
+                        </div>
+
+                        <button type="submit" className="auth-btn-primary" disabled={isLoading || !termsAccepted}
+                            style={{ opacity: !termsAccepted ? 0.6 : 1 }}>
                             {isLoading ? 'Submitting…' : 'Submit Registration →'}
                         </button>
 
@@ -262,7 +341,7 @@ export default function Signup() {
                         <p className="auth-subtitle" style={{ marginTop: 0 }}>
                             We sent a verification code to <strong>{formData.email}</strong>.
                         </p>
-                        {verificationPreview && (
+                        {import.meta.env.DEV && verificationPreview && (
                             <div className="auth-error" style={{ background: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' }}>
                                 Dev preview code: {verificationPreview}
                             </div>

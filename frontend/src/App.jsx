@@ -7,6 +7,7 @@ import SuperAdmin from './pages/SuperAdmin'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import TermsAndConditions from './pages/TermsAndConditions'
 import Navbar from './components/Navbar'
 import { getToken } from './lib/auth'
 import { SoftphoneProvider } from './context/SoftphoneContext'
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/superadmin" element={
           <ProtectedRoute allowedRoles={['superadmin']}>
             <SuperAdmin />
