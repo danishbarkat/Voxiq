@@ -29,9 +29,9 @@ export class LeadsController {
     @Get('import/template')
     downloadTemplate(@Res() res: Response) {
         const headers = ['firstName', 'lastName', 'phone', 'address', 'tags', 'email', 'company', 'notes'];
-        const sample1 = ['Ali', 'Hassan', '+923001234567', 'House 5 Block A Lahore', 'hot-lead,interested', 'ali@example.com', 'ABC Corp', 'Called before - interested in product'];
-        const sample2 = ['Sara', 'Khan', '+923451234567', 'Flat 12 Gulshan Karachi', 'follow-up', 'sara@example.com', 'XYZ Ltd', 'Requested callback on Monday'];
-        const sample3 = ['Ahmed', 'Raza', '+923211234567', 'Street 3 G-11 Islamabad', '', '', '', ''];
+        const sample1 = ['Muhammad', 'Usman', '+923001234567', 'House 5 Block A DHA Lahore', 'hot-lead,interested', 'usman@yourcompany.com', 'Usman Trading Co', 'Interested in product - call back requested'];
+        const sample2 = ['Ayesha', 'Siddiqui', '+923451234567', 'Flat 12 Gulshan-e-Iqbal Karachi', 'follow-up,callback', 'ayesha@yourcompany.com', 'Siddiqui Enterprises', 'Wants demo on Wednesday afternoon'];
+        const sample3 = ['Bilal', 'Ahmed', '+923211234567', 'Street 3 G-11 Islamabad', 'new', 'bilal@yourcompany.com', 'Ahmed Solutions', ''];
 
         const rows = [headers, sample1, sample2, sample3]
             .map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
