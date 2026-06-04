@@ -1617,10 +1617,37 @@ export default function Admin() {
                 <div className="card mb-6" style={{ padding: '1.5rem', border: '1.5px solid #e0e7ff', background: '#fafbff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem' }}>
                     <span style={{ fontSize: 22 }}>🚀</span>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1e1b4b' }}>Import Leads</div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)', marginTop: 2 }}>Upload a CSV and assign to an existing list or create a new one.</div>
                     </div>
+                    <a
+                      href={`${API_URL}/leads/import/template`}
+                      download="voxiq-leads-template.csv"
+                      onClick={e => {
+                        e.preventDefault();
+                        fetch(`${API_URL}/leads/import/template`, {
+                          headers: { Authorization: `Bearer ${getToken() || ''}` }
+                        })
+                          .then(r => r.blob())
+                          .then(blob => {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'voxiq-leads-template.csv';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          });
+                      }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #bbf7d0',
+                        borderRadius: 10, padding: '7px 14px', fontSize: '0.8rem', fontWeight: 700,
+                        textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      ⬇ Download CSV Template
+                    </a>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'start', marginBottom: '1rem' }}>

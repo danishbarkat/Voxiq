@@ -11,7 +11,9 @@ import {
     UploadedFile,
     BadRequestException,
     Req,
+    Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
@@ -22,6 +24,23 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('leads')
 export class LeadsController {
     constructor(private readonly leadsService: LeadsService) { }
+
+    @Roles('Admin', 'Manager')
+    @Get('import/template')
+    downloadTemplate(@Res() res: Response) {
+        const headers = ['firstName', 'lastName', 'phone', 'address', 'tags', 'email', 'company', 'notes'];
+        const sample1 = ['Ali', 'Hassan', '+923001234567', 'House 5 Block A Lahore', 'hot-lead,interested', 'ali@example.com', 'ABC Corp', 'Called before - interested in product'];
+        const sample2 = ['Sara', 'Khan', '+923451234567', 'Flat 12 Gulshan Karachi', 'follow-up', 'sara@example.com', 'XYZ Ltd', 'Requested callback on Monday'];
+        const sample3 = ['Ahmed', 'Raza', '+923211234567', 'Street 3 G-11 Islamabad', '', '', '', ''];
+
+        const rows = [headers, sample1, sample2, sample3]
+            .map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="voxiq-leads-template.csv"');
+        res.send('﻿' + rows); // BOM for Excel UTF-8 support
+    }
 
     @Roles('Admin', 'Manager')
     @Post('import')
