@@ -93,6 +93,10 @@ export default function Signup() {
             setError(`Strong password required. Missing: ${pwFailed.join(', ')}.`);
             return;
         }
+        if (!formData.ntn || !/^\d{7}-\d$/.test(formData.ntn)) {
+            setError('Please enter a valid NTN in FBR format (e.g. 1234567-8).');
+            return;
+        }
         if (!termsAccepted) {
             setError('You must accept the Terms and Conditions to continue.');
             return;
@@ -119,7 +123,7 @@ export default function Signup() {
                     phone: formData.phone ? `${formData.countryCode}${formData.phone}` : undefined,
                     companyName: formData.companyName,
                     website: formData.website || undefined,
-                    ntn: formData.ntn || undefined,
+                    ntn: formData.ntn,
                     requestedAgentLimit: formData.requestedAgentLimit,
                     requestedNumbers: formData.requestedNumbers,
                     termsAccepted: true,
@@ -233,8 +237,17 @@ export default function Signup() {
 
                         <div className="auth-field-row">
                             <div className="auth-field">
-                                <label>NTN Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
-                                <input name="ntn" type="text" placeholder="e.g. 1234567-8" value={formData.ntn} onChange={handleChange} maxLength={20} />
+                                <label>
+                                    Company NTN <span style={{ color: '#ef4444', fontWeight: 700 }}>*</span>
+                                    <span style={{ color: '#9ca3af', fontWeight: 400, fontSize: 11, marginLeft: 6 }}>FBR format: 1234567-8</span>
+                                </label>
+                                <input name="ntn" type="text" placeholder="1234567-8" value={formData.ntn} onChange={handleChange} maxLength={9} required
+                                    pattern="\d{7}-\d"
+                                    title="NTN must be 7 digits, hyphen, 1 digit (e.g. 1234567-8)"
+                                />
+                                {formData.ntn && !/^\d{7}-\d$/.test(formData.ntn) && (
+                                    <div style={{ color: '#ef4444', fontSize: 11, marginTop: 3 }}>Format: 1234567-8 (FBR issued NTN)</div>
+                                )}
                             </div>
                             <div className="auth-field" />
                         </div>

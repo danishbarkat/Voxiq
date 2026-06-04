@@ -658,6 +658,8 @@ export class SuperAdminService {
       accessCode: account.accessCode,
       accessCodeUsed: !!account.accessCodeUsedAt,
       adminPhone: account.adminPhone,
+      ntn: (account as any).ntn || null,
+      website: (account as any).website || null,
       rejectionReason: account.rejectionReason,
       reactivationRequested:
         account.status === AccountStatus.INACTIVE &&

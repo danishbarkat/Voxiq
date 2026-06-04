@@ -113,9 +113,23 @@ function ApproveModal({ company, onClose, onApproved }) {
     <div style={OVERLAY}>
       <div style={{ ...modal(560), maxHeight: '90vh', overflowY: 'auto' }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 18 }}>Approve — {company.name}</h3>
-        <p style={{ color: '#6b7280', margin: '0 0 20px', fontSize: 13 }}>
+        <p style={{ color: '#6b7280', margin: '0 0 8px', fontSize: 13 }}>
           Requested {company.requestedAgentLimit || 0} agents and {company.requestedNumbers || 0} numbers.
         </p>
+        {company.ntn && (
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 12px', marginBottom: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span>NTN: <strong style={{ fontFamily: 'monospace' }}>{company.ntn}</strong></span>
+            <a href="https://e.fbr.gov.pk/esbn/Verification" target="_blank" rel="noopener noreferrer"
+              style={{ color: '#2563eb', fontSize: 12, fontWeight: 700, textDecoration: 'none', background: '#dbeafe', padding: '2px 8px', borderRadius: 6 }}>
+              Verify on FBR ↗
+            </a>
+          </div>
+        )}
+        {!company.ntn && (
+          <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '8px 12px', marginBottom: 16, fontSize: 12, color: '#92400e' }}>
+            No NTN provided — verify company identity before approving.
+          </div>
+        )}
 
         {error && <div style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 13 }}>{error}</div>}
 
@@ -445,7 +459,18 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
                       {c.requestedAgentLimit} agents<br />
                       <span style={{ color: '#6b7280', fontSize: 12 }}>{c.requestedNumbers} numbers</span>
                     </td>
-                    <td style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>{c.adminPhone || '—'}</td>
+                    <td style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
+                      {c.adminPhone || '—'}
+                      {c.ntn && (
+                        <div style={{ marginTop: 4 }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#1d4ed8', fontSize: 12 }}>NTN: {c.ntn}</span>
+                          <a href={`https://e.fbr.gov.pk/esbn/Verification`} target="_blank" rel="noopener noreferrer"
+                            style={{ marginLeft: 6, fontSize: 10, color: '#2563eb', textDecoration: 'underline' }}>
+                            Verify FBR ↗
+                          </a>
+                        </div>
+                      )}
+                    </td>
                     <td style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13, color: '#6b7280' }}>
                       {new Date(c.createdAt).toLocaleDateString()}
                     </td>

@@ -42,9 +42,9 @@ export class SignupDto {
   @IsString()
   website?: string;
 
-  @IsOptional()
   @IsString()
-  ntn?: string;
+  @Matches(/^\d{7}-\d$/, { message: 'NTN must be in format 1234567-8 (7 digits, hyphen, 1 digit) as issued by FBR Pakistan' })
+  ntn: string;
 
   @IsBoolean()
   termsAccepted: boolean;
