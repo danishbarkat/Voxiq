@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken } from '../lib/auth';
-import StateMap from '../components/StateMap';
-import WorldMap from '../components/WorldMap';
+import ProWorldMap from '../components/ProWorldMap';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -361,13 +360,10 @@ function DashboardTab({ overview, overviewLoading }) {
       {/* ── World Call Heatmap ── */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: '#111827' }}>World Call Activity Map — All Companies</div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>Bubble size = call volume. Hover for details.</div>
-        <WorldMap data={topCountries} />
-        {topCountries.length === 0 && (
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
-            Bubbles will appear here as companies start dialing
-          </div>
-        )}
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>
+          Explore every country even with no dial data. Hover for flag + name, drag to pan, and scroll to zoom.
+        </div>
+        <ProWorldMap data={topCountries} />
       </div>
 
       {/* ── Graphs row ── */}
@@ -902,12 +898,10 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
         <StatCard label="Connected" value={detail.stats.connectedCalls} sub={`${detail.campaigns.length} campaigns`} />
       </div>
 
-      {(detail.topCountries?.length > 0 || detail.topStates?.length > 0) && (
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>World Call Map</div>
-          <WorldMap data={(detail.topCountries || []).map(c => ({ id: c.id, value: c.calls }))} />
-        </div>
-      )}
+      <div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>World Call Map</div>
+        <ProWorldMap data={(detail.topCountries || []).map(c => ({ id: c.id, value: c.calls }))} />
+      </div>
 
       {detail.campaigns?.length > 0 && (
         <div>
