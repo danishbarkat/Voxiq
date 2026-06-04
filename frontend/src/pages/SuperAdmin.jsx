@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken } from '../lib/auth';
+import StateMap from '../components/StateMap';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -255,12 +256,19 @@ function RejectModal({ company, onClose, onRejected }) {
 
 // ─── tab panels ───────────────────────────────────────────────────────────────
 
+const CAMPAIGN_MODE_COLORS = {
+  PREDICTIVE: { bg: '#dbeafe', color: '#1d4ed8', label: 'Predictive' },
+  POWER:      { bg: '#fef3c7', color: '#92400e', label: 'Power' },
+  PREVIEW:    { bg: '#d1fae5', color: '#065f46', label: 'Preview' },
+};
+
 function DashboardTab({ overview, overviewLoading }) {
   const topCompanies = overview?.topCompanies || [];
-  const topStates = (overview?.topStates || []).map(s => ({ ...s, label: s.state }));
+  const topStates    = (overview?.topStates || []).map(s => ({ id: s.state, value: s.calls, label: s.state }));
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
+      {/* ── Stat Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
         {overviewLoading || !overview ? (
           Array.from({ length: 8 }).map((_, i) => <StatCard key={i} label="Loading" value="…" />)
@@ -278,6 +286,17 @@ function DashboardTab({ overview, overviewLoading }) {
         )}
       </div>
 
+      {/* ── US Call Heatmap ── */}
+      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: '#111827' }}>Call Activity Map — All Companies</div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>Darker = more calls in that state across all companies</div>
+        {topStates.length > 0
+          ? <StateMap data={topStates} />
+          : <div style={{ padding: '40px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No call geo data yet — start dialing to see the map.</div>
+        }
+      </div>
+
+      {/* ── Companies + State breakdown ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: 18 }}>
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, color: '#111827' }}>Top Companies by Calls</div>
@@ -291,6 +310,15 @@ function DashboardTab({ overview, overviewLoading }) {
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{c.companyName}</div>
                       <div style={{ color: '#6b7280', fontSize: 12 }}>{c.totalMinutes} min • ${Math.round(c.revenue || 0).toLocaleString()}</div>
+                      {c.topStates?.slice(0, 3).length > 0 && (
+                        <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                          {c.topStates.slice(0, 3).map(s => (
+                            <span key={s.state} style={{ background: '#f0f9ff', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace' }}>
+                              {s.state} {s.calls}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>{c.totalCalls}</div>
@@ -303,7 +331,7 @@ function DashboardTab({ overview, overviewLoading }) {
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, color: '#111827' }}>Top Calling States</div>
           {topStates.length > 0
-            ? <MiniBars data={topStates} valueKey="calls" labelKey="label" color="#0f766e" />
+            ? <MiniBars data={topStates} valueKey="value" labelKey="id" color="#0f766e" />
             : <div style={{ color: '#9ca3af', fontSize: 13 }}>No geo data yet.</div>
           }
         </div>
@@ -768,8 +796,46 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
 
       {detail.topStates?.length > 0 && (
         <div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top States</div>
-          <MiniBars data={detail.topStates.slice(0, 7).map(s => ({ ...s, label: s.state }))} valueKey="calls" labelKey="label" color="#6366f1" />
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Call Map</div>
+          <StateMap data={detail.topStates.map(s => ({ id: s.state, value: s.calls }))} />
+        </div>
+      )}
+
+      {detail.campaigns?.length > 0 && (
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Campaigns ({detail.campaigns.length})</div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {detail.campaigns.map(camp => {
+              const modeStyle = CAMPAIGN_MODE_COLORS[camp.mode] || { bg: '#f3f4f6', color: '#374151', label: camp.mode };
+              return (
+                <div key={camp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', background: '#f9fafb', borderRadius: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{camp.name}</div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                      <span style={{ background: modeStyle.bg, color: modeStyle.color, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>{modeStyle.label}</span>
+                      <Badge bg={camp.status === 'ACTIVE' ? '#d1fae5' : '#f3f4f6'} color={camp.status === 'ACTIVE' ? '#065f46' : '#6b7280'}>{camp.status}</Badge>
+                      {camp.localPresence && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>Local Presence</span>}
+                      {camp.record && <span style={{ background: '#ede9fe', color: '#5b21b6', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4 }}>Recording</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {detail.lists?.length > 0 && (
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lead Lists ({detail.lists.length})</div>
+          <div style={{ display: 'grid', gap: 7 }}>
+            {detail.lists.map(list => (
+              <div key={list.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: '#f9fafb', borderRadius: 10 }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{list.name}</div>
+                <Badge bg="#ede9fe" color="#5b21b6">{list.leadCount} leads</Badge>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -110,6 +110,7 @@ export class SuperAdminService {
         totalCalls: company.totalCalls,
         totalMinutes: company.totalMinutes,
         revenue: company.revenue,
+        topStates: company.topStates?.slice(0, 3) || [],
       }));
 
     const stateCounts: Record<string, number> = {};
