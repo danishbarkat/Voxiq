@@ -125,11 +125,20 @@ export class SuperAdminService {
       .sort((a, b) => b.calls - a.calls)
       .slice(0, 8);
 
+    // Build country counts from all logs
+    const allLogs = await this.prisma.callLog.findMany({
+      select: { toNumber: true, lead: { select: { phone: true } } },
+      take: 5000,
+      orderBy: { startedAt: 'desc' },
+    });
+    const topCountries = this.buildTopCountries(allLogs as any[]);
+
     return {
       ...totals,
       connectionRate: totals.totalCalls > 0 ? Number(((totals.connectedCalls / totals.totalCalls) * 100).toFixed(1)) : 0,
       topCompanies,
       topStates,
+      topCountries,
     };
   }
 
@@ -253,6 +262,7 @@ export class SuperAdminService {
     const stats = this.computeLogStats(logs);
     const activityByDay = this.buildDailyActivity(logs);
     const topStates = this.buildTopStates(logs);
+    const topCountries = this.buildTopCountries(logs);
     const topAgents = this.buildTopAgents(logs, account.users);
 
     return {
@@ -272,6 +282,7 @@ export class SuperAdminService {
       services: this.detectServices(account, logs),
       stats,
       topStates,
+      topCountries,
       activityByDay,
       topAgents,
       admins: account.users
@@ -746,14 +757,47 @@ export class SuperAdminService {
   private buildTopStates(logs: any[]) {
     const stateCounts: Record<string, number> = {};
     for (const log of logs) {
-      const phone = log.lead?.phone;
+      const phone = log.lead?.phone || log.toNumber;
       const state = phone ? getStateFromE164(phone) : null;
       if (!state) continue;
       stateCounts[state] = (stateCounts[state] || 0) + 1;
     }
-
     return Object.entries(stateCounts)
       .map(([state, calls]) => ({ state, calls }))
+      .sort((a, b) => b.calls - a.calls);
+  }
+
+  private buildTopCountries(logs: any[]) {
+    const PHONE_COUNTRY_MAP: Record<string, string> = {
+      '1': 'US', '7': 'RU', '20': 'EG', '27': 'ZA', '30': 'GR', '31': 'NL',
+      '32': 'BE', '33': 'FR', '34': 'ES', '36': 'HU', '39': 'IT', '40': 'RO',
+      '41': 'CH', '43': 'AT', '44': 'GB', '45': 'DK', '46': 'SE', '47': 'NO',
+      '48': 'PL', '49': 'DE', '51': 'PE', '52': 'MX', '54': 'AR', '55': 'BR',
+      '56': 'CL', '57': 'CO', '58': 'VE', '60': 'MY', '61': 'AU', '62': 'ID',
+      '63': 'PH', '64': 'NZ', '65': 'SG', '66': 'TH', '81': 'JP', '82': 'KR',
+      '84': 'VN', '86': 'CN', '90': 'TR', '91': 'IN', '92': 'PK', '93': 'AF',
+      '94': 'LK', '95': 'MM', '98': 'IR', '212': 'MA', '213': 'DZ', '216': 'TN',
+      '218': 'LY', '234': 'NG', '249': 'SD', '251': 'ET', '254': 'KE',
+      '255': 'TZ', '256': 'UG', '260': 'ZM', '263': 'ZW', '351': 'PT',
+      '353': 'IE', '358': 'FI', '380': 'UA', '420': 'CZ', '421': 'SK',
+      '971': 'AE', '966': 'SA', '965': 'KW', '974': 'QA', '973': 'BH',
+      '968': 'OM', '967': 'YE', '962': 'JO', '961': 'LB', '964': 'IQ', '972': 'IL',
+    };
+
+    const counts: Record<string, number> = {};
+    for (const log of logs) {
+      const phone = (log.lead?.phone || log.toNumber || '').replace(/[^0-9]/g, '');
+      if (!phone) continue;
+      let country: string | null = null;
+      for (const len of [3, 2, 1]) {
+        const prefix = phone.slice(0, len);
+        if (PHONE_COUNTRY_MAP[prefix]) { country = PHONE_COUNTRY_MAP[prefix]; break; }
+      }
+      if (!country) continue;
+      counts[country] = (counts[country] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([id, calls]) => ({ id, calls }))
       .sort((a, b) => b.calls - a.calls);
   }
 

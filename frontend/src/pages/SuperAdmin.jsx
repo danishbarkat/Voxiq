@@ -4,6 +4,7 @@ import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken } from '../lib/auth';
 import StateMap from '../components/StateMap';
+import WorldMap from '../components/WorldMap';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -263,8 +264,9 @@ const CAMPAIGN_MODE_COLORS = {
 };
 
 function DashboardTab({ overview, overviewLoading }) {
-  const topCompanies = overview?.topCompanies || [];
-  const topStates    = (overview?.topStates || []).map(s => ({ id: s.state, value: s.calls, label: s.state }));
+  const topCompanies  = overview?.topCompanies || [];
+  const topStates     = (overview?.topStates || []).map(s => ({ id: s.state, value: s.calls, label: s.state }));
+  const topCountries  = (overview?.topCountries || []).map(c => ({ id: c.id, value: c.calls }));
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
@@ -286,12 +288,12 @@ function DashboardTab({ overview, overviewLoading }) {
         )}
       </div>
 
-      {/* ── US Call Heatmap ── */}
+      {/* ── World Call Heatmap ── */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: '#111827' }}>Call Activity Map — All Companies</div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>Darker = more calls in that state across all companies</div>
-        {topStates.length > 0
-          ? <StateMap data={topStates} />
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: '#111827' }}>World Call Activity Map — All Companies</div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>Bubble size = call volume. Hover for details.</div>
+        {topCountries.length > 0
+          ? <WorldMap data={topCountries} />
           : <div style={{ padding: '40px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No call geo data yet — start dialing to see the map.</div>
         }
       </div>
@@ -794,10 +796,10 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
         <StatCard label="Connected" value={detail.stats.connectedCalls} sub={`${detail.campaigns.length} campaigns`} />
       </div>
 
-      {detail.topStates?.length > 0 && (
+      {(detail.topCountries?.length > 0 || detail.topStates?.length > 0) && (
         <div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Call Map</div>
-          <StateMap data={detail.topStates.map(s => ({ id: s.state, value: s.calls }))} />
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>World Call Map</div>
+          <WorldMap data={(detail.topCountries || []).map(c => ({ id: c.id, value: c.calls }))} />
         </div>
       )}
 
