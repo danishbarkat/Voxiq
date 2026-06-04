@@ -5,6 +5,7 @@ import express from 'express';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import helmet from 'helmet';
+import compression from 'compression';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -14,6 +15,9 @@ async function bootstrap() {
   if (!existsSync(uploadsDir)) {
     mkdirSync(uploadsDir, { recursive: true });
   }
+
+  // Gzip compression — speeds up API responses significantly
+  app.use(compression());
 
   // Security headers
   app.use(helmet({
