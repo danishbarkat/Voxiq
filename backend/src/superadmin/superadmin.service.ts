@@ -429,6 +429,35 @@ export class SuperAdminService {
     return { accountId, companyName: account.name, daily, weekly, monthly };
   }
 
+  async getPendingVerifications() {
+    const records = await this.prisma.signupVerification.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return records.map(r => {
+      const payload = r.payload as any;
+      return {
+        email: r.email,
+        companyName: payload?.companyName || '',
+        name: `${payload?.name || ''} ${payload?.lastName || ''}`.trim(),
+        phone: payload?.phone || '',
+        otpCode: r.otpCode,
+        expired: r.expiresAt < new Date(),
+        createdAt: r.createdAt,
+      };
+    });
+  }
+
+  async regenerateOtp(email: string) {
+    const record = await this.prisma.signupVerification.findUnique({ where: { email } });
+    if (!record) throw new Error('No pending verification for this email');
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.prisma.signupVerification.update({
+      where: { email },
+      data: { otpCode: newOtp, expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+    });
+    return { otpCode: newOtp, message: 'OTP refreshed — share with user' };
+  }
+
   async getAvailableNumbers() {
     // Fetch all numbers from Telnyx
     const telnyxNumbers = await this.fetchTelnyxNumbers();

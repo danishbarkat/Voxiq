@@ -64,6 +64,16 @@ export class SuperAdminController {
     return this.superAdminService.activateCompany(id);
   }
 
+  @Get('pending-verifications')
+  getPendingVerifications() {
+    return this.superAdminService.getPendingVerifications();
+  }
+
+  @Post('pending-verifications/:email/resend-otp')
+  resendOtp(@Param('email') email: string) {
+    return this.superAdminService.regenerateOtp(email);
+  }
+
   @Get('numbers')
   getAvailableNumbers() {
     return this.superAdminService.getAvailableNumbers();

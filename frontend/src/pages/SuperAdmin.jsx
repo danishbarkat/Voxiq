@@ -301,10 +301,37 @@ function DashboardTab({ overview, overviewLoading }) {
 function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRegenerate }) {
   const pending = companies.filter(c => c.status === 'PENDING');
   const reactivation = companies.filter(c => c.reactivationRequested);
+
+  const [verifications, setVerifications] = useState([]);
+  const [vLoading, setVLoading] = useState(true);
+  const [revealedOtps, setRevealedOtps] = useState({});
+  const [refreshingOtp, setRefreshingOtp] = useState({});
+
+  const loadVerifications = useCallback(async () => {
+    try {
+      const data = await fetchJson(`${API_URL}/superadmin/pending-verifications`);
+      setVerifications(Array.isArray(data) ? data : []);
+    } catch { setVerifications([]); }
+    finally { setVLoading(false); }
+  }, []);
+
+  useEffect(() => { loadVerifications(); }, [loadVerifications]);
+
+  const handleRefreshOtp = async (email) => {
+    setRefreshingOtp(p => ({ ...p, [email]: true }));
+    try {
+      const res = await fetchJson(`${API_URL}/superadmin/pending-verifications/${encodeURIComponent(email)}/resend-otp`, { method: 'POST' });
+      setVerifications(prev => prev.map(v => v.email === email ? { ...v, otpCode: res.otpCode, expired: false } : v));
+      setRevealedOtps(p => ({ ...p, [email]: true }));
+    } finally {
+      setRefreshingOtp(p => ({ ...p, [email]: false }));
+    }
+  };
+
   const total = pending.length + reactivation.length;
 
   if (loading) return <Placeholder>Loading requests…</Placeholder>;
-  if (total === 0) return (
+  if (total === 0 && verifications.length === 0) return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '36px 24px', textAlign: 'center' }}>
       <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
       <div style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>All clear</div>
@@ -314,6 +341,63 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
+
+      {/* ── Awaiting Email Verification ── */}
+      {!vLoading && verifications.length > 0 && (
+        <div>
+          <SectionHeader icon="📧" title="Awaiting Email Verification" count={verifications.length} countBg="#fef3c7" countColor="#92400e" />
+          <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #fde68a', overflow: 'hidden', marginTop: 10 }}>
+            <div style={{ padding: '10px 16px', background: '#fffbeb', fontSize: 12, color: '#92400e', borderBottom: '1px solid #fde68a' }}>
+              Email sending is disabled — share the OTP code directly with the user to complete their signup.
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb' }}>
+                  {['Company', 'Email', 'Phone', 'OTP Code', 'Status', 'Action'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {verifications.map((v, i) => (
+                  <tr key={v.email} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <div style={{ fontWeight: 700 }}>{v.companyName}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>{v.name}</div>
+                    </td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13, fontFamily: 'monospace' }}>{v.email}</td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>{v.phone || '—'}</td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      {revealedOtps[v.email] ? (
+                        <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 18, color: '#7c3aed', background: '#ede9fe', padding: '4px 10px', borderRadius: 8, letterSpacing: 3 }}>
+                          {v.otpCode}
+                        </span>
+                      ) : (
+                        <button onClick={() => setRevealedOtps(p => ({ ...p, [v.email]: true }))}
+                          style={{ background: '#ede9fe', color: '#5b21b6', border: 'none', borderRadius: 7, padding: '5px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                          Show OTP
+                        </button>
+                      )}
+                    </td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <Badge bg={v.expired ? '#fee2e2' : '#d1fae5'} color={v.expired ? '#991b1b' : '#065f46'}>
+                        {v.expired ? 'Expired' : 'Valid'}
+                      </Badge>
+                    </td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <button onClick={() => handleRefreshOtp(v.email)} disabled={refreshingOtp[v.email]}
+                        style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
+                        {refreshingOtp[v.email] ? '…' : 'New OTP'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {reactivation.length > 0 && (
         <div>
           <SectionHeader icon="🔄" title="Reactivation Requests" count={reactivation.length} countBg="#fef3c7" countColor="#92400e" />
