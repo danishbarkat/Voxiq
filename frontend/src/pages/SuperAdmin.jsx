@@ -492,7 +492,7 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
   );
 }
 
-function CompaniesTab({ companies, loading, onToggle, onRegenerate }) {
+function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) {
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -572,12 +572,18 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate }) {
                     ${Math.round(c.revenue || 0).toLocaleString()}
                   </td>
                   <td style={{ padding: '11px 16px', borderBottom: '1px solid #f3f4f6' }} onClick={e => e.stopPropagation()}>
-                    {c.status !== 'PENDING' && (
-                      <button onClick={() => onToggle(c)}
-                        style={{ ...btnPrimary(c.status === 'ACTIVE' ? '#ef4444' : '#10b981'), padding: '7px 12px', fontSize: 12 }}>
-                        {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {c.status !== 'PENDING' && (
+                        <button onClick={() => onToggle(c)}
+                          style={{ ...btnPrimary(c.status === 'ACTIVE' ? '#f59e0b' : '#10b981'), padding: '7px 10px', fontSize: 11 }}>
+                          {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                        </button>
+                      )}
+                      <button onClick={() => onDelete(c)}
+                        style={{ ...btnPrimary('#ef4444'), padding: '7px 10px', fontSize: 11 }}>
+                        Delete
                       </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1121,6 +1127,19 @@ export default function SuperAdmin() {
     await Promise.all([loadCompanies(), loadOverview()]);
   };
 
+  const handleDelete = async (company) => {
+    const confirmed = window.confirm(
+      `PERMANENTLY DELETE "${company.name}"?\n\nYeh delete ho ga:\n• Sare agents aur admins\n• Sare leads, campaigns, call logs\n• Sare SMS messages\n\nPhone numbers free ho jayen ge.\nYeh action UNDO NAHI ho sakta.`
+    );
+    if (!confirmed) return;
+    try {
+      await fetchJson(`${API_URL}/superadmin/companies/${company.id}/delete`, { method: 'POST' });
+      await Promise.all([loadCompanies(), loadOverview()]);
+    } catch (err) {
+      alert(`Delete failed: ${err.message}`);
+    }
+  };
+
   const handleRegenerate = async (companyId) => {
     const result = await fetchJson(`${API_URL}/superadmin/companies/${companyId}/access-code/regenerate`, { method: 'POST' });
     alert(`New access code: ${result.accessCode}`);
@@ -1205,7 +1224,7 @@ export default function SuperAdmin() {
             />
           )}
           {tab === 'companies' && (
-            <CompaniesTab companies={companies} loading={loading} onToggle={handleToggle} onRegenerate={handleRegenerate} />
+            <CompaniesTab companies={companies} loading={loading} onToggle={handleToggle} onRegenerate={handleRegenerate} onDelete={handleDelete} />
           )}
           {tab === 'numbers' && <NumbersTab />}
           {tab === 'analytics' && (

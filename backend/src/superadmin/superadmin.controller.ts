@@ -59,6 +59,11 @@ export class SuperAdminController {
     return this.superAdminService.deactivateCompany(id);
   }
 
+  @Post('companies/:id/delete')
+  deleteCompany(@Param('id') id: string) {
+    return this.superAdminService.deleteCompany(id);
+  }
+
   @Post('companies/:id/activate')
   activateCompany(@Param('id') id: string) {
     return this.superAdminService.activateCompany(id);

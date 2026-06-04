@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccountStatus, CallStatus } from '@prisma/client';
@@ -364,6 +365,30 @@ export class SuperAdminService {
       where: { id: accountId },
       data: { status: AccountStatus.INACTIVE, rejectionReason: null },
     });
+  }
+
+  async deleteCompany(accountId: string) {
+    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Company not found');
+    if (accountId === 'super-admin-account') throw new BadRequestException('Cannot delete super admin account');
+
+    // Cascade delete all company data
+    const userIds = (await this.prisma.user.findMany({
+      where: { accountId },
+      select: { id: true },
+    })).map(u => u.id);
+
+    await this.prisma.callLog.deleteMany({ where: { agentId: { in: userIds } } });
+    await this.prisma.smsMessage.deleteMany({ where: { accountId } });
+    await this.prisma.agentList.deleteMany({ where: { agentId: { in: userIds } } });
+    await this.prisma.lead.deleteMany({ where: { accountId } });
+    await this.prisma.list.deleteMany({ where: { accountId } });
+    await this.prisma.campaign.deleteMany({ where: { accountId } });
+    try { await (this.prisma as any).voicemailTemplate.deleteMany({ where: { accountId } }); } catch { }
+    await this.prisma.user.deleteMany({ where: { accountId } });
+    await this.prisma.account.delete({ where: { id: accountId } });
+
+    return { success: true, message: 'Company and all associated data permanently deleted' };
   }
 
   async activateCompany(accountId: string) {

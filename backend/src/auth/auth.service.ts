@@ -52,14 +52,25 @@ export class AuthService {
       throw new BadRequestException('This email is already registered. Each admin can only register one company.');
     }
 
-    // One company per email domain — prevent same person registering multiple companies
+    // One company per email domain
     const emailDomain = dto.email.toLowerCase().split('@')[1];
     const domainExists = await this.prisma.user.findFirst({
       where: { email: { endsWith: `@${emailDomain}` } },
-      select: { id: true, accountId: true },
+      select: { id: true },
     });
     if (domainExists) {
       throw new BadRequestException('A company is already registered with this email domain. Contact your company admin to add you as an agent.');
+    }
+
+    // NTN uniqueness — prevent same NTN registering multiple companies
+    if (dto.ntn) {
+      const ntnExists = await (this.prisma.account as any).findFirst({
+        where: { ntn: dto.ntn },
+        select: { id: true },
+      });
+      if (ntnExists) {
+        throw new BadRequestException('This NTN is already registered. Each company can only register once. Contact support if this is an error.');
+      }
     }
 
     const otpCode = this.generateOtpCode();

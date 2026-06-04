@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface JwtPayload {
   sub: string;
@@ -13,7 +14,10 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -22,13 +26,46 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    // Attach to request.user
+    // Real-time DB check — catches deleted/deactivated accounts immediately
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        status: true,
+        account: { select: { id: true, status: true } },
+        role: { select: { name: true } },
+      },
+    });
+
+    // User deleted or account deleted
+    if (!user || !user.account) {
+      throw new UnauthorizedException('Account no longer exists');
+    }
+
+    // User deactivated
+    if (user.status === 'INACTIVE') {
+      throw new UnauthorizedException('Your account has been deactivated');
+    }
+
+    const roleName = user.role?.name?.toLowerCase() || '';
+    const accountStatus = user.account.status;
+
+    // Account deleted/pending — nobody in
+    if (accountStatus === 'PENDING') {
+      throw new UnauthorizedException('Account pending approval');
+    }
+
+    // Account INACTIVE — only admin can access (for reactivation request), agents blocked
+    if (accountStatus === 'INACTIVE' && roleName !== 'admin' && roleName !== 'superadmin') {
+      throw new UnauthorizedException('Company account is deactivated. Contact your admin.');
+    }
+
     return {
       userId: payload.sub,
       role: payload.role,
       accountId: payload.accountId,
       teamId: payload.teamId,
-      accountStatus: payload.accountStatus,
+      accountStatus,
     };
   }
 }
