@@ -35,6 +35,7 @@ export class AuthService {
     'yopmail.com',
     'sharklasers.com',
   ]);
+  private accountColumnCache: Set<string> | null = null;
 
   constructor(
     private prisma: PrismaService,
@@ -64,10 +65,7 @@ export class AuthService {
 
     // NTN uniqueness — prevent same NTN registering multiple companies
     if (dto.ntn) {
-      const ntnExists = await (this.prisma.account as any).findFirst({
-        where: { ntn: dto.ntn },
-        select: { id: true },
-      });
+      const ntnExists = await this.findAccountByNtn(dto.ntn);
       if (ntnExists) {
         throw new BadRequestException('This NTN is already registered. Each company can only register once. Contact support if this is an error.');
       }
@@ -157,19 +155,7 @@ export class AuthService {
     }
 
     const account = await this.prisma.account.create({
-      data: {
-        name: payload.companyName,
-        status: AccountStatus.PENDING,
-        approved: false,
-        accessCode: this.generateCompanyAccessCode(),
-        accessCodeIssuedAt: new Date(),
-        requestedAgentLimit: Number(payload.requestedAgentLimit),
-        requestedNumbers: Number(payload.requestedNumbers),
-        adminPhone: payload.phone || null,
-        website: payload.website || null,
-        ntn: payload.ntn || null,
-        termsAccepted: payload.termsAccepted === true,
-      } as any,
+      data: await this.buildSignupAccountData(payload) as any,
     });
 
     await this.prisma.user.create({
@@ -503,6 +489,67 @@ export class AuthService {
     if (!phone?.trim()) return null;
     const normalized = phone.replace(/[^\d+]/g, '');
     return normalized || null;
+  }
+
+  private async findAccountByNtn(ntn: string) {
+    const columns = await this.getAccountColumns();
+    if (!columns.has('ntn')) {
+      return null;
+    }
+
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT "id" FROM "Account" WHERE "ntn" = $1 LIMIT 1',
+      ntn,
+    );
+
+    return rows[0] || null;
+  }
+
+  private async buildSignupAccountData(payload: any) {
+    const columns = await this.getAccountColumns();
+    const data: Record<string, any> = {
+      name: payload.companyName,
+      status: AccountStatus.PENDING,
+      approved: false,
+      accessCode: this.generateCompanyAccessCode(),
+      accessCodeIssuedAt: new Date(),
+    };
+
+    if (columns.has('requestedAgentLimit')) {
+      data.requestedAgentLimit = Number(payload.requestedAgentLimit);
+    }
+    if (columns.has('requestedNumbers')) {
+      data.requestedNumbers = Number(payload.requestedNumbers);
+    }
+    if (columns.has('adminPhone')) {
+      data.adminPhone = payload.phone || null;
+    }
+    if (columns.has('website')) {
+      data.website = payload.website || null;
+    }
+    if (columns.has('ntn')) {
+      data.ntn = payload.ntn || null;
+    }
+    if (columns.has('termsAccepted')) {
+      data.termsAccepted = payload.termsAccepted === true;
+    }
+
+    return data;
+  }
+
+  private async getAccountColumns() {
+    if (this.accountColumnCache) {
+      return this.accountColumnCache;
+    }
+
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'Account'`,
+    );
+
+    this.accountColumnCache = new Set(rows.map((row) => row.column_name));
+    return this.accountColumnCache;
   }
 
   private async sendSignupVerificationEmail(email: string, companyName: string, otpCode: string) {

@@ -19,40 +19,28 @@ export class SuperAdminService {
   ) {}
 
   async getOverview() {
-    const accounts = await this.prisma.account.findMany({
-      where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
-      include: {
-        users: {
-          select: {
-            id: true,
-            role: { select: { name: true } },
+    const [accounts, callLogs] = await Promise.all([
+      this.prisma.account.findMany({
+        where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+        include: {
+          users: {
+            select: {
+              id: true,
+              role: { select: { name: true } },
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+              leads: true,
+              lists: true,
+              campaigns: true,
+            },
           },
         },
-        _count: {
-          select: {
-            users: true,
-            leads: true,
-            lists: true,
-            campaigns: true,
-          },
-        },
-      },
-    });
-
-    const callLogs = await this.prisma.callLog.findMany({
-      include: {
-        agent: {
-          select: {
-            accountId: true,
-          },
-        },
-        lead: {
-          select: {
-            phone: true,
-          },
-        },
-      },
-    });
+      }),
+      this.getDashboardLogs(),
+    ]);
 
     const byAccount = this.groupLogsByAccount(callLogs);
     const companySummaries = accounts.map((account) =>
@@ -125,13 +113,7 @@ export class SuperAdminService {
       .sort((a, b) => b.calls - a.calls)
       .slice(0, 8);
 
-    // Build country counts from all logs
-    const allLogs = await this.prisma.callLog.findMany({
-      select: { toNumber: true, lead: { select: { phone: true } } },
-      take: 5000,
-      orderBy: { startedAt: 'desc' },
-    });
-    const topCountries = this.buildTopCountries(allLogs as any[]);
+    const topCountries = this.buildTopCountries(callLogs);
 
     return {
       ...totals,
@@ -143,43 +125,31 @@ export class SuperAdminService {
   }
 
   async getAllCompanies() {
-    const accounts = await this.prisma.account.findMany({
-      where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: { select: { name: true } },
+    const [accounts, callLogs] = await Promise.all([
+      this.prisma.account.findMany({
+        where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: { select: { name: true } },
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+              leads: true,
+              lists: true,
+              campaigns: true,
+            },
           },
         },
-        _count: {
-          select: {
-            users: true,
-            leads: true,
-            lists: true,
-            campaigns: true,
-          },
-        },
-      },
-    });
-
-    const callLogs = await this.prisma.callLog.findMany({
-      include: {
-        agent: {
-          select: {
-            accountId: true,
-          },
-        },
-        lead: {
-          select: {
-            phone: true,
-          },
-        },
-      },
-    });
+      }),
+      this.getDashboardLogs(),
+    ]);
 
     const byAccount = this.groupLogsByAccount(callLogs);
 
@@ -665,6 +635,34 @@ export class SuperAdminService {
       recordings: stats.recordings,
       topStates: this.buildTopStates(logs).slice(0, 5),
     };
+  }
+
+  private getDashboardLogs() {
+    return this.prisma.callLog.findMany({
+      select: {
+        id: true,
+        startedAt: true,
+        endedAt: true,
+        callStatus: true,
+        dealValue: true,
+        recordingUrl: true,
+        direction: true,
+        toNumber: true,
+        fromNumber: true,
+        agent: {
+          select: {
+            accountId: true,
+          },
+        },
+        lead: {
+          select: {
+            phone: true,
+          },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+      take: 5000,
+    });
   }
 
   private groupLogsByAccount(logs: Array<any>) {
