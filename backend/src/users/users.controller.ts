@@ -36,6 +36,12 @@ export class UsersController {
     return this.usersService.findAllRoles(req?.user);
   }
 
+  @Roles('Admin', 'Manager')
+  @Get('company-number-inventory')
+  getCompanyNumberInventory(@Req() req: any) {
+    return this.usersService.getCompanyNumberInventory(req?.user);
+  }
+
   @Roles('Admin', 'Manager', 'Agent')
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {

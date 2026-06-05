@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, UserStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,7 +14,10 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) { }
 
   private readonly defaultSelect = {
     id: true,
@@ -118,6 +122,49 @@ export class UsersService {
       orderBy: { createdAt: 'desc' },
     });
     return users.map((user) => this.attachCallerName(user));
+  }
+
+  async getCompanyNumberInventory(requester?: any) {
+    if (!requester?.accountId) {
+      throw new ForbiddenException('Company account not found');
+    }
+
+    const [account, allAccounts, telnyxNumbers] = await Promise.all([
+      this.prisma.account.findUnique({
+        where: { id: requester.accountId },
+        select: { id: true, name: true, numberPool: true },
+      }),
+      this.prisma.account.findMany({
+        select: { id: true, numberPool: true },
+      }),
+      this.fetchTelnyxNumbers(),
+    ]);
+
+    if (!account) {
+      throw new NotFoundException('Company account not found');
+    }
+
+    const assignedToCompany = Array.isArray(account.numberPool) ? account.numberPool : [];
+    const assignedToCompanySet = new Set(
+      assignedToCompany.map((entry: any) => entry?.number).filter(Boolean),
+    );
+
+    const assignedElsewhere = new Set<string>();
+    for (const otherAccount of allAccounts) {
+      if (otherAccount.id === account.id || !Array.isArray(otherAccount.numberPool)) continue;
+      for (const entry of otherAccount.numberPool as any[]) {
+        if (entry?.number) assignedElsewhere.add(entry.number);
+      }
+    }
+
+    return {
+      accountId: account.id,
+      accountName: account.name,
+      assignedNumbers: assignedToCompany,
+      availableNumbers: telnyxNumbers.filter(
+        (entry) => !assignedToCompanySet.has(entry.number) && !assignedElsewhere.has(entry.number),
+      ),
+    };
   }
 
   async findOne(id: string, requester?: any) {
@@ -370,5 +417,53 @@ export class UsersService {
 
     const callerName = typeof match?.callerName === 'string' ? match.callerName.trim() : '';
     return callerName || null;
+  }
+
+  private async fetchTelnyxNumbers(): Promise<Array<{ number: string; callerName: string; countryCode: string }>> {
+    const apiKey = this.configService.get<string>('TELNYX_API_KEY');
+    if (!apiKey) return [];
+
+    try {
+      const res = await fetch('https://api.telnyx.com/v2/phone_numbers?page[size]=200', {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) return [];
+
+      const json = await res.json();
+      const data: any[] = json?.data || [];
+
+      return data.map((item) => ({
+        number: item.phone_number || '',
+        callerName: item.caller_name || '',
+        countryCode: this.extractCountryCode(item.phone_number || ''),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private extractCountryCode(e164: string): string {
+    if (!e164.startsWith('+')) return '';
+
+    const digits = e164.slice(1);
+    const knownCodes = new Set([
+      '1', '7', '20', '27', '30', '31', '32', '33', '34', '36', '39', '40', '41', '43',
+      '44', '45', '46', '47', '48', '49', '51', '52', '54', '55', '56', '57', '60', '61',
+      '62', '63', '64', '65', '66', '81', '82', '84', '86', '90', '91', '92', '93', '94',
+      '95', '98', '212', '213', '216', '218', '234', '971', '972', '966', '964', '963', '961',
+    ]);
+
+    for (const len of [3, 2, 1]) {
+      const prefix = digits.slice(0, len);
+      if (knownCodes.has(prefix)) {
+        return `+${prefix}`;
+      }
+    }
+
+    return `+${digits.slice(0, 1)}`;
   }
 }

@@ -527,6 +527,7 @@ export default function Admin() {
   const [importForm, setImportForm] = useState({ listId: '', accountId: '', newListName: '' });
   const [availableLists, setAvailableLists] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [companyNumberInventory, setCompanyNumberInventory] = useState({ assignedNumbers: [], availableNumbers: [] });
   const [leads, setLeads] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -689,7 +690,7 @@ export default function Admin() {
     try {
       setIsLoading(true);
       setError(null);
-      await Promise.allSettled([fetchCampaigns(), fetchUsers(), fetchLeads(), fetchAccounts(), fetchResetRequests()]);
+      await Promise.allSettled([fetchCampaigns(), fetchUsers(), fetchLeads(), fetchAccounts(), fetchResetRequests(), fetchCompanyNumberInventory()]);
     } catch (err) {
       setError('Failed to load dashboard. Please refresh.');
     } finally {
@@ -712,6 +713,23 @@ export default function Admin() {
         setCampaignForm(prev => ({ ...prev, accountId: prev.accountId || defaultAccountId }));
       }
     } catch (e) { console.error('accounts:', e); }
+  };
+
+  const fetchCompanyNumberInventory = async () => {
+    if (currentRole !== 'admin' && currentRole !== 'manager') {
+      setCompanyNumberInventory({ assignedNumbers: [], availableNumbers: [] });
+      return;
+    }
+    try {
+      const data = await fetchJson(`${API_URL}/users/company-number-inventory`);
+      setCompanyNumberInventory({
+        assignedNumbers: Array.isArray(data?.assignedNumbers) ? data.assignedNumbers : [],
+        availableNumbers: Array.isArray(data?.availableNumbers) ? data.availableNumbers : [],
+      });
+    } catch (e) {
+      console.error('company-number-inventory:', e);
+      setCompanyNumberInventory({ assignedNumbers: [], availableNumbers: [] });
+    }
   };
 
   const fetchLists = async (accountId) => {
@@ -2007,6 +2025,45 @@ export default function Admin() {
                     <button className="btn btn-primary" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>+ New Account</button>
                   )}
                 </div>
+                {!isSuperAdmin && (
+                  <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
+                    <div className="flex justify-between items-center" style={{ gap: '1rem', flexWrap: 'wrap' }}>
+                      <div>
+                        <h3 style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 4 }}>Voxiq Available Numbers</h3>
+                        <p className="text-dim" style={{ fontSize: '0.8rem' }}>
+                          These Telnyx numbers are available in the Voxiq pool but not yet assigned to your company.
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>
+                          {companyNumberInventory.availableNumbers.length} Available
+                        </span>
+                        <span className="badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                          {companyNumberInventory.assignedNumbers.length} Assigned To You
+                        </span>
+                        <button className="btn" style={{ background: 'var(--vx-gray-100)' }} onClick={fetchCompanyNumberInventory}>↻ Refresh</button>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '1rem' }}>
+                      {companyNumberInventory.availableNumbers.length === 0 ? (
+                        <div className="text-dim" style={{ fontSize: '0.82rem' }}>
+                          No extra Voxiq numbers are currently available. Ask the super admin to assign one to your company.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                          {companyNumberInventory.availableNumbers.map((entry) => (
+                            <div key={entry.number} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.65rem 0.8rem', minWidth: 180 }}>
+                              <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{entry.number}</div>
+                              <div className="text-dim" style={{ fontSize: '0.75rem', marginTop: 3 }}>
+                                {entry.countryCode || 'Unknown region'}{entry.callerName ? ` • ${entry.callerName}` : ''}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-col gap-4">
                   {accounts.map(a => (
                     <div key={a.id} className="card" style={{ padding: '1.25rem' }}>
