@@ -1058,10 +1058,12 @@ function NumbersTab() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const [nums, comps] = await Promise.all([
+      const [numsResult, compsResult] = await Promise.allSettled([
         fetchJson(`${API_URL}/superadmin/numbers`),
         fetchJson(`${API_URL}/superadmin/companies`),
       ]);
+      const nums = numsResult.status === 'fulfilled' ? numsResult.value : [];
+      const comps = compsResult.status === 'fulfilled' ? compsResult.value : [];
       setNumbers(Array.isArray(nums) ? nums : []);
       setCompanies(Array.isArray(comps) ? comps : []);
     } finally {

@@ -13,6 +13,42 @@ const SUPERADMIN_ACCOUNT_ID = 'super-admin-account';
 
 @Injectable()
 export class SuperAdminService {
+  private readonly accountSummarySelect = {
+    id: true,
+    name: true,
+    status: true,
+    approved: true,
+    agentLimit: true,
+    requestedAgentLimit: true,
+    requestedNumbers: true,
+    accessCode: true,
+    accessCodeUsedAt: true,
+    approvedAt: true,
+    createdAt: true,
+    numberPool: true,
+    adminPhone: true,
+    rejectionReason: true,
+    ntn: true,
+    users: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        status: true,
+        createdAt: true,
+        role: { select: { name: true } },
+      },
+    },
+    _count: {
+      select: {
+        users: true,
+        leads: true,
+        lists: true,
+        campaigns: true,
+      },
+    },
+  } as const;
+
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
@@ -22,22 +58,7 @@ export class SuperAdminService {
     const [accounts, callLogs] = await Promise.all([
       this.prisma.account.findMany({
         where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
-        include: {
-          users: {
-            select: {
-              id: true,
-              role: { select: { name: true } },
-            },
-          },
-          _count: {
-            select: {
-              users: true,
-              leads: true,
-              lists: true,
-              campaigns: true,
-            },
-          },
-        },
+        select: this.accountSummarySelect,
       }),
       this.getDashboardLogs(),
     ]);
@@ -129,24 +150,7 @@ export class SuperAdminService {
       this.prisma.account.findMany({
         where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
         orderBy: { createdAt: 'desc' },
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: { select: { name: true } },
-            },
-          },
-          _count: {
-            select: {
-              users: true,
-              leads: true,
-              lists: true,
-              campaigns: true,
-            },
-          },
-        },
+        select: this.accountSummarySelect,
       }),
       this.getDashboardLogs(),
     ]);
@@ -161,7 +165,22 @@ export class SuperAdminService {
   async getCompanyDetails(accountId: string) {
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        approved: true,
+        agentLimit: true,
+        requestedAgentLimit: true,
+        requestedNumbers: true,
+        accessCode: true,
+        accessCodeUsedAt: true,
+        approvedAt: true,
+        createdAt: true,
+        numberPool: true,
+        adminPhone: true,
+        rejectionReason: true,
+        ntn: true,
         users: {
           include: {
             role: { select: { name: true } },
@@ -694,7 +713,7 @@ export class SuperAdminService {
       accessCodeUsed: !!account.accessCodeUsedAt,
       adminPhone: account.adminPhone,
       ntn: (account as any).ntn || null,
-      website: (account as any).website || null,
+      website: null,
       rejectionReason: account.rejectionReason,
       reactivationRequested:
         account.status === AccountStatus.INACTIVE &&
