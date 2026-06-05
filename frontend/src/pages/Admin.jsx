@@ -915,7 +915,11 @@ export default function Admin() {
 
   const fetchVmTemplates = async () => {
     try {
-      const data = await fetch(`${API_URL}/voicemail`).then(r => r.json());
+      const accountId = companyAccountId;
+      const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : '';
+      const data = await fetch(`${API_URL}/voicemail/templates${query}`, {
+        headers: { Authorization: `Bearer ${getToken() || ''}` },
+      }).then(r => r.ok ? r.json() : []);
       setVmTemplates(Array.isArray(data) ? data : []);
     } catch (e) { }
   };
@@ -2130,7 +2134,11 @@ export default function Admin() {
                       <form onSubmit={async (e) => {
                         e.preventDefault();
                         const fd = new FormData(e.target);
-                        await fetch(`${API_URL}/voicemail`, { method: 'POST', body: fd });
+                        await fetch(`${API_URL}/voicemail/templates`, {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${getToken() || ''}` },
+                          body: fd,
+                        });
                         fetchVmTemplates();
                       }} className="flex flex-col gap-2">
                         <input name="name" className="input-field" placeholder="Name" required />

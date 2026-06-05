@@ -20,6 +20,16 @@ export class VoicemailController {
     constructor(private readonly voicemailService: VoicemailService) { }
 
     @Roles('Admin', 'Manager', 'Agent')
+    @Post()
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadTemplateLegacy(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: CreateVoicemailDto,
+    ) {
+        return this.uploadTemplate(file, body);
+    }
+
+    @Roles('Admin', 'Manager', 'Agent')
     @Post('templates')
     @UseInterceptors(FileInterceptor('file'))
     async uploadTemplate(
@@ -35,6 +45,12 @@ export class VoicemailController {
         }
 
         return this.voicemailService.uploadVoicemailAudio(file, body.name, body.accountId);
+    }
+
+    @Roles('Admin', 'Manager', 'Agent')
+    @Get()
+    async getTemplatesLegacy(@Query('accountId') accountId?: string) {
+        return this.getTemplates(accountId);
     }
 
     @Roles('Admin', 'Manager', 'Agent')
