@@ -42,6 +42,14 @@ export class VoipController {
         const configured = this.config.get<string>('PUBLIC_BASE_URL')?.trim();
         if (configured) return configured.replace(/\/$/, '');
 
+        const webhookUrl = this.config.get<string>('TELNYX_WEBHOOK_URL')?.trim();
+        if (webhookUrl) {
+            try {
+                const origin = new URL(webhookUrl).origin;
+                if (origin) return origin.replace(/\/$/, '');
+            } catch (_) { }
+        }
+
         const port = this.config.get<number>('PORT') || 3000;
         return `http://localhost:${port}`;
     }
