@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { key: 'requests',  icon: '◎', label: 'Requests'   },
   { key: 'companies', icon: '🏢', label: 'Companies'  },
   { key: 'numbers',   icon: '📞', label: 'Numbers'    },
+  { key: 'recordings', icon: '🎧', label: 'Recordings' },
   { key: 'analytics', icon: '📊', label: 'Analytics'  },
   { key: 'billing',   icon: '💰', label: 'Billing'    },
 ];
@@ -1527,12 +1528,194 @@ function Placeholder({ children }) {
   );
 }
 
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Unknown time';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  return date.toLocaleString();
+}
+
+function toAbsoluteMediaUrl(url) {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  const base = API_URL.replace(/\/api$/, '');
+  return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function triggerDownload(url, filename) {
+  const absolute = toAbsoluteMediaUrl(url);
+  if (!absolute) return;
+  const anchor = document.createElement('a');
+  anchor.href = absolute;
+  anchor.download = filename || '';
+  anchor.rel = 'noopener';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
 function SectionHeader({ icon, title, count, countBg, countColor }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <span style={{ fontSize: 18 }}>{icon}</span>
       <span style={{ fontWeight: 800, fontSize: 16, color: '#111827' }}>{title}</span>
       {count > 0 && <Badge bg={countBg} color={countColor}>{count}</Badge>}
+    </div>
+  );
+}
+
+function RecordingsTab() {
+  const [data, setData] = useState({ items: [], companies: [], total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ accountId: '', search: '', from: '', to: '' });
+
+  const loadRecordings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', '300');
+      if (filters.accountId) params.set('accountId', filters.accountId);
+      if (filters.search.trim()) params.set('search', filters.search.trim());
+      if (filters.from) params.set('from', filters.from);
+      if (filters.to) params.set('to', filters.to);
+
+      const response = await fetchJson(`${API_URL}/superadmin/recordings?${params.toString()}`);
+      setData({
+        items: Array.isArray(response?.items) ? response.items : [],
+        companies: Array.isArray(response?.companies) ? response.companies : [],
+        total: Number(response?.total) || 0,
+      });
+    } catch {
+      setData({ items: [], companies: [], total: 0 });
+    } finally {
+      setLoading(false);
+    }
+  }, [filters.accountId, filters.from, filters.search, filters.to]);
+
+  useEffect(() => {
+    loadRecordings();
+  }, [loadRecordings]);
+
+  const visibleDownloads = useMemo(() => (
+    data.items.flatMap((item) => {
+      const files = [];
+      if (item.recordingUrl) files.push({ url: item.recordingUrl, filename: `${item.companyName}-${item.id}-recording.mp3` });
+      if (item.vmRecordingUrl) files.push({ url: item.vmRecordingUrl, filename: `${item.companyName}-${item.id}-voicemail.mp3` });
+      return files;
+    })
+  ), [data.items]);
+
+  const handleBulkDownload = useCallback(() => {
+    visibleDownloads.forEach((file, index) => {
+      window.setTimeout(() => triggerDownload(file.url, file.filename), index * 250);
+    });
+  }, [visibleDownloads]);
+
+  return (
+    <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
+          <div style={{ minWidth: 220, flex: '1 1 220px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Company</div>
+            <select value={filters.accountId} onChange={(e) => setFilters((prev) => ({ ...prev, accountId: e.target.value }))} style={{ ...inputStyle, marginBottom: 0 }}>
+              <option value="">All Companies</option>
+              {data.companies.map((company) => (
+                <option key={company.accountId || company.companyName} value={company.accountId || ''}>
+                  {company.companyName} ({company.recordings})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ minWidth: 240, flex: '1 1 260px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Search</div>
+            <input value={filters.search} onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))} placeholder="Phone, lead, agent, company" style={{ ...inputStyle, marginBottom: 0 }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>From</div>
+            <input type="date" value={filters.from} onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value }))} style={{ ...inputStyle, width: 150, marginBottom: 0 }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>To</div>
+            <input type="date" value={filters.to} onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value }))} style={{ ...inputStyle, width: 150, marginBottom: 0 }} />
+          </div>
+          <button onClick={loadRecordings} style={{ ...btnPrimary('#4f46e5'), padding: '10px 18px' }}>Refresh</button>
+          <button onClick={handleBulkDownload} disabled={!visibleDownloads.length} style={{ ...btnPrimary('#059669'), padding: '10px 18px', opacity: visibleDownloads.length ? 1 : 0.55 }}>
+            Bulk Download
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <Placeholder>Loading company-wide recordings…</Placeholder>
+      ) : data.items.length === 0 ? (
+        <Placeholder>No recordings found for the selected filters.</Placeholder>
+      ) : (
+        <div style={{ display: 'grid', gap: 14 }}>
+          {data.items.map((item) => {
+            const fullUrl = toAbsoluteMediaUrl(item.recordingUrl);
+            const vmUrl = toAbsoluteMediaUrl(item.vmRecordingUrl);
+            return (
+              <div key={item.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: '#111827' }}>{item.companyName} • {item.agentName}</div>
+                    <div style={{ marginTop: 4, color: '#6b7280', fontSize: 13 }}>
+                      {item.leadName} • {item.leadPhone || item.toNumber || item.fromNumber || 'Unknown number'} • {formatDateTime(item.startedAt)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Badge bg="#eef2ff" color="#4338ca">{item.direction || 'outbound'}</Badge>
+                    <Badge bg="#ecfdf5" color="#047857">{item.callStatus}</Badge>
+                    <Badge bg="#f8fafc" color="#475569">{formatDuration(item.durationSeconds)}</Badge>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <div style={{ background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', padding: 14 }}>
+                    <div style={{ fontWeight: 800, fontSize: 12, color: '#0f172a', marginBottom: 8 }}>Full Call Recording</div>
+                    {fullUrl ? (
+                      <>
+                        <audio controls preload="metadata" src={fullUrl} style={{ width: '100%' }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>{item.fromNumber || 'Unknown'} → {item.toNumber || 'Unknown'}</div>
+                          <button onClick={() => triggerDownload(fullUrl, `${item.companyName}-${item.id}-recording.mp3`)} style={{ ...btnSecondary, padding: '8px 14px', fontSize: 12 }}>
+                            Download Full
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#94a3b8' }}>No main call recording saved for this entry.</div>
+                    )}
+                  </div>
+
+                  <div style={{ background: '#faf5ff', borderRadius: 12, border: '1px solid #e9d5ff', padding: 14 }}>
+                    <div style={{ fontWeight: 800, fontSize: 12, color: '#6b21a8', marginBottom: 8 }}>Voicemail / Secondary Audio</div>
+                    {vmUrl ? (
+                      <>
+                        <audio controls preload="metadata" src={vmUrl} style={{ width: '100%' }} />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                          <button onClick={() => triggerDownload(vmUrl, `${item.companyName}-${item.id}-voicemail.mp3`)} style={{ ...btnSecondary, padding: '8px 14px', fontSize: 12 }}>
+                            Download Voicemail
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#a78bfa' }}>No separate voicemail audio saved.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1792,6 +1975,7 @@ export default function SuperAdmin() {
               {tab === 'requests' && 'Pending signups and reactivation requests'}
               {tab === 'companies' && 'Manage all company accounts'}
               {tab === 'numbers'   && 'Manage your Telnyx number pool for assignment'}
+              {tab === 'recordings' && 'Company-wide recordings with playback and downloads'}
               {tab === 'analytics' && 'Per-company call analytics'}
               {tab === 'billing'   && 'Telnyx costs vs package revenue — net profit per company'}
             </div>
@@ -1821,6 +2005,7 @@ export default function SuperAdmin() {
             <CompaniesTab companies={companies} loading={loading} onToggle={handleToggle} onRegenerate={handleRegenerate} onDelete={handleDelete} />
           )}
           {tab === 'numbers' && <NumbersTab />}
+          {tab === 'recordings' && <RecordingsTab />}
           {tab === 'analytics' && (
             <AnalyticsTab analytics={analytics} loading={analyticsLoading} />
           )}

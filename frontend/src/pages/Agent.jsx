@@ -111,7 +111,27 @@ export default function Agent() {
 
   const HEARTBEAT_MS = 20000;
 
-  const { callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, registered, handleWebSocketCallUpdate, sendDTMF, updateCredentials, incomingCall, incomingCallInfo } = useSoftphoneContext();
+  const {
+    callState,
+    lastError,
+    sipCause,
+    callOutcome,
+    makeCall,
+    attachCall,
+    hangup,
+    registered,
+    handleWebSocketCallUpdate,
+    sendDTMF,
+    updateCredentials,
+    incomingCall,
+    incomingCallInfo,
+    speakerDevices,
+    speakerDeviceId,
+    speakerSupported,
+    speakerError,
+    setSpeakerDevice,
+    refreshSpeakerDevices,
+  } = useSoftphoneContext();
 
   // Track inbound calls in recentCalls
   const prevIncomingCallRef = useRef(null);
@@ -987,6 +1007,41 @@ export default function Agent() {
           }}>
             {registered ? '✓ SIP Ready' : '⚠ SIP...'}
           </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 10px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            <span style={{ fontSize: '0.9rem' }}>🔊</span>
+            <select
+              value={speakerDeviceId || 'default'}
+              onChange={(e) => setSpeakerDevice(e.target.value)}
+              onClick={() => refreshSpeakerDevices?.()}
+              disabled={!speakerSupported}
+              style={{
+                background: 'transparent',
+                color: 'white',
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                maxWidth: 170,
+                cursor: speakerSupported ? 'pointer' : 'not-allowed',
+              }}
+              title={speakerSupported ? 'Choose call speaker output' : 'Speaker selection not supported in this browser'}
+            >
+              <option value="default" style={{ color: '#111827' }}>Default Speaker</option>
+              {speakerDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId} style={{ color: '#111827' }}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div style={{ padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.73rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {status}
           </div>
@@ -1006,6 +1061,19 @@ export default function Agent() {
 
       {/* ── PAGE BODY ──────────────────────────────────────────────── */}
       <div style={{ padding: '1.5rem 2rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {speakerError && (
+          <div style={{
+            background: '#fff7ed',
+            border: '1px solid #fdba74',
+            color: '#9a3412',
+            borderRadius: 12,
+            padding: '10px 14px',
+            fontSize: '0.82rem',
+            fontWeight: 600,
+          }}>
+            Speaker warning: {speakerError}
+          </div>
+        )}
 
         {/* Tab Bar */}
         <div style={{ display: 'flex', gap: 8, borderBottom: '2px solid #e5e7eb', paddingBottom: 0, marginBottom: -8 }}>

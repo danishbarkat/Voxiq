@@ -80,6 +80,12 @@ export class AnalyticsController {
     }
 
     @Roles('Admin', 'Manager')
+    @Get('country-heatmap')
+    getCountryHeatmap(@Req() req?: any) {
+        return this.analyticsService.getCountryHeatmap(req?.user);
+    }
+
+    @Roles('Admin', 'Manager')
     @Patch('recordings/:id/tags')
     updateTags(@Param('id') id: string, @Body('tags') tags: string[], @Req() req?: any) {
         return this.analyticsService.updateCallTags(id, tags, req?.user);

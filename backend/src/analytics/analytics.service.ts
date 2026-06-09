@@ -423,6 +423,54 @@ export class AnalyticsService {
         return Object.entries(stateCounts).map(([state, calls]) => ({ id: state, value: calls }));
     }
 
+    async getCountryHeatmap(requester?: any) {
+        const PHONE_COUNTRY_MAP: Record<string, string> = {
+            '1': 'US', '7': 'RU', '20': 'EG', '27': 'ZA', '30': 'GR', '31': 'NL',
+            '32': 'BE', '33': 'FR', '34': 'ES', '36': 'HU', '39': 'IT', '40': 'RO',
+            '41': 'CH', '43': 'AT', '44': 'GB', '45': 'DK', '46': 'SE', '47': 'NO',
+            '48': 'PL', '49': 'DE', '51': 'PE', '52': 'MX', '54': 'AR', '55': 'BR',
+            '56': 'CL', '57': 'CO', '58': 'VE', '60': 'MY', '61': 'AU', '62': 'ID',
+            '63': 'PH', '64': 'NZ', '65': 'SG', '66': 'TH', '81': 'JP', '82': 'KR',
+            '84': 'VN', '86': 'CN', '90': 'TR', '91': 'IN', '92': 'PK', '93': 'AF',
+            '94': 'LK', '95': 'MM', '98': 'IR', '212': 'MA', '213': 'DZ', '216': 'TN',
+            '218': 'LY', '234': 'NG', '249': 'SD', '251': 'ET', '254': 'KE',
+            '255': 'TZ', '256': 'UG', '260': 'ZM', '263': 'ZW', '351': 'PT',
+            '353': 'IE', '358': 'FI', '380': 'UA', '420': 'CZ', '421': 'SK',
+            '971': 'AE', '966': 'SA', '965': 'KW', '974': 'QA', '973': 'BH',
+            '968': 'OM', '967': 'YE', '962': 'JO', '961': 'LB', '964': 'IQ', '972': 'IL',
+        };
+
+        const logs = await this.prisma.callLog.findMany({
+            where: this.buildCallLogWhereForRequester(requester),
+            select: {
+                toNumber: true,
+                fromNumber: true,
+                lead: { select: { phone: true } },
+            },
+            take: 5000,
+        });
+
+        const counts: Record<string, number> = {};
+        for (const log of logs) {
+            const phone = (log.lead?.phone || log.toNumber || log.fromNumber || '').replace(/[^0-9]/g, '');
+            if (!phone) continue;
+            let country: string | null = null;
+            for (const len of [3, 2, 1]) {
+                const prefix = phone.slice(0, len);
+                if (PHONE_COUNTRY_MAP[prefix]) {
+                    country = PHONE_COUNTRY_MAP[prefix];
+                    break;
+                }
+            }
+            if (!country) continue;
+            counts[country] = (counts[country] || 0) + 1;
+        }
+
+        return Object.entries(counts)
+            .map(([id, value]) => ({ id, value }))
+            .sort((a, b) => b.value - a.value);
+    }
+
     private groupBy(array: any[], key: string) {
         return array.reduce((acc, obj) => {
             const val: string = (obj[key] as string) || 'Unknown';

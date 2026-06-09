@@ -58,6 +58,13 @@ export const useSoftphone = (config) => {
     const [callState, setCallState] = useState('disconnected');
     const [registered, setRegistered] = useState(false);
     const [lastError, setLastError] = useState(null);
+    const [speakerDevices, setSpeakerDevices] = useState([]);
+    const [speakerDeviceId, setSpeakerDeviceIdState] = useState(() => {
+        try { return localStorage.getItem('voxiq_speaker_device_id') || 'default'; } catch { return 'default'; }
+    });
+    const [speakerError, setSpeakerError] = useState(null);
+    const speakerSupported = typeof HTMLMediaElement !== 'undefined'
+        && typeof HTMLMediaElement.prototype?.setSinkId === 'function';
     // sipCause: human-readable SIP rejection reason (e.g. "CALL_REJECTED", "UNALLOCATED_NUMBER")
     const [sipCause, setSipCause] = useState(null);
     const [callControlId, setCallControlId] = useState(null);
@@ -94,6 +101,62 @@ export const useSoftphone = (config) => {
     useEffect(() => {
         attachAudioUnlock();
     }, []);
+
+    const loadSpeakerDevices = useCallback(async () => {
+        try {
+            if (!navigator.mediaDevices?.enumerateDevices) {
+                setSpeakerDevices([]);
+                return [];
+            }
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const outputs = devices
+                .filter((device) => device.kind === 'audiooutput')
+                .map((device, index) => ({
+                    deviceId: device.deviceId || `audio-output-${index}`,
+                    label: device.label || (index === 0 ? 'Default Speaker' : `Speaker ${index + 1}`),
+                }));
+            setSpeakerDevices(outputs);
+            return outputs;
+        } catch (err) {
+            console.warn('[Softphone] Failed to enumerate speaker devices:', err);
+            setSpeakerDevices([]);
+            return [];
+        }
+    }, []);
+
+    const applySpeakerDevice = useCallback(async (nextDeviceId) => {
+        const audioEl = ensureAudioElement();
+        if (!audioEl) return false;
+        if (!speakerSupported || typeof audioEl.setSinkId !== 'function') {
+            setSpeakerError('Speaker selection is not supported in this browser.');
+            return false;
+        }
+
+        try {
+            await audioEl.setSinkId(nextDeviceId || 'default');
+            setSpeakerDeviceIdState(nextDeviceId || 'default');
+            setSpeakerError(null);
+            try { localStorage.setItem('voxiq_speaker_device_id', nextDeviceId || 'default'); } catch { }
+            console.log('[Softphone] Speaker output set to:', nextDeviceId || 'default');
+            return true;
+        } catch (err) {
+            console.error('[Softphone] Failed to set speaker output:', err);
+            setSpeakerError(err?.message || 'Unable to switch speaker output.');
+            return false;
+        }
+    }, [speakerSupported]);
+
+    useEffect(() => {
+        loadSpeakerDevices();
+        const refresh = () => { loadSpeakerDevices(); };
+        navigator.mediaDevices?.addEventListener?.('devicechange', refresh);
+        return () => navigator.mediaDevices?.removeEventListener?.('devicechange', refresh);
+    }, [loadSpeakerDevices]);
+
+    useEffect(() => {
+        ensureAudioElement();
+        applySpeakerDevice(speakerDeviceId);
+    }, [applySpeakerDevice, speakerDeviceId]);
 
     useEffect(() => { callControlIdRef.current = callControlId; }, [callControlId]);
     useEffect(() => { registeredRef.current = registered; }, [registered]);
@@ -236,7 +299,9 @@ export const useSoftphone = (config) => {
                 })();
             };
 
-            recorder.start(1000);
+            // Use a single finalized chunk instead of time-sliced chunks.
+            // This produces more browser-friendly WebM metadata for playback.
+            recorder.start();
             console.log('[Softphone] Custom recorder started for callLog:', callLogId);
             return true;
         } catch (err) {
@@ -299,20 +364,26 @@ export const useSoftphone = (config) => {
 
             if (notification.type !== 'callUpdate') return;
 
-            // notification.call.id is the Telnyx call_control_id
-            if (call.id && activeCallLogIdRef.current) {
+            const telnyxCallControlId =
+                call?.telnyxIDs?.telnyxCallControlId ||
+                call?.options?.telnyxCallControlId ||
+                call?.telnyxCallControlId ||
+                null;
+
+            // Link the DB CallLog to the real Telnyx call_control_id, not the SDK-local call.id.
+            if (telnyxCallControlId && activeCallLogIdRef.current) {
                 const logId = activeCallLogIdRef.current;
-                const linkKey = `${call.id}:${logId}`;
+                const linkKey = `${telnyxCallControlId}:${logId}`;
                 // Only send update ONCE per unique (callId+logId) pair to prevent 500 from concurrent PATCH
                 if (!linkedControlIds.current.has(linkKey)) {
                     linkedControlIds.current.add(linkKey);
-                    setCallControlId(call.id);
-                    callControlIdRef.current = call.id;
-                    console.log('[Softphone] Linking WebRTC call ID to CallLog:', call.id, logId);
+                    setCallControlId(telnyxCallControlId);
+                    callControlIdRef.current = telnyxCallControlId;
+                    console.log('[Softphone] Linking Telnyx call_control_id to CallLog:', telnyxCallControlId, logId);
                     fetch(`${API_BASE}/api/dialer/call/log/${logId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ callControlId: call.id }),
+                        body: JSON.stringify({ callControlId: telnyxCallControlId }),
                     }).catch(err => console.error('[Softphone] Link failed:', err));
                 }
             }
@@ -360,9 +431,17 @@ export const useSoftphone = (config) => {
                     break;
 
                 case 'active': {
-                    setCallState('connected');
+                    const isInbound = call.direction === 'inbound' || !!call.options?.remoteCallerNumber;
+                    if (isInbound) {
+                        setCallState('connected');
+                        callReachedActiveRef.current = true;
+                    } else {
+                        // For outbound PSTN calls, SDK "active" can happen before we receive the
+                        // definitive Telnyx webhook for the bridged/answered customer leg.
+                        // Keep the UI in ringing until the backend confirms the actual answer.
+                        setCallState(prev => (prev === 'connected' ? prev : 'ringing'));
+                    }
                     setLastError(null);
-                    callReachedActiveRef.current = true; // Call was actually answered
 
                     // Belt + suspenders: try to manually attach stream in case SDK didn't
                     const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
@@ -554,6 +633,7 @@ export const useSoftphone = (config) => {
                 // This guarantees the mic is active and bypasses strict autoplay blocks for incoming audio.
                 try {
                     micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+                    loadSpeakerDevices();
                 } catch (micErr) {
                     console.error('[Softphone] Microphone access denied/failed:', micErr);
                     alert('Error: Please allow microphone access in your browser to make WebRTC calls.');
@@ -705,7 +785,7 @@ export const useSoftphone = (config) => {
         call.answer();
         activeCallRef.current = call;
         callReachedRingingRef.current = true;
-        callReachedActiveRef.current = false;
+        callReachedActiveRef.current = true;
         lastProcessedCallIdRef.current = null;
         incomingCallRef.current = null;
         setIncomingCall(null);
@@ -753,6 +833,7 @@ export const useSoftphone = (config) => {
             if (isOurCall || (!activeLogId && !activeCtrlId)) {
                 setCallState('connected');
                 setLastError(null);
+                callReachedActiveRef.current = true;
                 if (activeCallRef.current) ensureRecordingStarted(activeCallRef.current);
             }
         } else if (status === 'completed' || status === 'hangup') {
@@ -770,5 +851,29 @@ export const useSoftphone = (config) => {
         }
     }, [ensureRecordingStarted, stopCustomRecording]);
 
-    return { registered, callState, lastError, sipCause, callOutcome, makeCall, attachCall, hangup, callControlId, handleWebSocketCallUpdate, sendDTMF, incomingCall, incomingCallInfo, answerCall, rejectCall, ua: null, session: null };
+    return {
+        registered,
+        callState,
+        lastError,
+        sipCause,
+        callOutcome,
+        makeCall,
+        attachCall,
+        hangup,
+        callControlId,
+        handleWebSocketCallUpdate,
+        sendDTMF,
+        incomingCall,
+        incomingCallInfo,
+        answerCall,
+        rejectCall,
+        speakerDevices,
+        speakerDeviceId,
+        speakerSupported,
+        speakerError,
+        setSpeakerDevice: applySpeakerDevice,
+        refreshSpeakerDevices: loadSpeakerDevices,
+        ua: null,
+        session: null,
+    };
 };

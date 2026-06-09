@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -138,5 +138,39 @@ export class SuperAdminController {
   @Get('analytics/:id')
   getCompanyAnalytics(@Param('id') id: string) {
     return this.superAdminService.getCompanyAnalytics(id);
+  }
+
+  @Get('recordings')
+  getRecordings(
+    @Query('accountId') accountId?: string,
+    @Query('search') search?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.superAdminService.getRecordings({
+      accountId,
+      search,
+      from,
+      to,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('companies/:id/recordings')
+  getCompanyRecordings(
+    @Param('id') id: string,
+    @Query('search') search?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.superAdminService.getRecordings({
+      accountId: id,
+      search,
+      from,
+      to,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 }

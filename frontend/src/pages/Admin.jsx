@@ -26,7 +26,7 @@ import { useSocket } from '../context/SocketContext';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { getToken, setToken, clearToken } from '../lib/auth';
-import StateMap from '../components/StateMap';
+import ProWorldMap from '../components/ProWorldMap';
 
 // ─── Tiny pure-CSS bar chart ──────────────────────────────────────────────────
 function BarChart({ data = [], labelKey = 'label', valueKey = 'value', max, color = 'var(--vx-accent)' }) {
@@ -983,7 +983,7 @@ export default function Admin() {
 
   const fetchHeatmap = async () => {
     try {
-      const data = await fetchJson(`${API_URL}/analytics/heatmap`);
+      const data = await fetchJson(`${API_URL}/analytics/country-heatmap`);
       if (!data || data.length === 0) {
         setHeatmapData([]);
       } else {
@@ -1717,8 +1717,8 @@ export default function Admin() {
                 {/* State Heatmap section */}
                 <section className="card mb-6">
                   <h2 className="font-head mb-4 text-center">Geographic Density</h2>
-                  <StateMap data={heatmapData} />
-                  <p className="text-center text-dim mt-2" style={{ fontSize: '0.75rem' }}>Call density by Area Code mapping</p>
+                  <ProWorldMap data={heatmapData} />
+                  <p className="text-center text-dim mt-2" style={{ fontSize: '0.75rem' }}>Call density by country activity</p>
                 </section>
 
                 <div className="dynamic-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>

@@ -55,7 +55,7 @@ export class VoipController {
         try {
             const callLog = await this.prisma.callLog.findUnique({
                 where: { id: callLogId },
-                select: { id: true },
+                select: { id: true, recordingUrl: true },
             });
             if (!callLog) {
                 this.logger.error(`[Custom Recording] Invalid callLogId: ${callLogId}`);
@@ -74,10 +74,14 @@ export class VoipController {
             await fs.writeFile(absolutePath, file.buffer);
 
             const recordingUrl = this.buildUploadsUrl(publicPath);
-            await this.prisma.callLog.update({
-                where: { id: callLogId },
-                data: { recordingUrl },
-            });
+            const currentRecording = callLog.recordingUrl || '';
+            const isExistingLocalRecording = currentRecording.includes('/uploads/recordings/');
+            if (!currentRecording || isExistingLocalRecording) {
+                await this.prisma.callLog.update({
+                    where: { id: callLogId },
+                    data: { recordingUrl },
+                });
+            }
 
             return recordingUrl;
         } catch (err) {
@@ -393,7 +397,6 @@ export class VoipController {
                     select: { id: true, recordingUrl: true },
                 });
                 for (const log of logs) {
-                    if (log.recordingUrl) continue;
                     await this.prisma.callLog.update({
                         where: { id: log.id },
                         data: { recordingUrl },
