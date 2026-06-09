@@ -101,8 +101,8 @@ export declare class CampaignsService {
             updatedAt: Date;
             tags: string[];
             callerName: string | null;
-            agentId: string | null;
             leadId: string | null;
+            agentId: string | null;
             campaignId: string | null;
             startedAt: Date;
             endedAt: Date | null;

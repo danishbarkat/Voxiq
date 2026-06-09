@@ -402,6 +402,44 @@ export declare class SuperAdminService {
             }[];
         };
     }>;
+    getRecordings(filters?: {
+        accountId?: string;
+        search?: string;
+        from?: string;
+        to?: string;
+        limit?: number;
+    }): Promise<{
+        total: number;
+        items: {
+            id: string;
+            startedAt: Date;
+            endedAt: Date | null;
+            durationSeconds: number | null;
+            direction: string;
+            callStatus: import("@prisma/client").$Enums.CallStatus;
+            disposition: string | null;
+            fromNumber: string | null;
+            toNumber: string | null;
+            callerName: string | null;
+            notes: string | null;
+            recordingUrl: string | null;
+            vmRecordingUrl: string | null;
+            companyId: string | null;
+            companyName: string;
+            agentId: string | null;
+            agentName: string;
+            campaignId: string | null;
+            campaignName: string;
+            leadId: string | null;
+            leadName: string;
+            leadPhone: string | null;
+        }[];
+        companies: {
+            accountId: string | null;
+            companyName: string;
+            recordings: number;
+        }[];
+    }>;
     getPendingVerifications(): Promise<{
         email: string;
         companyName: any;

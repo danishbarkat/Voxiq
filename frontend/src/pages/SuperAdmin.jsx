@@ -1618,102 +1618,198 @@ function RecordingsTab() {
     });
   }, [visibleDownloads]);
 
+  // group items by company for the "All" view
+  const groupedByCompany = useMemo(() => {
+    if (filters.accountId) return null; // single company selected — no grouping needed
+    const map = new Map();
+    data.items.forEach((item) => {
+      const key = item.companyId || item.companyName || 'Unknown';
+      if (!map.has(key)) map.set(key, { companyName: item.companyName || 'Unknown', items: [] });
+      map.get(key).items.push(item);
+    });
+    return Array.from(map.values());
+  }, [data.items, filters.accountId]);
+
+  const RecordingCard = ({ item }) => {
+    const fullUrl = toAbsoluteMediaUrl(item.recordingUrl);
+    const vmUrl   = toAbsoluteMediaUrl(item.vmRecordingUrl);
+    return (
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 16, marginBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>
+              {item.agentName || 'Unknown Agent'}
+              <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 12, marginLeft: 8 }}>
+                {item.leadName && `${item.leadName} • `}{item.leadPhone || item.toNumber || item.fromNumber || 'Unknown number'}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{formatDateTime(item.startedAt)}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Badge bg="#eef2ff" color="#4338ca">{item.direction || 'outbound'}</Badge>
+            <Badge bg="#ecfdf5" color="#047857">{item.callStatus}</Badge>
+            <Badge bg="#f8fafc" color="#475569">{formatDuration(item.durationSeconds)}</Badge>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 10 }}>
+          {/* Main recording */}
+          <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+              Full Call Recording
+            </div>
+            {fullUrl ? (
+              <>
+                <audio controls preload="metadata" src={fullUrl} style={{ width: '100%', height: 36 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>
+                    {item.fromNumber || '?'} → {item.toNumber || '?'}
+                  </span>
+                  <button onClick={() => triggerDownload(fullUrl, `${item.companyName}-${item.id}-recording.mp3`)}
+                    style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11 }}>
+                    ⬇ Download
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>No call recording saved.</div>
+            )}
+          </div>
+
+          {/* Voicemail */}
+          {vmUrl && (
+            <div style={{ background: '#faf5ff', borderRadius: 10, border: '1px solid #e9d5ff', padding: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 11, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                Voicemail Drop
+              </div>
+              <audio controls preload="metadata" src={vmUrl} style={{ width: '100%', height: 36 }} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <button onClick={() => triggerDownload(vmUrl, `${item.companyName}-${item.id}-voicemail.mp3`)}
+                  style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11 }}>
+                  ⬇ Download Voicemail
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
+    <div style={{ display: 'grid', gap: 16 }}>
+
+      {/* ── Company Capsule Chips ───────────────────────────── */}
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
-          <div style={{ minWidth: 220, flex: '1 1 220px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Company</div>
-            <select value={filters.accountId} onChange={(e) => setFilters((prev) => ({ ...prev, accountId: e.target.value }))} style={{ ...inputStyle, marginBottom: 0 }}>
-              <option value="">All Companies</option>
-              {data.companies.map((company) => (
-                <option key={company.accountId || company.companyName} value={company.accountId || ''}>
-                  {company.companyName} ({company.recordings})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ minWidth: 240, flex: '1 1 260px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Search</div>
-            <input value={filters.search} onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))} placeholder="Phone, lead, agent, company" style={{ ...inputStyle, marginBottom: 0 }} />
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+          Filter by Company
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {/* All chip */}
+          <button
+            onClick={() => setFilters((p) => ({ ...p, accountId: '' }))}
+            style={{
+              padding: '6px 16px', borderRadius: 20, border: '2px solid',
+              borderColor: !filters.accountId ? '#4f46e5' : '#e5e7eb',
+              background: !filters.accountId ? '#4f46e5' : '#f8fafc',
+              color: !filters.accountId ? '#fff' : '#374151',
+              fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            All Companies ({data.total})
+          </button>
+          {data.companies.map((company) => {
+            const active = filters.accountId === (company.accountId || '');
+            return (
+              <button
+                key={company.accountId || company.companyName}
+                onClick={() => setFilters((p) => ({ ...p, accountId: company.accountId || '' }))}
+                style={{
+                  padding: '6px 16px', borderRadius: 20, border: '2px solid',
+                  borderColor: active ? '#4f46e5' : '#e5e7eb',
+                  background: active ? '#4f46e5' : '#fff',
+                  color: active ? '#fff' : '#374151',
+                  fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {company.companyName}
+                <span style={{
+                  background: active ? 'rgba(255,255,255,0.25)' : '#e5e7eb',
+                  color: active ? '#fff' : '#6b7280',
+                  borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700,
+                }}>
+                  {company.recordings}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search + Date filters */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 220px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 5 }}>Search</div>
+            <input value={filters.search} onChange={(e) => setFilters((p) => ({ ...p, search: e.target.value }))}
+              placeholder="Phone, lead, agent, company…" style={{ ...inputStyle, marginBottom: 0 }} />
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>From</div>
-            <input type="date" value={filters.from} onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value }))} style={{ ...inputStyle, width: 150, marginBottom: 0 }} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 5 }}>From</div>
+            <input type="date" value={filters.from} onChange={(e) => setFilters((p) => ({ ...p, from: e.target.value }))}
+              style={{ ...inputStyle, width: 145, marginBottom: 0 }} />
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>To</div>
-            <input type="date" value={filters.to} onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value }))} style={{ ...inputStyle, width: 150, marginBottom: 0 }} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 5 }}>To</div>
+            <input type="date" value={filters.to} onChange={(e) => setFilters((p) => ({ ...p, to: e.target.value }))}
+              style={{ ...inputStyle, width: 145, marginBottom: 0 }} />
           </div>
           <button onClick={loadRecordings} style={{ ...btnPrimary('#4f46e5'), padding: '10px 18px' }}>Refresh</button>
-          <button onClick={handleBulkDownload} disabled={!visibleDownloads.length} style={{ ...btnPrimary('#059669'), padding: '10px 18px', opacity: visibleDownloads.length ? 1 : 0.55 }}>
-            Bulk Download
+          <button onClick={handleBulkDownload} disabled={!visibleDownloads.length}
+            style={{ ...btnPrimary('#059669'), padding: '10px 18px', opacity: visibleDownloads.length ? 1 : 0.55 }}>
+            Bulk Download ({visibleDownloads.length})
           </button>
         </div>
       </div>
 
+      {/* ── Recordings list ─────────────────────────────────── */}
       {loading ? (
-        <Placeholder>Loading company-wide recordings…</Placeholder>
+        <Placeholder>Loading recordings…</Placeholder>
       ) : data.items.length === 0 ? (
-        <Placeholder>No recordings found for the selected filters.</Placeholder>
+        <Placeholder>No recordings found.</Placeholder>
+      ) : filters.accountId ? (
+        /* Single company selected — flat list */
+        <div>
+          {data.items.map((item) => <RecordingCard key={item.id} item={item} />)}
+        </div>
       ) : (
-        <div style={{ display: 'grid', gap: 14 }}>
-          {data.items.map((item) => {
-            const fullUrl = toAbsoluteMediaUrl(item.recordingUrl);
-            const vmUrl = toAbsoluteMediaUrl(item.vmRecordingUrl);
-            return (
-              <div key={item.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: 16, color: '#111827' }}>{item.companyName} • {item.agentName}</div>
-                    <div style={{ marginTop: 4, color: '#6b7280', fontSize: 13 }}>
-                      {item.leadName} • {item.leadPhone || item.toNumber || item.fromNumber || 'Unknown number'} • {formatDateTime(item.startedAt)}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Badge bg="#eef2ff" color="#4338ca">{item.direction || 'outbound'}</Badge>
-                    <Badge bg="#ecfdf5" color="#047857">{item.callStatus}</Badge>
-                    <Badge bg="#f8fafc" color="#475569">{formatDuration(item.durationSeconds)}</Badge>
-                  </div>
+        /* All companies — grouped by company */
+        <div style={{ display: 'grid', gap: 20 }}>
+          {(groupedByCompany || []).map(({ companyName, items }) => (
+            <div key={companyName} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden' }}>
+              {/* Company header — clickable to filter */}
+              <div
+                onClick={() => {
+                  const co = data.companies.find((c) => c.companyName === companyName);
+                  if (co) setFilters((p) => ({ ...p, accountId: co.accountId || '' }));
+                }}
+                style={{
+                  padding: '14px 18px', background: 'linear-gradient(135deg,#1e3a8a,#4f46e5)',
+                  display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                }}
+              >
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '4px 12px', fontWeight: 800, fontSize: 15, color: '#fff' }}>
+                  {companyName}
                 </div>
-
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <div style={{ background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', padding: 14 }}>
-                    <div style={{ fontWeight: 800, fontSize: 12, color: '#0f172a', marginBottom: 8 }}>Full Call Recording</div>
-                    {fullUrl ? (
-                      <>
-                        <audio controls preload="metadata" src={fullUrl} style={{ width: '100%' }} />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>{item.fromNumber || 'Unknown'} → {item.toNumber || 'Unknown'}</div>
-                          <button onClick={() => triggerDownload(fullUrl, `${item.companyName}-${item.id}-recording.mp3`)} style={{ ...btnSecondary, padding: '8px 14px', fontSize: 12 }}>
-                            Download Full
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>No main call recording saved for this entry.</div>
-                    )}
-                  </div>
-
-                  <div style={{ background: '#faf5ff', borderRadius: 12, border: '1px solid #e9d5ff', padding: 14 }}>
-                    <div style={{ fontWeight: 800, fontSize: 12, color: '#6b21a8', marginBottom: 8 }}>Voicemail / Secondary Audio</div>
-                    {vmUrl ? (
-                      <>
-                        <audio controls preload="metadata" src={vmUrl} style={{ width: '100%' }} />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                          <button onClick={() => triggerDownload(vmUrl, `${item.companyName}-${item.id}-voicemail.mp3`)} style={{ ...btnSecondary, padding: '8px 14px', fontSize: 12 }}>
-                            Download Voicemail
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#a78bfa' }}>No separate voicemail audio saved.</div>
-                    )}
-                  </div>
-                </div>
+                <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 10, padding: '2px 10px', fontSize: 12, color: '#fff', fontWeight: 600 }}>
+                  {items.length} recording{items.length !== 1 ? 's' : ''}
+                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Click to filter →</span>
               </div>
-            );
-          })}
+              <div style={{ padding: '14px 18px' }}>
+                {items.map((item) => <RecordingCard key={item.id} item={item} />)}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

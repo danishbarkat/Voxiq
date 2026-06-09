@@ -28,6 +28,9 @@ export declare class VoipController {
     constructor(prisma: PrismaService, config: ConfigService, ws: WebsocketGateway, voipService: VoipService, smsService: SmsService);
     private getPublicBaseUrl;
     private buildUploadsUrl;
+    private normalizePhoneVariants;
+    private decodeClientState;
+    private resolveCallLogs;
     private persistCustomRecording;
     uploadCustomRecording(file: Express.Multer.File, callLogId: string): Promise<{
         success: boolean;

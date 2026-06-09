@@ -74,8 +74,8 @@ export declare class AnalyticsService {
         updatedAt: Date;
         tags: string[];
         callerName: string | null;
-        agentId: string | null;
         leadId: string | null;
+        agentId: string | null;
         campaignId: string | null;
         startedAt: Date;
         endedAt: Date | null;
@@ -90,14 +90,67 @@ export declare class AnalyticsService {
         fromNumber: string | null;
         toNumber: string | null;
     }[]>;
+    getHistory(filters?: {
+        limit?: number;
+    }, requester?: any): Promise<{
+        stats: {
+            missedCalls: number;
+            receivedCalls: number;
+            dialedCalls: number;
+            totalMessages: number;
+            inboundMessages: number;
+            outboundMessages: number;
+        };
+        items: ({
+            id: string;
+            type: "call";
+            category: "received" | "missed" | "dialed";
+            status: import("@prisma/client").$Enums.CallStatus;
+            direction: string;
+            startedAt: Date;
+            endedAt: Date | null;
+            durationSeconds: number | null;
+            recordingUrl: string | null;
+            fromNumber: string | null;
+            toNumber: string | null;
+            lead: {
+                id: string;
+                firstName: string;
+                lastName: string;
+                phone: string;
+            } | null;
+            agent: {
+                id: string;
+                name: string;
+                email: string;
+            } | null;
+            campaign: {
+                id: string;
+                name: string;
+            } | null;
+            disposition: string | null;
+            notes: string | null;
+        } | {
+            id: string;
+            type: "sms";
+            category: string;
+            status: string;
+            direction: string;
+            createdAt: Date;
+            fromNumber: string;
+            toNumber: string;
+            body: string;
+            agent: any;
+        })[];
+    }>;
     updateCallTags(id: string, tags: string[], requester?: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         tags: string[];
         callerName: string | null;
-        agentId: string | null;
         leadId: string | null;
+        agentId: string | null;
         campaignId: string | null;
         startedAt: Date;
         endedAt: Date | null;
@@ -117,8 +170,13 @@ export declare class AnalyticsService {
         id: string;
         value: number;
     }[]>;
+    getCountryHeatmap(requester?: any): Promise<{
+        id: string;
+        value: number;
+    }[]>;
     private groupBy;
     private buildCallLogWhereForRequester;
+    private buildSmsWhereForRequester;
     private buildUserWhereForRequester;
     private assertAgentAccess;
     private assertCampaignAccess;

@@ -616,6 +616,7 @@ let DialerService = DialerService_1 = class DialerService {
     async logCall(data) {
         let campaignId = data.campaignId;
         let leadId = data.leadId;
+        let targetPhone = data.manualNumber || null;
         if (data.isManual && !leadId && data.manualNumber) {
             const agent = await this.prisma.user.findUnique({
                 where: { id: data.agentId },
@@ -659,6 +660,7 @@ let DialerService = DialerService_1 = class DialerService {
                     });
                 }
                 leadId = lead.id;
+                targetPhone = lead.phone;
             }
         }
         if (!leadId) {
@@ -700,6 +702,18 @@ let DialerService = DialerService_1 = class DialerService {
             campaignId = defaultCampaign.id;
             this.logger.log(`Auto-created default campaign ${campaignId} for account ${agent.accountId}`);
         }
+        const [lead, agent] = await Promise.all([
+            leadId
+                ? this.prisma.lead.findUnique({
+                    where: { id: leadId },
+                    select: { phone: true },
+                })
+                : Promise.resolve(null),
+            this.prisma.user.findUnique({
+                where: { id: data.agentId },
+                select: { callerNumber: true },
+            }),
+        ]);
         return this.prisma.callLog.create({
             data: {
                 leadId,
@@ -708,6 +722,9 @@ let DialerService = DialerService_1 = class DialerService {
                 callControlId: data.callControlId,
                 startedAt: new Date(),
                 callStatus: client_1.CallStatus.RINGING,
+                direction: 'outbound',
+                fromNumber: agent?.callerNumber || null,
+                toNumber: targetPhone || lead?.phone || null,
             },
         });
     }

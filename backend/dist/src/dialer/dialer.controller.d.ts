@@ -9,6 +9,7 @@ export declare class DialerController {
     private config;
     constructor(dialerService: DialerService, voipService: VoipService, prisma: PrismaService, config: ConfigService);
     private getDefaultCallerName;
+    private normalizeComparablePhone;
     startCall(body: {
         to: string;
         from?: string;
@@ -60,8 +61,8 @@ export declare class DialerController {
         updatedAt: Date;
         tags: string[];
         callerName: string | null;
-        agentId: string | null;
         leadId: string | null;
+        agentId: string | null;
         campaignId: string | null;
         startedAt: Date;
         endedAt: Date | null;
@@ -87,8 +88,10 @@ export declare class DialerController {
         isManual?: boolean;
     }): Promise<any>;
     lockLead(body: {
-        leadId: string;
+        leadId?: string;
         agentId: string;
+        phone?: string;
+        manualNumber?: string;
     }): Promise<{
         locked: boolean;
         reason: string;

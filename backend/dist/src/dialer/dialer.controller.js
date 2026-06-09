@@ -34,6 +34,12 @@ let DialerController = class DialerController {
     getDefaultCallerName() {
         return (this.config.get('DEFAULT_OUTBOUND_CALLER_NAME') || 'RMESSAGES LLC').trim() || 'RMESSAGES LLC';
     }
+    normalizeComparablePhone(phone) {
+        const digits = (phone || '').replace(/\D/g, '');
+        if (!digits)
+            return null;
+        return digits.length > 10 ? digits.slice(-10) : digits;
+    }
     async startCall(body) {
         const to = this.normalizeToE164(body.to);
         const from = this.normalizeToE164(body.from || this.config.get('DEFAULT_OUTBOUND_NUMBER') || '+12623990007');
@@ -123,32 +129,50 @@ let DialerController = class DialerController {
     }
     async lockLead(body) {
         const { leadId, agentId } = body;
-        if (!leadId || !agentId) {
-            return { locked: false, reason: 'leadId and agentId are required' };
+        if (!agentId || (!leadId && !body.phone && !body.manualNumber)) {
+            return { locked: false, reason: 'agentId and leadId or phone are required' };
+        }
+        const lead = leadId
+            ? await this.prisma.lead.findUnique({
+                where: { id: leadId },
+                select: { id: true, phone: true },
+            })
+            : null;
+        const targetPhone = this.normalizeComparablePhone(body.phone || body.manualNumber || lead?.phone);
+        if (!targetPhone) {
+            return { locked: false, reason: 'invalid_phone' };
         }
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         const existing = await this.prisma.callLog.findFirst({
             where: {
-                leadId,
                 callStatus: { in: [client_1.CallStatus.RINGING, client_1.CallStatus.CONNECTED] },
                 startedAt: { gte: fiveMinutesAgo },
+                OR: [
+                    { toNumber: { endsWith: targetPhone } },
+                    { lead: { is: { phone: { endsWith: targetPhone } } } },
+                ],
             },
             select: { id: true, agentId: true },
         });
         if (existing) {
             const lockedBySelf = existing.agentId === agentId;
             if (lockedBySelf) {
-                console.log(`[Dialer] LOCK RE-ACQUIRED: lead ${leadId} already locked by SAME agent ${agentId}`);
+                console.log(`[Dialer] LOCK RE-ACQUIRED: phone ${targetPhone} already locked by SAME agent ${agentId}`);
                 return { locked: true, callLogId: existing.id };
             }
-            console.warn(`[Dialer] LOCK DENIED: lead ${leadId} already locked by agent ${existing.agentId}`);
+            console.warn(`[Dialer] LOCK DENIED: phone ${targetPhone} already locked by agent ${existing.agentId}`);
             return {
                 locked: false,
                 reason: 'already_dialing_other_agent',
             };
         }
         try {
-            const callLog = await this.dialerService.logCall({ leadId, agentId });
+            const callLog = await this.dialerService.logCall({
+                leadId: lead?.id,
+                agentId,
+                manualNumber: !lead?.id ? (body.phone || body.manualNumber) : undefined,
+                isManual: !lead?.id,
+            });
             console.log(`[Dialer] LOCK ACQUIRED: lead ${leadId} → agent ${agentId} (callLogId: ${callLog.id})`);
             return { locked: true, callLogId: callLog.id };
         }

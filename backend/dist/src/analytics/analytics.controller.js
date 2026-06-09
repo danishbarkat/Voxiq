@@ -45,8 +45,16 @@ let AnalyticsController = class AnalyticsController {
             dateTo,
         }, req?.user);
     }
+    getHistory(limit, req) {
+        return this.analyticsService.getHistory({
+            limit: limit ? parseInt(limit) : 150,
+        }, req?.user);
+    }
     getHeatmap(req) {
         return this.analyticsService.getStateHeatmap(req?.user);
+    }
+    getCountryHeatmap(req) {
+        return this.analyticsService.getCountryHeatmap(req?.user);
     }
     updateTags(id, tags, req) {
         return this.analyticsService.updateCallTags(id, tags, req?.user);
@@ -109,6 +117,15 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getRecordings", null);
 __decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
+    (0, common_1.Get)('history'),
+    __param(0, (0, common_1.Query)('limit')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AnalyticsController.prototype, "getHistory", null);
+__decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager'),
     (0, common_1.Get)('heatmap'),
     __param(0, (0, common_1.Req)()),
@@ -116,6 +133,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getHeatmap", null);
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager'),
+    (0, common_1.Get)('country-heatmap'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AnalyticsController.prototype, "getCountryHeatmap", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager'),
     (0, common_1.Patch)('recordings/:id/tags'),

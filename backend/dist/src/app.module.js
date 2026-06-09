@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const bull_1 = require("@nestjs/bull");
 const throttler_1 = require("@nestjs/throttler");
+const schedule_1 = require("@nestjs/schedule");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const validation_1 = require("./config/validation");
@@ -46,6 +47,7 @@ exports.AppModule = AppModule = __decorate([
                 { name: 'short', ttl: 60000, limit: 20 },
                 { name: 'long', ttl: 900000, limit: 100 },
             ]),
+            schedule_1.ScheduleModule.forRoot(),
             bull_1.BullModule.forRoot({
                 redis: {
                     host: process.env.REDIS_HOST || 'localhost',

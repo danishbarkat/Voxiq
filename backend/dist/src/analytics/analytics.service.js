@@ -232,6 +232,158 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
                 : null,
         }));
     }
+    async getHistory(filters, requester) {
+        const limit = Math.min(filters?.limit ?? 150, 300);
+        const requesterRole = requester?.role?.toLowerCase();
+        const requesterUser = requesterRole === 'agent' && requester?.userId
+            ? await this.prisma.user.findUnique({
+                where: { id: requester.userId },
+                select: {
+                    id: true,
+                    accountId: true,
+                    callerNumber: true,
+                },
+            })
+            : null;
+        const agentCallClauses = [{ agentId: requester?.userId }];
+        if (requesterUser?.callerNumber) {
+            agentCallClauses.push({ fromNumber: requesterUser.callerNumber }, { toNumber: requesterUser.callerNumber });
+            if (requesterUser.accountId) {
+                agentCallClauses.push({
+                    AND: [
+                        {
+                            OR: [
+                                { agent: { accountId: requesterUser.accountId } },
+                                { lead: { accountId: requesterUser.accountId } },
+                                { campaign: { accountId: requesterUser.accountId } },
+                            ],
+                        },
+                        {
+                            OR: [
+                                { fromNumber: requesterUser.callerNumber },
+                                { toNumber: requesterUser.callerNumber },
+                            ],
+                        },
+                    ],
+                });
+            }
+        }
+        const callWhere = requesterRole === 'agent'
+            ? { OR: agentCallClauses }
+            : this.buildCallLogWhereForRequester(requester);
+        const smsWhere = requesterRole === 'agent'
+            ? {
+                accountId: requester?.accountId,
+                OR: [
+                    { agentId: requester?.userId },
+                    { direction: 'inbound' },
+                ],
+            }
+            : this.buildSmsWhereForRequester(requester);
+        const [calls, smsMessages] = await Promise.all([
+            this.prisma.callLog.findMany({
+                where: callWhere,
+                include: {
+                    lead: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            phone: true,
+                        },
+                    },
+                    agent: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                    campaign: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                },
+                orderBy: { startedAt: 'desc' },
+                take: limit,
+            }),
+            this.prisma.smsMessage.findMany({
+                where: smsWhere,
+                include: {
+                    agent: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: limit,
+            }),
+        ]);
+        const callItems = calls.map((call) => {
+            const direction = (call.direction || 'outbound').toLowerCase();
+            const status = call.callStatus;
+            let category = 'dialed';
+            if (direction === 'inbound') {
+                category = status === client_1.CallStatus.MISSED ? 'missed' : 'received';
+            }
+            else if (status === client_1.CallStatus.MISSED) {
+                category = 'missed';
+            }
+            return {
+                id: call.id,
+                type: 'call',
+                category,
+                status,
+                direction,
+                startedAt: call.startedAt,
+                endedAt: call.endedAt,
+                durationSeconds: call.durationSeconds ?? (call.startedAt && call.endedAt
+                    ? Math.max(0, Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000))
+                    : null),
+                recordingUrl: call.recordingUrl,
+                fromNumber: call.fromNumber || null,
+                toNumber: call.toNumber || call.lead?.phone || null,
+                lead: call.lead,
+                agent: call.agent,
+                campaign: call.campaign,
+                disposition: call.disposition,
+                notes: call.notes,
+            };
+        });
+        const smsItems = smsMessages.map((msg) => ({
+            id: msg.id,
+            type: 'sms',
+            category: msg.direction === 'inbound' ? 'received' : 'dialed',
+            status: msg.status,
+            direction: msg.direction,
+            createdAt: msg.createdAt,
+            fromNumber: msg.fromNumber,
+            toNumber: msg.toNumber,
+            body: msg.body,
+            agent: msg.agent ?? null,
+        }));
+        const items = [...callItems, ...smsItems]
+            .sort((a, b) => {
+            const aTime = new Date(a.startedAt || a.createdAt || 0).getTime();
+            const bTime = new Date(b.startedAt || b.createdAt || 0).getTime();
+            return bTime - aTime;
+        })
+            .slice(0, limit);
+        const stats = {
+            missedCalls: callItems.filter((item) => item.category === 'missed').length,
+            receivedCalls: callItems.filter((item) => item.category === 'received').length,
+            dialedCalls: callItems.filter((item) => item.category === 'dialed').length,
+            totalMessages: smsItems.length,
+            inboundMessages: smsItems.filter((item) => item.direction === 'inbound').length,
+            outboundMessages: smsItems.filter((item) => item.direction === 'outbound').length,
+        };
+        return { stats, items };
+    }
     async updateCallTags(id, tags, requester) {
         await this.assertCallLogAccess(id, requester);
         return this.prisma.callLog.update({
@@ -269,6 +421,52 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
         }
         return Object.entries(stateCounts).map(([state, calls]) => ({ id: state, value: calls }));
     }
+    async getCountryHeatmap(requester) {
+        const PHONE_COUNTRY_MAP = {
+            '1': 'US', '7': 'RU', '20': 'EG', '27': 'ZA', '30': 'GR', '31': 'NL',
+            '32': 'BE', '33': 'FR', '34': 'ES', '36': 'HU', '39': 'IT', '40': 'RO',
+            '41': 'CH', '43': 'AT', '44': 'GB', '45': 'DK', '46': 'SE', '47': 'NO',
+            '48': 'PL', '49': 'DE', '51': 'PE', '52': 'MX', '54': 'AR', '55': 'BR',
+            '56': 'CL', '57': 'CO', '58': 'VE', '60': 'MY', '61': 'AU', '62': 'ID',
+            '63': 'PH', '64': 'NZ', '65': 'SG', '66': 'TH', '81': 'JP', '82': 'KR',
+            '84': 'VN', '86': 'CN', '90': 'TR', '91': 'IN', '92': 'PK', '93': 'AF',
+            '94': 'LK', '95': 'MM', '98': 'IR', '212': 'MA', '213': 'DZ', '216': 'TN',
+            '218': 'LY', '234': 'NG', '249': 'SD', '251': 'ET', '254': 'KE',
+            '255': 'TZ', '256': 'UG', '260': 'ZM', '263': 'ZW', '351': 'PT',
+            '353': 'IE', '358': 'FI', '380': 'UA', '420': 'CZ', '421': 'SK',
+            '971': 'AE', '966': 'SA', '965': 'KW', '974': 'QA', '973': 'BH',
+            '968': 'OM', '967': 'YE', '962': 'JO', '961': 'LB', '964': 'IQ', '972': 'IL',
+        };
+        const logs = await this.prisma.callLog.findMany({
+            where: this.buildCallLogWhereForRequester(requester),
+            select: {
+                toNumber: true,
+                fromNumber: true,
+                lead: { select: { phone: true } },
+            },
+            take: 5000,
+        });
+        const counts = {};
+        for (const log of logs) {
+            const phone = (log.lead?.phone || log.toNumber || log.fromNumber || '').replace(/[^0-9]/g, '');
+            if (!phone)
+                continue;
+            let country = null;
+            for (const len of [3, 2, 1]) {
+                const prefix = phone.slice(0, len);
+                if (PHONE_COUNTRY_MAP[prefix]) {
+                    country = PHONE_COUNTRY_MAP[prefix];
+                    break;
+                }
+            }
+            if (!country)
+                continue;
+            counts[country] = (counts[country] || 0) + 1;
+        }
+        return Object.entries(counts)
+            .map(([id, value]) => ({ id, value }))
+            .sort((a, b) => b.value - a.value);
+    }
     groupBy(array, key) {
         return array.reduce((acc, obj) => {
             const val = obj[key] || 'Unknown';
@@ -284,10 +482,21 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
             throw new common_1.ForbiddenException('Company context is required');
         }
         return {
-            agent: {
-                accountId: requester.accountId,
-            },
+            OR: [
+                { agent: { accountId: requester.accountId } },
+                { lead: { accountId: requester.accountId } },
+                { campaign: { accountId: requester.accountId } },
+            ],
         };
+    }
+    buildSmsWhereForRequester(requester) {
+        if (requester?.role?.toLowerCase() === 'superadmin') {
+            return {};
+        }
+        if (!requester?.accountId) {
+            throw new common_1.ForbiddenException('Company context is required');
+        }
+        return { accountId: requester.accountId };
     }
     buildUserWhereForRequester(requester) {
         if (requester?.role?.toLowerCase() === 'superadmin') {
@@ -337,6 +546,16 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
         const log = await this.prisma.callLog.findUnique({
             where: { id: callLogId },
             select: {
+                lead: {
+                    select: {
+                        accountId: true,
+                    },
+                },
+                campaign: {
+                    select: {
+                        accountId: true,
+                    },
+                },
                 agent: {
                     select: {
                         accountId: true,
@@ -347,7 +566,8 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
         if (!log) {
             throw new common_1.NotFoundException('Call log not found');
         }
-        if (log.agent?.accountId !== requester?.accountId) {
+        const accountId = log.agent?.accountId || log.lead?.accountId || log.campaign?.accountId;
+        if (accountId !== requester?.accountId) {
             throw new common_1.ForbiddenException('You can only access call logs from your own company');
         }
     }

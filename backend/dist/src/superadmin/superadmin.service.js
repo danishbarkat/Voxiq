@@ -453,6 +453,143 @@ let SuperAdminService = class SuperAdminService {
         ]);
         return { accountId, companyName: account.name, daily, weekly, monthly };
     }
+    async getRecordings(filters) {
+        const where = {
+            OR: [
+                { recordingUrl: { not: null } },
+                { vmRecordingUrl: { not: null } },
+            ],
+        };
+        if (filters?.accountId) {
+            where.AND = [
+                {
+                    OR: [
+                        { agent: { accountId: filters.accountId } },
+                        { lead: { accountId: filters.accountId } },
+                        { campaign: { accountId: filters.accountId } },
+                    ],
+                },
+            ];
+        }
+        const search = (filters?.search || '').trim();
+        if (search) {
+            const bucket = where.AND || [];
+            bucket.push({
+                OR: [
+                    { toNumber: { contains: search, mode: 'insensitive' } },
+                    { fromNumber: { contains: search, mode: 'insensitive' } },
+                    { callerName: { contains: search, mode: 'insensitive' } },
+                    { disposition: { contains: search, mode: 'insensitive' } },
+                    { notes: { contains: search, mode: 'insensitive' } },
+                    { agent: { name: { contains: search, mode: 'insensitive' } } },
+                    { campaign: { name: { contains: search, mode: 'insensitive' } } },
+                    { lead: { firstName: { contains: search, mode: 'insensitive' } } },
+                    { lead: { lastName: { contains: search, mode: 'insensitive' } } },
+                    { lead: { phone: { contains: search, mode: 'insensitive' } } },
+                    { agent: { account: { name: { contains: search, mode: 'insensitive' } } } },
+                ],
+            });
+            where.AND = bucket;
+        }
+        if (filters?.from || filters?.to) {
+            where.startedAt = {};
+            if (filters.from) {
+                where.startedAt.gte = new Date(`${filters.from}T00:00:00.000Z`);
+            }
+            if (filters.to) {
+                where.startedAt.lte = new Date(`${filters.to}T23:59:59.999Z`);
+            }
+        }
+        const take = Math.min(Math.max(Number(filters?.limit) || 200, 1), 500);
+        const logs = await this.prisma.callLog.findMany({
+            where,
+            orderBy: { startedAt: 'desc' },
+            take,
+            include: {
+                agent: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        accountId: true,
+                        account: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                lead: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true,
+                        accountId: true,
+                    },
+                },
+                campaign: {
+                    select: {
+                        id: true,
+                        name: true,
+                        accountId: true,
+                    },
+                },
+            },
+        });
+        const items = logs.map((log) => {
+            const companyId = log.agent?.account?.id ||
+                log.agent?.accountId ||
+                log.lead?.accountId ||
+                log.campaign?.accountId ||
+                null;
+            const companyName = log.agent?.account?.name || 'Unknown Company';
+            const leadName = log.lead
+                ? `${log.lead.firstName || ''} ${log.lead.lastName || ''}`.trim() || log.lead.phone || 'Unknown Lead'
+                : 'Unknown Lead';
+            return {
+                id: log.id,
+                startedAt: log.startedAt,
+                endedAt: log.endedAt,
+                durationSeconds: log.durationSeconds,
+                direction: log.direction || 'outbound',
+                callStatus: log.callStatus,
+                disposition: log.disposition,
+                fromNumber: log.fromNumber,
+                toNumber: log.toNumber,
+                callerName: log.callerName,
+                notes: log.notes,
+                recordingUrl: log.recordingUrl,
+                vmRecordingUrl: log.vmRecordingUrl,
+                companyId,
+                companyName,
+                agentId: log.agent?.id || null,
+                agentName: log.agent?.name || 'Unknown Agent',
+                campaignId: log.campaign?.id || null,
+                campaignName: log.campaign?.name || 'Unassigned',
+                leadId: log.lead?.id || null,
+                leadName,
+                leadPhone: log.lead?.phone || null,
+            };
+        });
+        const companyMap = new Map();
+        for (const item of items) {
+            const key = item.companyId || `unknown:${item.companyName}`;
+            const current = companyMap.get(key) || {
+                accountId: item.companyId,
+                companyName: item.companyName,
+                recordings: 0,
+            };
+            current.recordings += (item.recordingUrl ? 1 : 0) + (item.vmRecordingUrl ? 1 : 0);
+            companyMap.set(key, current);
+        }
+        return {
+            total: items.length,
+            items,
+            companies: Array.from(companyMap.values()).sort((a, b) => b.recordings - a.recordings),
+        };
+    }
     async getPendingVerifications() {
         const records = await this.prisma.signupVerification.findMany({
             orderBy: { createdAt: 'desc' },

@@ -135,6 +135,24 @@ let SuperAdminController = class SuperAdminController {
     getCompanyAnalytics(id) {
         return this.superAdminService.getCompanyAnalytics(id);
     }
+    getRecordings(accountId, search, from, to, limit) {
+        return this.superAdminService.getRecordings({
+            accountId,
+            search,
+            from,
+            to,
+            limit: limit ? Number(limit) : undefined,
+        });
+    }
+    getCompanyRecordings(id, search, from, to, limit) {
+        return this.superAdminService.getRecordings({
+            accountId: id,
+            search,
+            from,
+            to,
+            limit: limit ? Number(limit) : undefined,
+        });
+    }
 };
 exports.SuperAdminController = SuperAdminController;
 __decorate([
@@ -291,6 +309,28 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "getCompanyAnalytics", null);
+__decorate([
+    (0, common_1.Get)('recordings'),
+    __param(0, (0, common_1.Query)('accountId')),
+    __param(1, (0, common_1.Query)('search')),
+    __param(2, (0, common_1.Query)('from')),
+    __param(3, (0, common_1.Query)('to')),
+    __param(4, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getRecordings", null);
+__decorate([
+    (0, common_1.Get)('companies/:id/recordings'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('search')),
+    __param(2, (0, common_1.Query)('from')),
+    __param(3, (0, common_1.Query)('to')),
+    __param(4, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getCompanyRecordings", null);
 exports.SuperAdminController = SuperAdminController = __decorate([
     (0, common_1.Controller)('superadmin'),
     (0, roles_decorator_1.Roles)('SuperAdmin'),

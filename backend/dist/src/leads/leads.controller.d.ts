@@ -35,8 +35,8 @@ export declare class LeadsController {
             updatedAt: Date;
             tags: string[];
             callerName: string | null;
-            agentId: string | null;
             leadId: string | null;
+            agentId: string | null;
             campaignId: string | null;
             startedAt: Date;
             endedAt: Date | null;
@@ -229,8 +229,8 @@ export declare class LeadsController {
             updatedAt: Date;
             tags: string[];
             callerName: string | null;
-            agentId: string | null;
             leadId: string | null;
+            agentId: string | null;
             campaignId: string | null;
             startedAt: Date;
             endedAt: Date | null;
@@ -285,8 +285,8 @@ export declare class LeadsController {
         updatedAt: Date;
         tags: string[];
         callerName: string | null;
-        agentId: string | null;
         leadId: string | null;
+        agentId: string | null;
         campaignId: string | null;
         startedAt: Date;
         endedAt: Date | null;
