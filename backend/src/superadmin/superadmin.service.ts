@@ -29,6 +29,15 @@ export class SuperAdminService {
     adminPhone: true,
     rejectionReason: true,
     ntn: true,
+    packageName: true,
+    isTrial: true,
+    trialEndsAt: true,
+    canOutboundCall: true,
+    canInboundCall: true,
+    canSendSms: true,
+    canRecord: true,
+    monthlyCallLimit: true,
+    monthlySmsLimit: true,
     users: {
       select: {
         id: true,
@@ -181,6 +190,15 @@ export class SuperAdminService {
         adminPhone: true,
         rejectionReason: true,
         ntn: true,
+        packageName: true,
+        isTrial: true,
+        trialEndsAt: true,
+        canOutboundCall: true,
+        canInboundCall: true,
+        canSendSms: true,
+        canRecord: true,
+        monthlyCallLimit: true,
+        monthlySmsLimit: true,
         users: {
           include: {
             role: { select: { name: true } },
