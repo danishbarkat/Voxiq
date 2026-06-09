@@ -36,6 +36,16 @@ function AgentHistoryBadge({ item }) {
   );
 }
 
+function formatHistoryStatus(item) {
+  if (item?.type === 'sms') {
+    return item?.category === 'received' ? 'Received SMS' : 'Sent SMS';
+  }
+  if (item?.category === 'missed') return 'Missed';
+  if (item?.category === 'received') return 'Received';
+  if (item?.category === 'dialed') return 'Dialed';
+  return item?.status || 'Unknown';
+}
+
 export default function Agent() {
   const navigate = useNavigate();
   const { socket, isConnected, reconnect } = useSocket();
@@ -1555,7 +1565,7 @@ export default function Agent() {
                       </td>
                       <td>
                         <span className={`pill-status ${item.category === 'missed' ? 'pill-error' : 'pill-success'}`} style={{ fontSize: '0.65rem' }}>
-                          {item.status || item.category}
+                          {formatHistoryStatus(item)}
                         </span>
                       </td>
                       <td>

@@ -255,8 +255,44 @@ export class AnalyticsService {
     async getHistory(filters?: { limit?: number }, requester?: any) {
         const limit = Math.min(filters?.limit ?? 150, 300);
         const requesterRole = requester?.role?.toLowerCase();
+        const requesterUser = requesterRole === 'agent' && requester?.userId
+            ? await this.prisma.user.findUnique({
+                where: { id: requester.userId },
+                select: {
+                    id: true,
+                    accountId: true,
+                    callerNumber: true,
+                },
+            })
+            : null;
+        const agentCallClauses: any[] = [{ agentId: requester?.userId }];
+        if (requesterUser?.callerNumber) {
+            agentCallClauses.push(
+                { fromNumber: requesterUser.callerNumber },
+                { toNumber: requesterUser.callerNumber },
+            );
+            if (requesterUser.accountId) {
+                agentCallClauses.push({
+                    AND: [
+                        {
+                            OR: [
+                                { agent: { accountId: requesterUser.accountId } },
+                                { lead: { accountId: requesterUser.accountId } },
+                                { campaign: { accountId: requesterUser.accountId } },
+                            ],
+                        },
+                        {
+                            OR: [
+                                { fromNumber: requesterUser.callerNumber },
+                                { toNumber: requesterUser.callerNumber },
+                            ],
+                        },
+                    ],
+                });
+            }
+        }
         const callWhere = requesterRole === 'agent'
-            ? { agentId: requester?.userId }
+            ? { OR: agentCallClauses }
             : this.buildCallLogWhereForRequester(requester);
         const smsWhere = requesterRole === 'agent'
             ? {
