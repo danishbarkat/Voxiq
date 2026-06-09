@@ -259,6 +259,26 @@ export class DialerService {
             include: { account: true },
         });
 
+        // Feature gate: check outbound call permission + monthly limit
+        if (campaign?.account) {
+            const acc = campaign.account as any;
+            if (!acc.canOutboundCall) {
+                this.logger.warn(`Account ${acc.id} does not have outbound call permission`);
+                return;
+            }
+            if (acc.monthlyCallLimit !== null) {
+                const monthStart = new Date();
+                monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+                const used = await this.prisma.callLog.count({
+                    where: { agent: { accountId: acc.id }, startedAt: { gte: monthStart } },
+                });
+                if (used >= acc.monthlyCallLimit) {
+                    this.logger.warn(`Account ${acc.id} reached monthly call limit (${used}/${acc.monthlyCallLimit})`);
+                    return;
+                }
+            }
+        }
+
         const leads = await this.prisma.lead.findMany({
             where: { id: { in: job.leadIds } },
             include: { list: true },

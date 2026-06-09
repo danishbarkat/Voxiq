@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -92,6 +92,21 @@ export class SuperAdminController {
   @Post('companies/:id/unassign-number')
   unassignNumber(@Param('id') id: string, @Body('number') number: string) {
     return this.superAdminService.unassignNumber(id, number);
+  }
+
+  @Patch('companies/:id/package')
+  assignPackage(@Param('id') id: string, @Body('packageName') packageName: string) {
+    return this.superAdminService.assignPackage(id, packageName);
+  }
+
+  @Get('companies/:id/package-usage')
+  getPackageUsage(@Param('id') id: string) {
+    return this.superAdminService.getPackageUsage(id);
+  }
+
+  @Get('packages')
+  getPackages() {
+    return SuperAdminService.PACKAGES;
   }
 
   @Get('analytics')

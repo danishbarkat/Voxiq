@@ -29,6 +29,13 @@ model Account {
   website             String?
   ntn                 String?
   termsAccepted       Boolean             @default(false)
+  packageName         String?
+  canOutboundCall     Boolean             @default(true)
+  canInboundCall      Boolean             @default(true)
+  canSendSms          Boolean             @default(false)
+  canRecord           Boolean             @default(false)
+  monthlyCallLimit    Int?
+  monthlySmsLimit     Int?
   campaigns           Campaign[]
   leads               Lead[]
   lists               List[]

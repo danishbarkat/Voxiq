@@ -627,6 +627,70 @@ export class SuperAdminService {
     });
   }
 
+  static readonly PACKAGES: Record<string, {
+    canOutboundCall: boolean; canInboundCall: boolean;
+    canSendSms: boolean; canRecord: boolean;
+    monthlyCallLimit: number | null; monthlySmsLimit: number | null;
+    agentLimit: number;
+  }> = {
+    Starter:    { canOutboundCall: true,  canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 300,   monthlySmsLimit: 0,    agentLimit: 1  },
+    Basic:      { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: false, monthlyCallLimit: 500,   monthlySmsLimit: 400,  agentLimit: 3  },
+    Growth:     { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 1000,  monthlySmsLimit: 800,  agentLimit: 5  },
+    Pro:        { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 2500,  monthlySmsLimit: 2000, agentLimit: 10 },
+    Agency:     { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 6000,  monthlySmsLimit: 5000, agentLimit: 25 },
+    Enterprise: { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: null,  monthlySmsLimit: null, agentLimit: 100 },
+  };
+
+  async assignPackage(accountId: string, packageName: string) {
+    const preset = SuperAdminService.PACKAGES[packageName];
+    if (!preset) throw new BadRequestException(`Unknown package: ${packageName}`);
+
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: { packageName, ...preset },
+      select: {
+        id: true, name: true, packageName: true,
+        canOutboundCall: true, canInboundCall: true,
+        canSendSms: true, canRecord: true,
+        monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+      },
+    });
+  }
+
+  async getPackageUsage(accountId: string) {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [callCount, smsCount, account] = await Promise.all([
+      this.prisma.callLog.count({
+        where: { agent: { accountId }, startedAt: { gte: monthStart } },
+      }),
+      this.prisma.smsMessage.count({
+        where: { accountId, direction: 'outbound', createdAt: { gte: monthStart } },
+      }),
+      this.prisma.account.findUnique({
+        where: { id: accountId },
+        select: {
+          packageName: true, canOutboundCall: true, canInboundCall: true,
+          canSendSms: true, canRecord: true,
+          monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+        },
+      }),
+    ]);
+
+    if (!account) throw new NotFoundException('Company not found');
+
+    return {
+      ...account,
+      usage: {
+        callsThisMonth: callCount,
+        smsThisMonth: smsCount,
+        callLimitReached: account.monthlyCallLimit !== null && callCount >= account.monthlyCallLimit,
+        smsLimitReached: account.monthlySmsLimit !== null && smsCount >= account.monthlySmsLimit,
+      },
+    };
+  }
+
   private async getAccountStats(accountId: string, since: Date) {
     const logs = await this.prisma.callLog.findMany({
       where: {

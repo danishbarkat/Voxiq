@@ -738,6 +738,139 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
   );
 }
 
+const PACKAGES = [
+  { name: 'Starter',    calls: 300,   sms: 0,     agents: 1,   color: '#10b981', features: { out: true,  in: false, sms: false, rec: false } },
+  { name: 'Basic',      calls: 500,   sms: 400,   agents: 3,   color: '#3b82f6', features: { out: true,  in: true,  sms: true,  rec: false } },
+  { name: 'Growth',     calls: 1000,  sms: 800,   agents: 5,   color: '#8b5cf6', features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Pro',        calls: 2500,  sms: 2000,  agents: 10,  color: '#f59e0b', features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Agency',     calls: 6000,  sms: 5000,  agents: 25,  color: '#ef4444', features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Enterprise', calls: null,  sms: null,  agents: 100, color: '#1f2937', features: { out: true,  in: true,  sms: true,  rec: true  } },
+];
+
+function PackageSection({ detail, onRefresh }) {
+  const [saving, setSaving] = useState(false);
+  const [usage, setUsage] = useState(null);
+
+  useEffect(() => {
+    fetchJson(`${API_URL}/superadmin/companies/${detail.id}/package-usage`)
+      .then(setUsage).catch(() => {});
+  }, [detail.id]);
+
+  const handleAssignPackage = async (pkgName) => {
+    if (!window.confirm(`Assign "${pkgName}" package to ${detail.name}?`)) return;
+    setSaving(true);
+    try {
+      await fetchJson(`${API_URL}/superadmin/companies/${detail.id}/package`, {
+        method: 'PATCH',
+        body: JSON.stringify({ packageName: pkgName }),
+      });
+      onRefresh();
+    } catch (err) { alert(err.message); }
+    finally { setSaving(false); }
+  };
+
+  const currentPkg = PACKAGES.find(p => p.name === (usage?.packageName || detail.packageName));
+
+  const FeaturePill = ({ on, label }) => (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+      background: on ? '#d1fae5' : '#fee2e2', color: on ? '#065f46' : '#991b1b',
+    }}>
+      {on ? '✓' : '✗'} {label}
+    </span>
+  );
+
+  const UsageBar = ({ used, limit, label, color }) => {
+    if (limit === null || limit === undefined) return (
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280', marginBottom: 3 }}>
+          <span>{label}</span><span style={{ fontWeight: 700, color: '#374151' }}>{used?.toLocaleString()} / ∞</span>
+        </div>
+        <div style={{ height: 5, background: '#e5e7eb', borderRadius: 3 }}>
+          <div style={{ width: '20%', height: '100%', background: color, borderRadius: 3 }} />
+        </div>
+      </div>
+    );
+    const pct = Math.min(100, Math.round((used / limit) * 100));
+    const barColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : color;
+    return (
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280', marginBottom: 3 }}>
+          <span>{label}</span>
+          <span style={{ fontWeight: 700, color: pct >= 90 ? '#ef4444' : '#374151' }}>
+            {used?.toLocaleString()} / {limit?.toLocaleString()} ({pct}%)
+          </span>
+        </div>
+        <div style={{ height: 5, background: '#e5e7eb', borderRadius: 3 }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.4s' }} />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ border: '1.5px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ padding: '8px 14px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Package & Features
+        </span>
+        {currentPkg && (
+          <span style={{ background: currentPkg.color, color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 800 }}>
+            {currentPkg.name}
+          </span>
+        )}
+        {!currentPkg && <span style={{ color: '#9ca3af', fontSize: 12 }}>No package assigned</span>}
+      </div>
+
+      {/* Current features */}
+      {usage && (
+        <div style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            <FeaturePill on={usage.canOutboundCall} label="Outbound Calls" />
+            <FeaturePill on={usage.canInboundCall}  label="Inbound Calls"  />
+            <FeaturePill on={usage.canSendSms}      label="SMS"            />
+            <FeaturePill on={usage.canRecord}       label="Recording"      />
+          </div>
+          <UsageBar used={usage.usage?.callsThisMonth} limit={usage.monthlyCallLimit} label="Calls this month" color="#6366f1" />
+          {usage.canSendSms && <UsageBar used={usage.usage?.smsThisMonth} limit={usage.monthlySmsLimit} label="SMS this month" color="#10b981" />}
+        </div>
+      )}
+
+      {/* Package picker */}
+      <div style={{ padding: '10px 14px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Assign Package
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          {PACKAGES.map(pkg => {
+            const isActive = (usage?.packageName || detail.packageName) === pkg.name;
+            return (
+              <button key={pkg.name} onClick={() => !saving && handleAssignPackage(pkg.name)}
+                disabled={saving}
+                style={{
+                  border: `2px solid ${isActive ? pkg.color : '#e5e7eb'}`,
+                  borderRadius: 10, padding: '8px 6px', cursor: 'pointer', textAlign: 'center',
+                  background: isActive ? `${pkg.color}15` : '#fff',
+                  transition: 'all 0.15s',
+                }}>
+                <div style={{ fontWeight: 800, fontSize: 12, color: pkg.color }}>{pkg.name}</div>
+                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>
+                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞ calls'}
+                </div>
+                <div style={{ fontSize: 10, color: '#6b7280' }}>
+                  {pkg.agents} agent{pkg.agents > 1 ? 's' : ''}
+                </div>
+                {isActive && <div style={{ fontSize: 9, color: pkg.color, fontWeight: 700, marginTop: 2 }}>● ACTIVE</div>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CompanyDetail({ detail, onRegenerate, onRefresh }) {
   const [unassigning, setUnassigning] = useState(null);
   const [showAssignPicker, setShowAssignPicker] = useState(false);
@@ -890,6 +1023,8 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
           </div>
         ))}
       </div>
+
+      <PackageSection detail={detail} onRefresh={onRefresh} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         <StatCard label="Calls"     value={detail.stats.totalCalls}    sub={`${detail.stats.inboundCalls} in / ${detail.stats.outboundCalls} out`} />
