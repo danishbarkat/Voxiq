@@ -74,13 +74,13 @@ const btnSecondary = { padding: '10px 20px', background: '#f3f4f6', color: '#374
 const actionRow = { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 };
 
 const ALL_PACKAGES = [
-  { name: 'Trial',      label: '🎯 Trial (1 week free)',  color: '#6366f1', calls: 100,   agents: 1,   trial: true  },
-  { name: 'Starter',   label: '🟢 Starter',               color: '#10b981', calls: 300,   agents: 1,   trial: false },
-  { name: 'Basic',     label: '🔵 Basic',                  color: '#3b82f6', calls: 500,   agents: 3,   trial: false },
-  { name: 'Growth',    label: '🟣 Growth',                 color: '#8b5cf6', calls: 1000,  agents: 5,   trial: false },
-  { name: 'Pro',       label: '🟡 Pro',                    color: '#f59e0b', calls: 2500,  agents: 10,  trial: false },
-  { name: 'Agency',    label: '🔴 Agency',                 color: '#ef4444', calls: 6000,  agents: 25,  trial: false },
-  { name: 'Enterprise',label: '⚫ Enterprise',             color: '#1f2937', calls: null,  agents: 100, trial: false },
+  { name: 'Trial',      color: '#6366f1', calls: 100,  agents: 1,   trial: true,  features: { out: true,  in: false, sms: false, rec: false } },
+  { name: 'Starter',   color: '#10b981', calls: 300,  agents: 1,   trial: false, features: { out: true,  in: false, sms: false, rec: false } },
+  { name: 'Basic',     color: '#3b82f6', calls: 500,  agents: 3,   trial: false, features: { out: true,  in: true,  sms: true,  rec: false } },
+  { name: 'Growth',    color: '#8b5cf6', calls: 1000, agents: 5,   trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Pro',       color: '#f59e0b', calls: 2500, agents: 10,  trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Agency',    color: '#ef4444', calls: 6000, agents: 25,  trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Enterprise',color: '#1f2937', calls: null, agents: 100, trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
 ];
 
 function ApproveModal({ company, onClose, onApproved }) {
@@ -151,16 +151,24 @@ function ApproveModal({ company, onClose, onApproved }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
           {ALL_PACKAGES.map(pkg => {
             const isActive = selectedPackage === pkg.name;
+            const f = pkg.features;
             return (
               <button key={pkg.name} type="button" onClick={() => setSelectedPackage(pkg.name)}
                 style={{ border: `2px solid ${isActive ? pkg.color : '#e5e7eb'}`, borderRadius: 10,
-                  padding: '8px 4px', cursor: 'pointer', textAlign: 'center',
-                  background: isActive ? `${pkg.color}18` : '#fff', transition: 'all 0.15s' }}>
-                <div style={{ fontWeight: 800, fontSize: 11, color: pkg.color }}>{pkg.name}</div>
-                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>
-                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞'}
+                  padding: '8px 6px', cursor: 'pointer', textAlign: 'left',
+                  background: isActive ? `${pkg.color}15` : '#fff', transition: 'all 0.15s' }}>
+                <div style={{ fontWeight: 800, fontSize: 11, color: pkg.color, marginBottom: 2 }}>{pkg.name}</div>
+                <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 3 }}>
+                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞'} · {pkg.agents} agent{pkg.agents > 1 ? 's' : ''}
+                  {pkg.trial && <span style={{ color: pkg.color, fontWeight: 700 }}> · 7d</span>}
                 </div>
-                {pkg.trial && <div style={{ fontSize: 9, color: pkg.color, fontWeight: 700 }}>7 days</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 2px' }}>
+                  {[['out','Out'],['in','In'],['sms','SMS'],['rec','Rec']].map(([key, lbl]) => (
+                    <div key={key} style={{ fontSize: 9, fontWeight: 700, color: f[key] ? '#059669' : '#d1d5db', display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <span>{f[key] ? '✓' : '✗'}</span>{lbl}
+                    </div>
+                  ))}
+                </div>
               </button>
             );
           })}
@@ -940,23 +948,28 @@ function PackageSection({ detail, onRefresh }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
           {PACKAGES.map(pkg => {
             const isActive = (usage?.packageName || detail.packageName) === pkg.name;
+            const f = pkg.features;
             return (
               <button key={pkg.name} onClick={() => !saving && handleAssignPackage(pkg.name)}
                 disabled={saving}
                 style={{
                   border: `2px solid ${isActive ? pkg.color : '#e5e7eb'}`,
-                  borderRadius: 10, padding: '8px 6px', cursor: 'pointer', textAlign: 'center',
-                  background: isActive ? `${pkg.color}15` : '#fff',
+                  borderRadius: 10, padding: '8px 8px 6px', cursor: 'pointer', textAlign: 'left',
+                  background: isActive ? `${pkg.color}12` : '#fff',
                   transition: 'all 0.15s',
                 }}>
-                <div style={{ fontWeight: 800, fontSize: 12, color: pkg.color }}>{pkg.name}</div>
-                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>
-                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞ calls'}
+                <div style={{ fontWeight: 800, fontSize: 12, color: pkg.color, marginBottom: 3 }}>{pkg.name}</div>
+                <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
+                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞ calls'} · {pkg.agents} agent{pkg.agents > 1 ? 's' : ''}
                 </div>
-                <div style={{ fontSize: 10, color: '#6b7280' }}>
-                  {pkg.agents} agent{pkg.agents > 1 ? 's' : ''}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 4px' }}>
+                  {[['out', 'Outbound'], ['in', 'Inbound'], ['sms', 'SMS'], ['rec', 'Record']].map(([key, label]) => (
+                    <div key={key} style={{ fontSize: 9, fontWeight: 700, color: f[key] ? '#059669' : '#d1d5db', display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <span style={{ fontSize: 10 }}>{f[key] ? '✓' : '✗'}</span> {label}
+                    </div>
+                  ))}
                 </div>
-                {isActive && <div style={{ fontSize: 9, color: pkg.color, fontWeight: 700, marginTop: 2 }}>● ACTIVE</div>}
+                {isActive && <div style={{ fontSize: 9, color: pkg.color, fontWeight: 700, marginTop: 4, textAlign: 'center' }}>● ACTIVE</div>}
               </button>
             );
           })}
