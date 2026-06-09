@@ -710,22 +710,46 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['Company', 'Status', 'Team', 'Calls', 'Revenue', 'Actions'].map(h => (
+                {['Company', 'Package', 'Status', 'Team', 'Calls', 'Revenue', 'Actions'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '11px 16px', fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>No companies match your filter.</td></tr>
+                <tr><td colSpan={7} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>No companies match your filter.</td></tr>
               )}
-              {filtered.map((c, i) => (
+              {filtered.map((c, i) => {
+                const pkgColor = { Trial:'#6366f1', Starter:'#10b981', Basic:'#3b82f6', Growth:'#8b5cf6', Pro:'#f59e0b', Agency:'#ef4444', Enterprise:'#1f2937' }[c.packageName] || '#9ca3af';
+                const trialExpired = c.isTrial && c.trialEndsAt && new Date(c.trialEndsAt) < new Date();
+                const trialDaysLeft = c.isTrial && c.trialEndsAt && !trialExpired
+                  ? Math.ceil((new Date(c.trialEndsAt) - new Date()) / (1000*60*60*24)) : null;
+                return (
                 <tr key={c.id}
                   onClick={() => setSelectedId(prev => prev === c.id ? null : c.id)}
                   style={{ background: selectedId === c.id ? '#f0f9ff' : i % 2 === 0 ? '#fff' : '#fafafa', cursor: 'pointer', transition: 'background 0.15s' }}>
                   <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
                     <div style={{ fontSize: 12, color: '#6b7280' }}>{c.adminEmail || 'No admin'}</div>
+                  </td>
+                  <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                    {c.packageName ? (
+                      <div>
+                        <span style={{ background: `${pkgColor}18`, color: pkgColor, border: `1px solid ${pkgColor}40`, borderRadius: 20, padding: '2px 9px', fontSize: 11, fontWeight: 800 }}>
+                          {c.packageName}
+                        </span>
+                        {c.isTrial && !trialExpired && trialDaysLeft !== null && (
+                          <div style={{ fontSize: 10, color: trialDaysLeft <= 2 ? '#ef4444' : '#6b7280', marginTop: 3, fontWeight: 600 }}>
+                            {trialDaysLeft}d left
+                          </div>
+                        )}
+                        {trialExpired && (
+                          <div style={{ fontSize: 10, color: '#ef4444', marginTop: 3, fontWeight: 700 }}>EXPIRED</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}><StatusBadge status={c.status} /></td>
                   <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
@@ -754,7 +778,8 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -914,6 +939,22 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
   const [pickerLoading, setPickerLoading] = useState(false);
   const [selectedToAssign, setSelectedToAssign] = useState([]);
   const [assigning, setAssigning] = useState(false);
+  const [editingAgents, setEditingAgents] = useState(false);
+  const [newAgentLimit, setNewAgentLimit] = useState(detail.agentLimit || 1);
+  const [savingAgents, setSavingAgents] = useState(false);
+
+  const handleSaveAgentLimit = async () => {
+    setSavingAgents(true);
+    try {
+      await fetchJson(`${API_URL}/superadmin/companies/${detail.id}/agent-limit`, {
+        method: 'PATCH',
+        body: JSON.stringify({ agentLimit: Number(newAgentLimit) }),
+      });
+      setEditingAgents(false);
+      onRefresh();
+    } catch (err) { alert(err.message); }
+    finally { setSavingAgents(false); }
+  };
 
   const assignedNumbers = Array.isArray(detail.numberPool) ? detail.numberPool : [];
   const assignedSet = new Set(assignedNumbers.map(n => n.number));
@@ -972,8 +1013,30 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>{detail.name}</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3 }}>
-              {detail.agents.length} agents · {detail.lists.length} lists · {assignedNumbers.length} numbers
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {detail.lists.length} lists · {assignedNumbers.length} numbers
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {editingAgents ? (
+                  <>
+                    <input type="number" min="1" value={newAgentLimit} onChange={e => setNewAgentLimit(e.target.value)}
+                      style={{ width: 60, padding: '2px 6px', borderRadius: 6, border: '1.5px solid #6366f1', fontSize: 12, fontWeight: 700 }} />
+                    <button onClick={handleSaveAgentLimit} disabled={savingAgents}
+                      style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                      {savingAgents ? '…' : 'Save'}
+                    </button>
+                    <button onClick={() => setEditingAgents(false)}
+                      style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 11 }}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <span onClick={() => { setNewAgentLimit(detail.agentLimit || 1); setEditingAgents(true); }}
+                    style={{ background: '#ede9fe', color: '#5b21b6', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                    title="Click to edit agent limit">
+                    {detail.agents?.length || 0}/{detail.agentLimit || '?'} agents ✎
+                  </span>
+                )}
+              </span>
             </div>
           </div>
           <StatusBadge status={detail.status} />

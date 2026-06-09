@@ -100,6 +100,11 @@ export class SuperAdminController {
     return this.superAdminService.assignPackage(id, packageName);
   }
 
+  @Patch('companies/:id/agent-limit')
+  updateAgentLimit(@Param('id') id: string, @Body('agentLimit') agentLimit: number) {
+    return this.superAdminService.updateAgentLimit(id, Number(agentLimit));
+  }
+
   @Get('companies/:id/package-usage')
   getPackageUsage(@Param('id') id: string) {
     return this.superAdminService.getPackageUsage(id);

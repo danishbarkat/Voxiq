@@ -707,6 +707,17 @@ export class SuperAdminService {
     });
   }
 
+  async updateAgentLimit(accountId: string, agentLimit: number) {
+    if (!agentLimit || agentLimit < 1) throw new BadRequestException('Agent limit must be at least 1');
+    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Company not found');
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: { agentLimit },
+      select: { id: true, name: true, agentLimit: true },
+    });
+  }
+
   async getPackageUsage(accountId: string) {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
