@@ -298,9 +298,22 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [localRecs, setLocalRecs] = useState(recordings);
   const [loading, setLoading] = useState(false);
+  const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const agentPickerRef = useRef(null);
 
   // Sync prop updates (initial load)
   useEffect(() => { setLocalRecs(recordings); }, [recordings]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!agentPickerRef.current?.contains(event.target)) {
+        setShowAgentPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const doFetch = async () => {
     setLoading(true);
@@ -347,6 +360,8 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
 
   const totalRecs = localRecs.length;
   const withVm = localRecs.filter(r => r.vmRecordingUrl).length;
+  const sortedUsers = [...users].sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
+  const selectedAgentName = sortedUsers.find(u => u.id === filterAgent)?.name || 'All Agents';
 
   return (
     <div>
@@ -390,12 +405,100 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
             style={{ width: '100%' }}
           />
         </div>
-        <div style={{ flex: '1 1 160px' }}>
+        <div style={{ flex: '1 1 280px', position: 'relative' }} ref={agentPickerRef}>
           <label style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>👤 FILTER BY AGENT</label>
-          <select className="input-field" style={{ width: '100%' }} value={filterAgent} onChange={e => setFilterAgent(e.target.value)}>
-            <option value="">All Agents</option>
-            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
+          <button
+            type="button"
+            className="input-field"
+            onClick={() => setShowAgentPicker(prev => !prev)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              textAlign: 'left',
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              maxWidth: 'calc(100% - 28px)',
+              padding: '0.35rem 0.8rem',
+              borderRadius: '999px',
+              background: filterAgent ? 'linear-gradient(135deg, #6366f1, #7c3aed)' : '#eef2ff',
+              color: filterAgent ? '#fff' : '#4338ca',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {selectedAgentName}
+            </span>
+            <span style={{ color: '#6366f1', fontSize: '0.95rem', fontWeight: 700 }}>
+              {showAgentPicker ? '▴' : '▾'}
+            </span>
+          </button>
+          {showAgentPicker && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              left: 0,
+              right: 0,
+              zIndex: 30,
+              background: '#fff',
+              border: '1px solid #c7d2fe',
+              borderRadius: '16px',
+              boxShadow: '0 18px 40px rgba(79, 70, 229, 0.16)',
+              padding: '0.9rem',
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', marginBottom: '0.75rem' }}>
+                Select an agent
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.55rem',
+                maxHeight: '220px',
+                overflowY: 'auto',
+                paddingRight: '0.2rem',
+              }}>
+                {[
+                  { id: '', name: 'All Agents' },
+                  ...sortedUsers.map(user => ({ id: user.id, name: user.name || 'Unnamed Agent' })),
+                ].map(agent => {
+                  const isActive = filterAgent === agent.id;
+                  return (
+                    <button
+                      key={agent.id || 'all-agents'}
+                      type="button"
+                      onClick={() => {
+                        setFilterAgent(agent.id);
+                        setShowAgentPicker(false);
+                      }}
+                      style={{
+                        border: `1px solid ${isActive ? '#4338ca' : '#dbe4ff'}`,
+                        background: isActive ? 'linear-gradient(135deg, #6366f1, #7c3aed)' : '#f8faff',
+                        color: isActive ? '#fff' : '#334155',
+                        borderRadius: '999px',
+                        padding: '0.55rem 0.9rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        lineHeight: 1.1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {agent.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ flex: '1 1 140px' }}>
           <label style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>📅 FROM</label>
