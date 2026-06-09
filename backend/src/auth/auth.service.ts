@@ -400,6 +400,27 @@ export class AuthService {
     });
   }
 
+  async getAccountPlan(accountId: string) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: {
+        packageName: true, isTrial: true, trialEndsAt: true,
+        canOutboundCall: true, canInboundCall: true,
+        canSendSms: true, canRecord: true,
+        monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+      },
+    });
+    if (!account) return null;
+
+    const now = new Date();
+    const trialExpired = account.isTrial && account.trialEndsAt ? account.trialEndsAt < now : false;
+    const trialDaysLeft = account.isTrial && account.trialEndsAt && !trialExpired
+      ? Math.ceil((account.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    return { ...account, trialExpired, trialDaysLeft };
+  }
+
   async requestReactivation(user: any, message?: string) {
     if ((user?.role || '').toLowerCase() !== 'admin') {
       throw new ForbiddenException('Only company admins can request activation');

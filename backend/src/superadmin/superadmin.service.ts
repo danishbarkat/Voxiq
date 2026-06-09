@@ -324,6 +324,7 @@ export class SuperAdminService {
     accountId: string,
     agentLimit: number,
     numberPool: Array<{ number: string; callerName: string; areaCode: string }>,
+    packageName?: string,
   ) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) throw new NotFoundException('Company not found');
@@ -331,15 +332,30 @@ export class SuperAdminService {
       throw new BadRequestException('Company is already active');
     }
 
+    const pkgName = packageName || 'Trial';
+    const preset = SuperAdminService.PACKAGES[pkgName] || SuperAdminService.PACKAGES['Trial'];
+    const trialEndsAt = preset.isTrial
+      ? new Date(Date.now() + (preset.trialDays || 7) * 24 * 60 * 60 * 1000)
+      : null;
+
     return this.prisma.account.update({
       where: { id: accountId },
       data: {
         status: AccountStatus.ACTIVE,
         approved: true,
-        agentLimit,
+        agentLimit: packageName ? preset.agentLimit : agentLimit,
         numberPool,
         approvedAt: new Date(),
         rejectionReason: null,
+        packageName: pkgName,
+        isTrial: !!preset.isTrial,
+        trialEndsAt,
+        canOutboundCall: preset.canOutboundCall,
+        canInboundCall:  preset.canInboundCall,
+        canSendSms:      preset.canSendSms,
+        canRecord:       preset.canRecord,
+        monthlyCallLimit: preset.monthlyCallLimit,
+        monthlySmsLimit:  preset.monthlySmsLimit,
       },
     });
   }
@@ -631,8 +647,9 @@ export class SuperAdminService {
     canOutboundCall: boolean; canInboundCall: boolean;
     canSendSms: boolean; canRecord: boolean;
     monthlyCallLimit: number | null; monthlySmsLimit: number | null;
-    agentLimit: number;
+    agentLimit: number; isTrial?: boolean; trialDays?: number;
   }> = {
+    Trial:      { canOutboundCall: true,  canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 100,   monthlySmsLimit: 0,    agentLimit: 1,  isTrial: true, trialDays: 7  },
     Starter:    { canOutboundCall: true,  canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 300,   monthlySmsLimit: 0,    agentLimit: 1  },
     Basic:      { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: false, monthlyCallLimit: 500,   monthlySmsLimit: 400,  agentLimit: 3  },
     Growth:     { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 1000,  monthlySmsLimit: 800,  agentLimit: 5  },
@@ -645,11 +662,26 @@ export class SuperAdminService {
     const preset = SuperAdminService.PACKAGES[packageName];
     if (!preset) throw new BadRequestException(`Unknown package: ${packageName}`);
 
+    const trialEndsAt = preset.isTrial
+      ? new Date(Date.now() + (preset.trialDays || 7) * 24 * 60 * 60 * 1000)
+      : null;
+
     return this.prisma.account.update({
       where: { id: accountId },
-      data: { packageName, ...preset },
+      data: {
+        packageName,
+        isTrial: !!preset.isTrial,
+        trialEndsAt,
+        canOutboundCall: preset.canOutboundCall,
+        canInboundCall:  preset.canInboundCall,
+        canSendSms:      preset.canSendSms,
+        canRecord:       preset.canRecord,
+        monthlyCallLimit: preset.monthlyCallLimit,
+        monthlySmsLimit:  preset.monthlySmsLimit,
+        agentLimit:       preset.agentLimit,
+      },
       select: {
-        id: true, name: true, packageName: true,
+        id: true, name: true, packageName: true, isTrial: true, trialEndsAt: true,
         canOutboundCall: true, canInboundCall: true,
         canSendSms: true, canRecord: true,
         monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,

@@ -72,8 +72,19 @@ const btnPrimary = bg => ({ padding: '10px 20px', background: bg, color: '#fff',
 const btnSecondary = { padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 };
 const actionRow = { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 };
 
+const ALL_PACKAGES = [
+  { name: 'Trial',      label: '🎯 Trial (1 week free)',  color: '#6366f1', calls: 100,   agents: 1,   trial: true  },
+  { name: 'Starter',   label: '🟢 Starter',               color: '#10b981', calls: 300,   agents: 1,   trial: false },
+  { name: 'Basic',     label: '🔵 Basic',                  color: '#3b82f6', calls: 500,   agents: 3,   trial: false },
+  { name: 'Growth',    label: '🟣 Growth',                 color: '#8b5cf6', calls: 1000,  agents: 5,   trial: false },
+  { name: 'Pro',       label: '🟡 Pro',                    color: '#f59e0b', calls: 2500,  agents: 10,  trial: false },
+  { name: 'Agency',    label: '🔴 Agency',                 color: '#ef4444', calls: 6000,  agents: 25,  trial: false },
+  { name: 'Enterprise',label: '⚫ Enterprise',             color: '#1f2937', calls: null,  agents: 100, trial: false },
+];
+
 function ApproveModal({ company, onClose, onApproved }) {
   const [agentLimit, setAgentLimit] = useState(company.requestedAgentLimit || company.agentLimit || 1);
+  const [selectedPackage, setSelectedPackage] = useState('Trial');
   const [availableNumbers, setAvailableNumbers] = useState([]);
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [numbersLoading, setNumbersLoading] = useState(true);
@@ -100,7 +111,7 @@ function ApproveModal({ company, onClose, onApproved }) {
     try {
       await fetchJson(`${API_URL}/superadmin/companies/${company.id}/approve`, {
         method: 'POST',
-        body: JSON.stringify({ agentLimit: Number(agentLimit), numberPool: selectedNumbers }),
+        body: JSON.stringify({ agentLimit: Number(agentLimit), numberPool: selectedNumbers, packageName: selectedPackage }),
       });
       onApproved();
     } catch (err) { setError(err.message); }
@@ -133,6 +144,31 @@ function ApproveModal({ company, onClose, onApproved }) {
         )}
 
         {error && <div style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 13 }}>{error}</div>}
+
+        {/* Package selector */}
+        <label style={labelStyle}>Assign Package</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+          {ALL_PACKAGES.map(pkg => {
+            const isActive = selectedPackage === pkg.name;
+            return (
+              <button key={pkg.name} type="button" onClick={() => setSelectedPackage(pkg.name)}
+                style={{ border: `2px solid ${isActive ? pkg.color : '#e5e7eb'}`, borderRadius: 10,
+                  padding: '8px 4px', cursor: 'pointer', textAlign: 'center',
+                  background: isActive ? `${pkg.color}18` : '#fff', transition: 'all 0.15s' }}>
+                <div style={{ fontWeight: 800, fontSize: 11, color: pkg.color }}>{pkg.name}</div>
+                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>
+                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞'}
+                </div>
+                {pkg.trial && <div style={{ fontSize: 9, color: pkg.color, fontWeight: 700 }}>7 days</div>}
+              </button>
+            );
+          })}
+        </div>
+        {selectedPackage === 'Trial' && (
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: 12, color: '#1e40af' }}>
+            🎯 <strong>Trial:</strong> 1 number · 100 calls · 7 days · Outbound only · No SMS · No Recording
+          </div>
+        )}
 
         <label style={labelStyle}>Approved Agent Limit</label>
         <input type="number" min="1" value={agentLimit} onChange={e => setAgentLimit(e.target.value)} style={inputStyle} />

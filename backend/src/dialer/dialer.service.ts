@@ -259,11 +259,15 @@ export class DialerService {
             include: { account: true },
         });
 
-        // Feature gate: check outbound call permission + monthly limit
+        // Feature gate: check outbound call permission + trial expiry + monthly limit
         if (campaign?.account) {
             const acc = campaign.account as any;
             if (!acc.canOutboundCall) {
                 this.logger.warn(`Account ${acc.id} does not have outbound call permission`);
+                return;
+            }
+            if (acc.isTrial && acc.trialEndsAt && new Date(acc.trialEndsAt) < new Date()) {
+                this.logger.warn(`Account ${acc.id} trial expired on ${acc.trialEndsAt}`);
                 return;
             }
             if (acc.monthlyCallLimit !== null) {

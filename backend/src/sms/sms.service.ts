@@ -15,10 +15,13 @@ export class SmsService {
     // Feature gate: check SMS permission + monthly limit
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
-      select: { canSendSms: true, monthlySmsLimit: true },
+      select: { canSendSms: true, monthlySmsLimit: true, isTrial: true, trialEndsAt: true },
     });
     if (account && !account.canSendSms) {
       throw new ForbiddenException('SMS sending is not enabled for your plan. Please upgrade.');
+    }
+    if (account?.isTrial && account.trialEndsAt && new Date(account.trialEndsAt) < new Date()) {
+      throw new ForbiddenException('Your free trial has expired. Please upgrade to continue.');
     }
     if (account?.monthlySmsLimit !== null && account?.monthlySmsLimit !== undefined) {
       const monthStart = new Date();

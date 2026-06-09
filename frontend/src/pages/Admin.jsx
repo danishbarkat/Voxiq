@@ -496,6 +496,53 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
   );
 }
 
+function TrialBanner({ token }) {
+  const [plan, setPlan] = useState(null);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/auth/my-plan`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null).then(setPlan).catch(() => {});
+  }, [token]);
+
+  if (!plan || !plan.packageName) return null;
+
+  if (plan.trialExpired) {
+    return (
+      <div style={{ background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 14, color: '#991b1b' }}>⚠️ Your free trial has expired</div>
+          <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 3 }}>Calls and SMS are paused. Contact Voxiq to upgrade your plan and continue.</div>
+        </div>
+        <div style={{ background: '#ef4444', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13 }}>
+          Upgrade Now →
+        </div>
+      </div>
+    );
+  }
+
+  if (plan.isTrial) {
+    const urgent = plan.trialDaysLeft <= 2;
+    return (
+      <div style={{ background: urgent ? 'linear-gradient(135deg, #fff7ed, #ffedd5)' : 'linear-gradient(135deg, #eff6ff, #dbeafe)', border: `1.5px solid ${urgent ? '#fb923c' : '#93c5fd'}`, borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 14, color: urgent ? '#c2410c' : '#1d4ed8' }}>
+            {urgent ? '⏰' : '🎯'} Free Trial — {plan.trialDaysLeft} day{plan.trialDaysLeft !== 1 ? 's' : ''} remaining
+          </div>
+          <div style={{ fontSize: 12, color: urgent ? '#9a3412' : '#1e40af', marginTop: 3 }}>
+            {plan.monthlyCallLimit} calls included · Outbound only · Contact Voxiq to upgrade anytime
+          </div>
+        </div>
+        <div style={{ background: urgent ? '#f97316' : '#3b82f6', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13 }}>
+          Upgrade Plan →
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -1377,6 +1424,7 @@ export default function Admin() {
         )}
         {authState.user && !isInactiveAccount && (
           <div className="container">
+            <TrialBanner token={authState.token} />
             {/* ── DASHBOARD ──────────────────────────────────────────────── */}
             {activeTab === 'dashboard' && (
               <>

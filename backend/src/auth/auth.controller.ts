@@ -45,6 +45,16 @@ export class AuthController {
     return req.user;
   }
 
+  @SkipThrottle()
+  @Get('my-plan')
+  @SetMetadata('allowInactiveAccount', true)
+  async getMyPlan(@Req() req: any) {
+    const accountId = req.user?.accountId;
+    if (!accountId) return null;
+    const account = await this.authService.getAccountPlan(accountId);
+    return account;
+  }
+
   @Public()
   @Throttle({ short: { ttl: 60000, limit: 3 } })   // 3 forgot-password/min
   @Post('forgot-password')

@@ -13,6 +13,7 @@ class NumberEntryDto {
 class ApproveDto {
   @IsInt() @Min(1) agentLimit: number;
   @IsArray() @ValidateNested({ each: true }) @Type(() => NumberEntryDto) numberPool: NumberEntryDto[];
+  @IsString() @IsOptional() packageName?: string;
 }
 
 class RejectDto {
@@ -46,7 +47,7 @@ export class SuperAdminController {
 
   @Post('companies/:id/approve')
   approveCompany(@Param('id') id: string, @Body() dto: ApproveDto) {
-    return this.superAdminService.approveCompany(id, dto.agentLimit, dto.numberPool);
+    return this.superAdminService.approveCompany(id, dto.agentLimit, dto.numberPool, dto.packageName);
   }
 
   @Post('companies/:id/reject')
