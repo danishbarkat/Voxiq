@@ -355,7 +355,7 @@ export default function Agent() {
     try {
       const lockRes = await fetchJson(`${API_URL}/dialer/call/lock`, {
         method: 'POST',
-        body: JSON.stringify({ leadId: lead.id, agentId }),
+        body: JSON.stringify({ leadId: lead.id, agentId, phone: lead.phone }),
       });
 
       if (!lockRes?.locked) {
