@@ -19,6 +19,23 @@ function errorLabel(err) {
   }
 }
 
+function AgentHistoryBadge({ item }) {
+  const palette = {
+    'call:missed': { bg: '#fee2e2', fg: '#b91c1c', label: 'Missed' },
+    'call:received': { bg: '#dcfce7', fg: '#15803d', label: 'Received' },
+    'call:dialed': { bg: '#dbeafe', fg: '#1d4ed8', label: 'Dialed' },
+    'sms:received': { bg: '#ecfeff', fg: '#0f766e', label: 'SMS In' },
+    'sms:dialed': { bg: '#ede9fe', fg: '#6d28d9', label: 'SMS Out' },
+  };
+  const key = `${item.type}:${item.category}`;
+  const style = palette[key] || { bg: '#f1f5f9', fg: '#475569', label: item.type };
+  return (
+    <span style={{ background: style.bg, color: style.fg, borderRadius: 999, padding: '3px 8px', fontSize: '0.68rem', fontWeight: 700 }}>
+      {style.label}
+    </span>
+  );
+}
+
 export default function Agent() {
   const navigate = useNavigate();
   const { socket, isConnected, reconnect } = useSocket();
@@ -30,6 +47,9 @@ export default function Agent() {
   const [callControlIdState, setCallControlIdState] = useState(null); // Track callControlId for VM drop
   const [notes, setNotes] = useState('');
   const [recentCalls, setRecentCalls] = useState([]);
+  const [historyFeed, setHistoryFeed] = useState([]);
+  const [historyStats, setHistoryStats] = useState({ missedCalls: 0, receivedCalls: 0, dialedCalls: 0, totalMessages: 0 });
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [status, setStatus] = useState('Idle');
   const [dialNumber, setDialNumber] = useState('');
   const [dialName, setDialName] = useState('');
@@ -150,6 +170,19 @@ export default function Agent() {
     }
   }, []);
 
+  const fetchHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      const data = await fetchJson(`${API_URL}/analytics/history?limit=100`);
+      setHistoryFeed(Array.isArray(data?.items) ? data.items : []);
+      setHistoryStats(data?.stats || { missedCalls: 0, receivedCalls: 0, dialedCalls: 0, totalMessages: 0 });
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     // Reconnect socket on mount to ensure fresh token is used
     if (reconnect) reconnect();
@@ -171,6 +204,7 @@ export default function Agent() {
         });
         // 3. Fetch leads for this agent
         fetchLeads(auth.userId);
+        fetchHistory();
       }
     });
 
@@ -178,7 +212,7 @@ export default function Agent() {
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('winfi_token') || ''}` };
     fetch(`${API_URL}/voicemail/templates`, { headers: authHeaders }).then(r => r.ok ? r.json() : []).then(d => setVmTemplates(Array.isArray(d) ? d : []));
     fetch(`${API_URL}/integrations/sms-templates`, { headers: authHeaders }).then(r => r.ok ? r.json() : []).then(d => setSmsTemplates(Array.isArray(d) ? d : []));
-  }, [fetchLeads]);
+  }, [fetchLeads, fetchHistory]);
 
   // Call timer
   useEffect(() => {
@@ -224,6 +258,7 @@ export default function Agent() {
         } else if (data.status === 'completed' || data.status === 'hangup') {
           setStatus('Idle');
           setLocalCallActive(false);
+          fetchHistory();
         }
       });
 
@@ -245,6 +280,7 @@ export default function Agent() {
           }
           return prev;
         });
+        fetchHistory();
       });
 
       return () => {
@@ -254,7 +290,7 @@ export default function Agent() {
         socket.off(`sms:received:${profile?.accountId}`);
       };
     }
-  }, [socket, isConnected, agentId, attachCall, handleWebSocketCallUpdate, profile]);
+  }, [socket, isConnected, agentId, attachCall, handleWebSocketCallUpdate, profile, fetchHistory]);
 
   // Effect to fetch full lead details (with list) if missing
   useEffect(() => {
@@ -692,6 +728,7 @@ export default function Agent() {
         alert(`✅ SMS sent to ${currentLead.phone}`);
         setShowSmsPanel(false);
         setSmsMsg('');
+        await fetchHistory();
       }
     } catch (e) { alert('SMS failed: ' + e.message); }
     finally { setSmsSending(false); }
@@ -731,6 +768,7 @@ export default function Agent() {
       if (!res.ok) throw new Error(await res.text());
       setSmsInput('');
       await fetchSmsThread(smsActiveThread);
+      await fetchHistory();
     } catch (e) { alert('SMS failed: ' + e.message); }
     finally { setSmsSendingMsg(false); }
   };
@@ -787,6 +825,7 @@ export default function Agent() {
         calls: prev.calls + 1,
         appointments: disposition === 'Interested' || disposition === 'Booked' ? prev.appointments + 1 : prev.appointments
       }));
+      fetchHistory();
       handleHangup();
       return;
     }
@@ -816,12 +855,13 @@ export default function Agent() {
         appointments: disposition === 'Interested' || disposition === 'Booked' ? prev.appointments + 1 : prev.appointments
       }));
 
+      fetchHistory();
       handleHangup();
     } catch (error) {
       console.error('Failed to submit disposition:', error);
       handleHangup();
     }
-  }, [callLogId, notes, callbackTime, currentLead, handleHangup, dealValue, handleCallOutcome]);
+  }, [callLogId, notes, callbackTime, currentLead, handleHangup, dealValue, handleCallOutcome, fetchHistory]);
 
   // Native keyboard shortcuts - works on Mac and all browsers
   useEffect(() => {
@@ -1402,6 +1442,94 @@ export default function Agent() {
                 🔄 Redial <span style={{ fontFamily: 'monospace', fontWeight: 600, letterSpacing: '0.03em' }}>{lastDialedNumber}</span>
               </button>
             )}
+          </section>
+
+          <section className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <h2 className="font-head" style={{ fontSize: '1rem', marginBottom: 4 }}>Persistent History</h2>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <AgentHistoryBadge item={{ type: 'call', category: 'missed' }} /> <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{historyStats.missedCalls}</span>
+                  <AgentHistoryBadge item={{ type: 'call', category: 'received' }} /> <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{historyStats.receivedCalls}</span>
+                  <AgentHistoryBadge item={{ type: 'call', category: 'dialed' }} /> <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{historyStats.dialedCalls}</span>
+                  <AgentHistoryBadge item={{ type: 'sms', category: 'dialed' }} /> <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{historyStats.totalMessages}</span>
+                </div>
+              </div>
+              <button className="btn" style={{ fontSize: '0.75rem', background: '#f8fafc' }} onClick={fetchHistory} disabled={historyLoading}>
+                {historyLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Lead / Contact</th>
+                    <th>Number</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyFeed.length > 0 ? historyFeed.map((item) => (
+                    <tr key={`${item.type}-${item.id}`}>
+                      <td><AgentHistoryBadge item={item} /></td>
+                      <td style={{ fontWeight: 600 }}>
+                        {(item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '') || item.agent?.name || 'Unknown'}
+                      </td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>
+                        {item.toNumber || item.fromNumber || item.lead?.phone || '—'}
+                      </td>
+                      <td style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+                        {new Date(item.startedAt || item.createdAt).toLocaleString()}
+                      </td>
+                      <td>
+                        <span className={`pill-status ${item.category === 'missed' ? 'pill-error' : 'pill-success'}`} style={{ fontSize: '0.65rem' }}>
+                          {item.status || item.category}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ color: '#64748b', fontSize: '0.75rem', maxWidth: 220, whiteSpace: 'pre-wrap' }}>
+                          {item.type === 'call'
+                            ? `${item.durationSeconds != null ? `${item.durationSeconds}s` : 'No duration'}${item.disposition ? ` • ${item.disposition}` : ''}`
+                            : (item.body || '')}
+                        </div>
+                      </td>
+                      <td>
+                        {(item.toNumber || item.fromNumber || item.lead?.phone) && item.type === 'call' && (
+                          <button
+                            disabled={callActive}
+                            onClick={() => {
+                              const callNumber = item.toNumber || item.fromNumber || item.lead?.phone || '';
+                              const num = callNumber.replace(/\D/g, '');
+                              setDialNumber(num);
+                              setDialName((item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '') || num);
+                              setShowDialpad(true);
+                            }}
+                            style={{
+                              background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
+                              color: callActive ? '#94a3b8' : '#fff',
+                              border: 'none', borderRadius: 8,
+                              padding: '4px 10px', fontSize: '0.75rem',
+                              cursor: callActive ? 'not-allowed' : 'pointer',
+                              fontWeight: 700, whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Call Back
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>No persistent history yet</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           {/* Recent Activity */}

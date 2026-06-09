@@ -62,6 +62,17 @@ export class AnalyticsController {
         }, req?.user);
     }
 
+    @Roles('Admin', 'Manager', 'Agent')
+    @Get('history')
+    getHistory(
+        @Query('limit') limit?: string,
+        @Req() req?: any,
+    ) {
+        return this.analyticsService.getHistory({
+            limit: limit ? parseInt(limit) : 150,
+        }, req?.user);
+    }
+
     @Roles('Admin', 'Manager')
     @Get('heatmap')
     getHeatmap(@Req() req?: any) {

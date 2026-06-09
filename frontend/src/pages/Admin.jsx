@@ -496,6 +496,120 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
   );
 }
 
+function HistoryBadge({ item }) {
+  const key = `${item.type}:${item.category}`;
+  const palette = {
+    'call:missed': { bg: '#fee2e2', fg: '#b91c1c', label: 'Missed Call' },
+    'call:received': { bg: '#dcfce7', fg: '#15803d', label: 'Received Call' },
+    'call:dialed': { bg: '#dbeafe', fg: '#1d4ed8', label: 'Dialed Call' },
+    'sms:received': { bg: '#ecfeff', fg: '#0f766e', label: 'Received SMS' },
+    'sms:dialed': { bg: '#ede9fe', fg: '#6d28d9', label: 'Sent SMS' },
+  };
+  const style = palette[key] || { bg: '#f1f5f9', fg: '#475569', label: item.type };
+  return (
+    <span style={{ background: style.bg, color: style.fg, borderRadius: 999, padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700 }}>
+      {style.label}
+    </span>
+  );
+}
+
+function HistoryTab({ historyFeed, historyStats, onRefresh, loading }) {
+  const formatDuration = (seconds) => {
+    if (seconds == null || Number.isNaN(seconds)) return '—';
+    if (seconds < 60) return `${seconds}s`;
+    return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="font-head" style={{ marginBottom: 0 }}>Activity History</h1>
+          <p className="text-dim" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+            Refresh-safe 30 day company history for calls and messages.
+          </p>
+        </div>
+        <button className="btn" style={{ fontSize: '0.8rem' }} onClick={onRefresh} disabled={loading}>
+          {loading ? 'Loading...' : 'Refresh'}
+        </button>
+      </div>
+
+      <div className="dynamic-grid mb-6">
+        {[
+          { label: 'Missed Calls', value: historyStats?.missedCalls ?? 0, color: '#dc2626' },
+          { label: 'Received Calls', value: historyStats?.receivedCalls ?? 0, color: '#16a34a' },
+          { label: 'Dialed Calls', value: historyStats?.dialedCalls ?? 0, color: '#2563eb' },
+          { label: 'Messages', value: historyStats?.totalMessages ?? 0, color: '#7c3aed' },
+          { label: 'Inbound SMS', value: historyStats?.inboundMessages ?? 0, color: '#0f766e' },
+          { label: 'Outbound SMS', value: historyStats?.outboundMessages ?? 0, color: '#6d28d9' },
+        ].map((card) => (
+          <div key={card.label} className="card stat-card">
+            <span className="stat-label">{card.label}</span>
+            <span className="stat-val" style={{ color: card.color }}>{card.value}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Contact</th>
+                <th>Agent</th>
+                <th>Status</th>
+                <th>Time</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyFeed.length > 0 ? historyFeed.map((item) => {
+                const name = item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '';
+                const contact = item.toNumber || item.fromNumber || item.lead?.phone || 'Unknown';
+                const time = item.startedAt || item.createdAt;
+                return (
+                  <tr key={`${item.type}-${item.id}`}>
+                    <td><HistoryBadge item={item} /></td>
+                    <td>
+                      <div style={{ fontWeight: 700 }}>{name || contact}</div>
+                      {name && <div className="text-dim" style={{ fontSize: '0.75rem' }}>{contact}</div>}
+                    </td>
+                    <td>{item.agent?.name || 'System'}</td>
+                    <td>
+                      <span className="pill-status" style={{ fontSize: '0.68rem' }}>
+                        {item.status || (item.direction === 'inbound' ? 'received' : 'sent')}
+                      </span>
+                    </td>
+                    <td>{time ? new Date(time).toLocaleString() : '—'}</td>
+                    <td style={{ maxWidth: 320 }}>
+                      {item.type === 'call' ? (
+                        <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                          <div>Duration: <strong>{formatDuration(item.durationSeconds)}</strong></div>
+                          {item.disposition && <div>Disposition: {item.disposition}</div>}
+                          {item.recordingUrl && <a href={item.recordingUrl} target="_blank" rel="noreferrer">Recording</a>}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.78rem', color: '#475569', whiteSpace: 'pre-wrap' }}>
+                          {item.body}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              }) : (
+                <tr>
+                  <td colSpan="6" className="text-center py-8 text-dim">No history found yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TrialBanner({ token }) {
   const [plan, setPlan] = useState(null);
 
@@ -586,6 +700,9 @@ export default function Admin() {
   const [hourly, setHourly] = useState([]);
   const [scorecards, setScorecards] = useState([]);
   const [recordings, setRecordings] = useState([]);
+  const [historyFeed, setHistoryFeed] = useState([]);
+  const [historyStats, setHistoryStats] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [heatmapData, setHeatmapData] = useState([]);
 
   // SMS Messaging tab
@@ -677,6 +794,7 @@ export default function Admin() {
       fetchScorecards();
       fetchHeatmap();
     }
+    if (activeTab === 'history') fetchHistory();
     if (activeTab === 'recordings') fetchRecordings();
     if (activeTab === 'integrations') {
       fetchWebhooks();
@@ -890,6 +1008,19 @@ export default function Admin() {
       }).then(r => r.json());
       setRecordings(Array.isArray(data) ? data : []);
     } catch (e) { console.error('recordings error', e); }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const data = await fetchJson(`${API_URL}/analytics/history?limit=150`);
+      setHistoryFeed(Array.isArray(data?.items) ? data.items : []);
+      setHistoryStats(data?.stats || null);
+    } catch (e) {
+      console.error('history error', e);
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const handleExportCsv = () => {
@@ -1248,6 +1379,7 @@ export default function Admin() {
   const TABS = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} /> },
+    { id: 'history', label: 'History', icon: <RefreshCcw size={18} /> },
     { id: 'recordings', label: 'Recordings', icon: <Mic size={18} /> },
     { id: 'scorecards', label: 'Scorecards', icon: <Trophy size={18} /> },
     { id: 'leads', label: 'Leads', icon: <ListTodo size={18} /> },
@@ -1610,6 +1742,15 @@ export default function Admin() {
             )}
 
             {/* ── RECORDINGS ──────────────────────────────────────────────── */}
+            {activeTab === 'history' && (
+              <HistoryTab
+                historyFeed={historyFeed}
+                historyStats={historyStats}
+                onRefresh={fetchHistory}
+                loading={historyLoading}
+              />
+            )}
+
             {activeTab === 'recordings' && (
               <RecordingsTab recordings={recordings} users={users} onFetch={fetchRecordings} apiUrl={API_URL} getToken={getToken} />
             )}

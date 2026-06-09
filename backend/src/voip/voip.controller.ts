@@ -262,10 +262,30 @@ export class VoipController {
             }
 
             try {
-                const lead = await this.prisma.lead.findFirst({
-                    where: { phone: { in: [fromNum, fromNum?.replace(/\D/g, '')] } },
-                    select: { id: true, firstName: true, lastName: true },
+                const ownerUser = await this.prisma.user.findFirst({
+                    where: { callerNumber: toNum },
+                    select: { id: true, accountId: true },
                 });
+                const lead = await this.prisma.lead.findFirst({
+                    where: {
+                        OR: [
+                            { phone: { in: [fromNum, fromNum?.replace(/\D/g, '')] } },
+                            ...(ownerUser?.accountId ? [{ accountId: ownerUser.accountId, phone: { in: [fromNum, fromNum?.replace(/\D/g, '')] } }] : []),
+                        ],
+                    },
+                    select: { id: true, firstName: true, lastName: true, accountId: true },
+                });
+                const fallbackCampaign = ownerUser?.accountId
+                    ? await this.prisma.campaign.findFirst({
+                        where: { accountId: ownerUser.accountId },
+                        select: { id: true },
+                    })
+                    : null;
+                const ownerAgentId = ownerUser?.id ?? null;
+                const campaignId = fallbackCampaign?.id ?? null;
+                const callerName = lead
+                    ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim()
+                    : null;
                 await this.prisma.callLog.create({
                     data: {
                         callControlId: callId,
@@ -274,8 +294,10 @@ export class VoipController {
                         direction: 'inbound',
                         fromNumber: fromNum,
                         toNumber: toNum,
-                        callerName: lead ? `${lead.firstName || ''} ${lead.lastName || ''}`.trim() : null,
+                        callerName,
                         leadId: lead?.id ?? null,
+                        agentId: ownerAgentId,
+                        campaignId,
                     } as any,
                 });
                 this.logger.log(`[Inbound] CallLog created for ${callId}`);
