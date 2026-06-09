@@ -187,11 +187,12 @@ model CallLog {
   dealValue      Float?
   notes          String?
   tags           String[]   @default([])
-  vmRecordingUrl String?
-  direction      String?    @default("outbound")
-  fromNumber     String?
-  toNumber       String?
-  callerName     String?
+  vmRecordingUrl  String?
+  direction       String?    @default("outbound")
+  fromNumber      String?
+  toNumber        String?
+  callerName      String?
+  durationSeconds Float?
   agent          User?      @relation("AgentCalls", fields: [agentId], references: [id])
   campaign       Campaign?  @relation(fields: [campaignId], references: [id])
   lead           Lead?      @relation(fields: [leadId], references: [id])

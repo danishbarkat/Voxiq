@@ -749,10 +749,11 @@ export class SuperAdminService {
       (log) => log.callStatus === CallStatus.CONNECTED || log.callStatus === CallStatus.COMPLETED,
     ).length;
     const totalSeconds = logs.reduce((sum, log) => {
+      if (log.durationSeconds != null) return sum + log.durationSeconds;
       if (!log.endedAt || !log.startedAt) return sum;
       return sum + (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000;
     }, 0);
-    const totalMinutes = Math.round(totalSeconds / 60);
+    const totalMinutes = parseFloat((totalSeconds / 60).toFixed(2));
     const avgDuration = totalCalls > 0 ? Math.round(totalSeconds / totalCalls) : 0;
     const revenue = logs.reduce((sum, log) => sum + (log.dealValue || 0), 0);
     const recordings = logs.filter((log) => !!log.recordingUrl).length;

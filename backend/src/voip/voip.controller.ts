@@ -324,8 +324,13 @@ export class VoipController {
         if (event === 'call.hangup' || event === 'call.ended') {
             const endedLogs = await this.prisma.callLog.findMany({
                 where: { callControlId: callId },
-                select: { id: true, recordingUrl: true, callStatus: true, direction: true },
+                select: { id: true, recordingUrl: true, callStatus: true, direction: true, startedAt: true },
             });
+
+            // Use Telnyx's reported duration (seconds) when available
+            const telnyxDuration: number | null = (body?.data?.payload as any)?.call_duration ?? null;
+            const telnyxEndTime: string | null = (body?.data?.payload as any)?.end_time ?? null;
+            const endedAt = telnyxEndTime ? new Date(telnyxEndTime) : new Date();
 
             for (const log of endedLogs) {
                 const finalRecordingUrl = log.recordingUrl || recordingUrl;
@@ -333,11 +338,20 @@ export class VoipController {
                 const wasNeverAnswered = log.callStatus === CallStatus.RINGING;
                 const isInbound = (log as any).direction === 'inbound';
                 const finalStatus = wasNeverAnswered && isInbound ? CallStatus.MISSED : CallStatus.COMPLETED;
+
+                // Calculate duration: prefer Telnyx's value, fallback to timestamp diff
+                const durationSeconds: number | null = telnyxDuration !== null
+                    ? telnyxDuration
+                    : log.startedAt
+                        ? (endedAt.getTime() - new Date(log.startedAt).getTime()) / 1000
+                        : null;
+
                 await this.prisma.callLog.update({
                     where: { id: log.id },
                     data: {
                         callStatus: finalStatus,
-                        endedAt: new Date(),
+                        endedAt,
+                        durationSeconds: durationSeconds !== null ? Math.max(0, durationSeconds) : undefined,
                         recordingUrl: finalRecordingUrl || undefined,
                     },
                 });

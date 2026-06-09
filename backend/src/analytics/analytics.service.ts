@@ -25,7 +25,7 @@ export class AnalyticsService {
                 COUNT(*) as "totalCalls",
                 COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
                 SUM("dealValue") as "revenue",
-                AVG(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) as "avgDuration"
+                AVG(COALESCE("durationSeconds", EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))) as "avgDuration"
             FROM "CallLog"
             WHERE "campaignId" = ${campaignId} ${dateFilter}
         `);
@@ -70,7 +70,7 @@ export class AnalyticsService {
                 COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
                 COUNT(*) FILTER (WHERE LOWER("disposition") IN ('interested', 'booked')) as "appointments",
                 SUM("dealValue") as "revenue",
-                SUM(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) as "totalTalkTime"
+                SUM(COALESCE("durationSeconds", EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))) as "totalTalkTime"
             FROM "CallLog"
             WHERE "agentId" = ${agentId} ${dateFilter}
         `);
