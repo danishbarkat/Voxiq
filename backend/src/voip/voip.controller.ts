@@ -59,6 +59,122 @@ export class VoipController {
         return `${this.getPublicBaseUrl()}${normalized}`;
     }
 
+    private normalizePhoneVariants(value: unknown): string[] {
+        const raw = typeof value === 'string' ? value.trim() : '';
+        if (!raw) return [];
+
+        const digits = raw.replace(/\D/g, '');
+        const variants = new Set<string>([raw]);
+        if (digits) {
+            variants.add(digits);
+            variants.add(`+${digits}`);
+            if (digits.length >= 10) {
+                variants.add(digits.slice(-10));
+                variants.add(`+1${digits.slice(-10)}`);
+                variants.add(`1${digits.slice(-10)}`);
+            }
+        }
+        return [...variants].filter(Boolean);
+    }
+
+    private decodeClientState(rawClientState: unknown): string | null {
+        if (typeof rawClientState !== 'string' || !rawClientState.trim()) return null;
+        const direct = rawClientState.trim();
+        if (/^[0-9a-f-]{36}$/i.test(direct)) return direct;
+
+        try {
+            const decoded = Buffer.from(direct, 'base64').toString('utf8').trim();
+            if (/^[0-9a-f-]{36}$/i.test(decoded)) return decoded;
+        } catch (_) { }
+
+        return null;
+    }
+
+    private async resolveCallLogs(callId: string, payload: any): Promise<Array<{
+        id: string;
+        recordingUrl: string | null;
+        callStatus: CallStatus;
+        direction: string | null;
+        startedAt: Date;
+    }>> {
+        const select = {
+            id: true,
+            recordingUrl: true,
+            callStatus: true,
+            direction: true,
+            startedAt: true,
+        } as const;
+
+        const exactLogs = await this.prisma.callLog.findMany({
+            where: { callControlId: callId },
+            select,
+        });
+        if (exactLogs.length > 0) return exactLogs;
+
+        const clientStateId = this.decodeClientState(payload?.client_state);
+        if (clientStateId) {
+            const byClientState = await this.prisma.callLog.findUnique({
+                where: { id: clientStateId },
+                select,
+            });
+            if (byClientState) {
+                await this.prisma.callLog.update({
+                    where: { id: byClientState.id },
+                    data: {
+                        callControlId: callId,
+                        fromNumber: typeof payload?.from === 'string' ? payload.from : undefined,
+                        toNumber: typeof payload?.to === 'string' ? payload.to : undefined,
+                        direction: typeof payload?.direction === 'string' ? payload.direction : undefined,
+                    },
+                });
+                this.logger.log(`[Webhook Match] Resolved ${callId} via client_state -> callLog ${byClientState.id}`);
+                return [{ ...byClientState }];
+            }
+        }
+
+        const direction = typeof payload?.direction === 'string' ? payload.direction : undefined;
+        const fromVariants = this.normalizePhoneVariants(payload?.from);
+        const toVariants = this.normalizePhoneVariants(payload?.to);
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
+        const candidates = await this.prisma.callLog.findMany({
+            where: {
+                endedAt: null,
+                startedAt: { gte: sixHoursAgo },
+                ...(direction ? { direction } : {}),
+                OR: [
+                    ...(fromVariants.length ? [{ fromNumber: { in: fromVariants } }] : []),
+                    ...(toVariants.length ? [{ toNumber: { in: toVariants } }] : []),
+                    ...(toVariants.length ? [{ lead: { is: { phone: { in: toVariants } } } }] : []),
+                    ...(fromVariants.length ? [{ agent: { is: { callerNumber: { in: fromVariants } } } }] : []),
+                ],
+            },
+            orderBy: { startedAt: 'desc' },
+            take: 3,
+            select,
+        });
+
+        if (candidates.length === 0) {
+            return [];
+        }
+
+        const [bestCandidate] = candidates;
+        await this.prisma.callLog.update({
+            where: { id: bestCandidate.id },
+            data: {
+                callControlId: callId,
+                fromNumber: typeof payload?.from === 'string' ? payload.from : undefined,
+                toNumber: typeof payload?.to === 'string' ? payload.to : undefined,
+                direction: typeof payload?.direction === 'string' ? payload.direction : undefined,
+            },
+        });
+        this.logger.warn(
+            `[Webhook Match] Resolved ${callId} via fallback candidate ${bestCandidate.id}` +
+            ` (from=${payload?.from || 'n/a'} to=${payload?.to || 'n/a'} dir=${direction || 'n/a'})`,
+        );
+        return [{ ...bestCandidate }];
+    }
+
     private async persistCustomRecording(file: Express.Multer.File, callLogId: string): Promise<string> {
         try {
             const callLog = await this.prisma.callLog.findUnique({
@@ -332,19 +448,23 @@ export class VoipController {
                 this.logger.error(`Failed to force record_start: ${err.message}`);
             }
 
-            const updatedLogs = await this.prisma.callLog.findMany({
-                where: { callControlId: callId },
-                select: { id: true },
-            });
+            const updatedLogs = await this.resolveCallLogs(callId, body?.data?.payload);
 
             if (updatedLogs.length === 0) {
                 this.logger.warn(`No CallLog found for callControlId: ${callId} on answered event`);
             }
 
-            await this.prisma.callLog.updateMany({
-                where: { callControlId: callId },
-                data: { callStatus: CallStatus.CONNECTED },
-            });
+            for (const log of updatedLogs) {
+                await this.prisma.callLog.update({
+                    where: { id: log.id },
+                    data: {
+                        callStatus: CallStatus.CONNECTED,
+                        fromNumber: typeof fromNum === 'string' ? fromNum : undefined,
+                        toNumber: typeof toNum === 'string' ? toNum : undefined,
+                        direction: typeof direction === 'string' ? direction : undefined,
+                    },
+                });
+            }
 
             // Broadcast with both the Telnyx callControlId AND the db callLog.id
             // so the frontend can correlate regardless of which ID it has
@@ -356,10 +476,7 @@ export class VoipController {
         }
 
         if (event === 'call.hangup' || event === 'call.ended') {
-            const endedLogs = await this.prisma.callLog.findMany({
-                where: { callControlId: callId },
-                select: { id: true, recordingUrl: true, callStatus: true, direction: true, startedAt: true },
-            });
+            const endedLogs = await this.resolveCallLogs(callId, body?.data?.payload);
 
             // Use Telnyx's reported duration (seconds) when available
             const telnyxDuration: number | null = (body?.data?.payload as any)?.call_duration ?? null;
@@ -387,6 +504,9 @@ export class VoipController {
                         endedAt,
                         durationSeconds: durationSeconds !== null ? Math.max(0, durationSeconds) : undefined,
                         recordingUrl: finalRecordingUrl || undefined,
+                        fromNumber: typeof fromNum === 'string' ? fromNum : undefined,
+                        toNumber: typeof toNum === 'string' ? toNum : undefined,
+                        direction: typeof direction === 'string' ? direction : undefined,
                     },
                 });
                 const statusLabel = finalStatus === CallStatus.MISSED ? 'missed' : 'completed';
@@ -400,14 +520,16 @@ export class VoipController {
         if (event === 'call.machine.detection.ended' || event === 'call.recording.saved' || event === 'recording.saved') {
             if (recordingUrl) {
                 this.logger.log(`Recording saved for call ${callId}: ${recordingUrl}`);
-                const logs = await this.prisma.callLog.findMany({
-                    where: { callControlId: callId },
-                    select: { id: true, recordingUrl: true },
-                });
+                const logs = await this.resolveCallLogs(callId, body?.data?.payload);
                 for (const log of logs) {
                     await this.prisma.callLog.update({
                         where: { id: log.id },
-                        data: { recordingUrl },
+                        data: {
+                            recordingUrl,
+                            fromNumber: typeof fromNum === 'string' ? fromNum : undefined,
+                            toNumber: typeof toNum === 'string' ? toNum : undefined,
+                            direction: typeof direction === 'string' ? direction : undefined,
+                        },
                     });
                 }
                 this.ws.broadcastCallUpdate(callId, { recordingUrl });
