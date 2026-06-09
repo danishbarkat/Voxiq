@@ -19,6 +19,7 @@ const login_dto_1 = require("./dto/login.dto");
 const signup_dto_1 = require("./dto/signup.dto");
 const public_decorator_1 = require("./decorators/public.decorator");
 const common_2 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -39,6 +40,13 @@ let AuthController = class AuthController {
     getProfile(req) {
         return req.user;
     }
+    async getMyPlan(req) {
+        const accountId = req.user?.accountId;
+        if (!accountId)
+            return null;
+        const account = await this.authService.getAccountPlan(accountId);
+        return account;
+    }
     forgotPassword(email) {
         return this.authService.requestPasswordReset(email);
     }
@@ -52,6 +60,7 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 5 } }),
     (0, common_1.Post)('signup'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -60,6 +69,7 @@ __decorate([
 ], AuthController.prototype, "signup", null);
 __decorate([
     (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 10 } }),
     (0, common_1.Post)('signup/verify'),
     __param(0, (0, common_1.Body)('email')),
     __param(1, (0, common_1.Body)('code')),
@@ -69,6 +79,7 @@ __decorate([
 ], AuthController.prototype, "verifySignup", null);
 __decorate([
     (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 10 } }),
     (0, common_1.Post)('login'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -77,6 +88,7 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 10 } }),
     (0, common_1.Post)('mfa/verify'),
     __param(0, (0, common_1.Body)('mfaToken')),
     __param(1, (0, common_1.Body)('code')),
@@ -85,6 +97,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "verifyMfa", null);
 __decorate([
+    (0, throttler_1.SkipThrottle)(),
     (0, common_1.Get)('profile'),
     (0, common_2.SetMetadata)('allowInactiveAccount', true),
     __param(0, (0, common_1.Req)()),
@@ -93,7 +106,17 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "getProfile", null);
 __decorate([
+    (0, throttler_1.SkipThrottle)(),
+    (0, common_1.Get)('my-plan'),
+    (0, common_2.SetMetadata)('allowInactiveAccount', true),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "getMyPlan", null);
+__decorate([
     (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 3 } }),
     (0, common_1.Post)('forgot-password'),
     __param(0, (0, common_1.Body)('email')),
     __metadata("design:type", Function),

@@ -23,6 +23,27 @@ let SmsService = SmsService_1 = class SmsService {
         this.config = config;
     }
     async send(to, body, fromOverride, agentId, accountId) {
+        const account = await this.prisma.account.findUnique({
+            where: { id: accountId },
+            select: { canSendSms: true, monthlySmsLimit: true, isTrial: true, trialEndsAt: true },
+        });
+        if (account && !account.canSendSms) {
+            throw new common_1.ForbiddenException('SMS sending is not enabled for your plan. Please upgrade.');
+        }
+        if (account?.isTrial && account.trialEndsAt && new Date(account.trialEndsAt) < new Date()) {
+            throw new common_1.ForbiddenException('Your free trial has expired. Please upgrade to continue.');
+        }
+        if (account?.monthlySmsLimit !== null && account?.monthlySmsLimit !== undefined) {
+            const monthStart = new Date();
+            monthStart.setDate(1);
+            monthStart.setHours(0, 0, 0, 0);
+            const used = await this.prisma.smsMessage.count({
+                where: { accountId, direction: 'outbound', createdAt: { gte: monthStart } },
+            });
+            if (used >= account.monthlySmsLimit) {
+                throw new common_1.ForbiddenException(`Monthly SMS limit reached (${used}/${account.monthlySmsLimit}). Please upgrade your plan.`);
+            }
+        }
         const apiKey = this.config.get('TELNYX_API_KEY');
         const defaultFrom = this.config.get('DEFAULT_OUTBOUND_NUMBER') || '+14422039259';
         const from = fromOverride || defaultFrom;

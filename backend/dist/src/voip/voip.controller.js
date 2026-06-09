@@ -193,6 +193,24 @@ let VoipController = VoipController_1 = class VoipController {
         if (event === 'call.initiated' && direction === 'inbound') {
             this.logger.log(`[Inbound] call.initiated from=${fromNum} to=${toNum}`);
             try {
+                const apiKey = this.config.get('TELNYX_API_KEY');
+                const answerRes = await fetch(`https://api.telnyx.com/v2/calls/${callId}/actions/answer`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                });
+                if (!answerRes.ok) {
+                    const err = await answerRes.json();
+                    this.logger.error(`[Inbound] Failed to answer call ${callId}: ${JSON.stringify(err?.errors?.[0])}`);
+                }
+                else {
+                    this.logger.log(`[Inbound] Answered call ${callId}`);
+                }
+            }
+            catch (err) {
+                this.logger.error(`[Inbound] Answer action threw: ${err?.message}`);
+            }
+            try {
                 const lead = await this.prisma.lead.findFirst({
                     where: { phone: { in: [fromNum, fromNum?.replace(/\D/g, '')] } },
                     select: { id: true, firstName: true, lastName: true },
@@ -247,18 +265,27 @@ let VoipController = VoipController_1 = class VoipController {
         if (event === 'call.hangup' || event === 'call.ended') {
             const endedLogs = await this.prisma.callLog.findMany({
                 where: { callControlId: callId },
-                select: { id: true, recordingUrl: true, callStatus: true, direction: true },
+                select: { id: true, recordingUrl: true, callStatus: true, direction: true, startedAt: true },
             });
+            const telnyxDuration = body?.data?.payload?.call_duration ?? null;
+            const telnyxEndTime = body?.data?.payload?.end_time ?? null;
+            const endedAt = telnyxEndTime ? new Date(telnyxEndTime) : new Date();
             for (const log of endedLogs) {
                 const finalRecordingUrl = log.recordingUrl || recordingUrl;
                 const wasNeverAnswered = log.callStatus === client_1.CallStatus.RINGING;
                 const isInbound = log.direction === 'inbound';
                 const finalStatus = wasNeverAnswered && isInbound ? client_1.CallStatus.MISSED : client_1.CallStatus.COMPLETED;
+                const durationSeconds = telnyxDuration !== null
+                    ? telnyxDuration
+                    : log.startedAt
+                        ? (endedAt.getTime() - new Date(log.startedAt).getTime()) / 1000
+                        : null;
                 await this.prisma.callLog.update({
                     where: { id: log.id },
                     data: {
                         callStatus: finalStatus,
-                        endedAt: new Date(),
+                        endedAt,
+                        durationSeconds: durationSeconds !== null ? Math.max(0, durationSeconds) : undefined,
                         recordingUrl: finalRecordingUrl || undefined,
                     },
                 });

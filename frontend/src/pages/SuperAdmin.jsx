@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { key: 'companies', icon: '🏢', label: 'Companies'  },
   { key: 'numbers',   icon: '📞', label: 'Numbers'    },
   { key: 'analytics', icon: '📊', label: 'Analytics'  },
+  { key: 'billing',   icon: '💰', label: 'Billing'    },
 ];
 
 // ─── tiny primitives ──────────────────────────────────────────────────────────
@@ -811,6 +812,7 @@ const PACKAGES = [
 function PackageSection({ detail, onRefresh }) {
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState(null);
+  const [toggling, setToggling] = useState(null);
 
   useEffect(() => {
     fetchJson(`${API_URL}/superadmin/companies/${detail.id}/package-usage`)
@@ -825,22 +827,51 @@ function PackageSection({ detail, onRefresh }) {
         method: 'PATCH',
         body: JSON.stringify({ packageName: pkgName }),
       });
+      const updated = await fetchJson(`${API_URL}/superadmin/companies/${detail.id}/package-usage`);
+      setUsage(updated);
       onRefresh();
     } catch (err) { alert(err.message); }
     finally { setSaving(false); }
   };
 
+  const handleToggleFeature = async (flag, currentValue) => {
+    setToggling(flag);
+    try {
+      await fetchJson(`${API_URL}/superadmin/companies/${detail.id}/features`, {
+        method: 'PATCH',
+        body: JSON.stringify({ [flag]: !currentValue }),
+      });
+      setUsage(prev => prev ? { ...prev, [flag]: !currentValue } : prev);
+    } catch (err) { alert(err.message); }
+    finally { setToggling(null); }
+  };
+
   const currentPkg = PACKAGES.find(p => p.name === (usage?.packageName || detail.packageName));
 
-  const FeaturePill = ({ on, label }) => (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-      background: on ? '#d1fae5' : '#fee2e2', color: on ? '#065f46' : '#991b1b',
-    }}>
-      {on ? '✓' : '✗'} {label}
-    </span>
-  );
+  const FeatureToggle = ({ flag, on, label }) => {
+    const busy = toggling === flag;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f3f4f6' }}>
+        <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{label}</span>
+        <button
+          onClick={() => !busy && handleToggleFeature(flag, on)}
+          disabled={busy}
+          style={{
+            width: 40, height: 22, borderRadius: 11, border: 'none', cursor: busy ? 'not-allowed' : 'pointer',
+            background: on ? '#10b981' : '#d1d5db', position: 'relative', transition: 'background 0.2s', padding: 0,
+            opacity: busy ? 0.6 : 1,
+          }}
+          title={on ? `Disable ${label}` : `Enable ${label}`}
+        >
+          <div style={{
+            width: 16, height: 16, borderRadius: '50%', background: '#fff',
+            position: 'absolute', top: 3, left: on ? 21 : 3, transition: 'left 0.2s',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          }} />
+        </button>
+      </div>
+    );
+  };
 
   const UsageBar = ({ used, limit, label, color }) => {
     if (limit === null || limit === undefined) return (
@@ -884,17 +915,20 @@ function PackageSection({ detail, onRefresh }) {
         {!currentPkg && <span style={{ color: '#9ca3af', fontSize: 12 }}>No package assigned</span>}
       </div>
 
-      {/* Current features */}
+      {/* Feature toggles */}
       {usage && (
         <div style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-            <FeaturePill on={usage.canOutboundCall} label="Outbound Calls" />
-            <FeaturePill on={usage.canInboundCall}  label="Inbound Calls"  />
-            <FeaturePill on={usage.canSendSms}      label="SMS"            />
-            <FeaturePill on={usage.canRecord}       label="Recording"      />
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+            Feature Access
           </div>
-          <UsageBar used={usage.usage?.callsThisMonth} limit={usage.monthlyCallLimit} label="Calls this month" color="#6366f1" />
-          {usage.canSendSms && <UsageBar used={usage.usage?.smsThisMonth} limit={usage.monthlySmsLimit} label="SMS this month" color="#10b981" />}
+          <FeatureToggle flag="canOutboundCall" on={usage.canOutboundCall} label="Outbound Calls" />
+          <FeatureToggle flag="canInboundCall"  on={usage.canInboundCall}  label="Inbound Calls"  />
+          <FeatureToggle flag="canSendSms"      on={usage.canSendSms}      label="SMS Sending"    />
+          <FeatureToggle flag="canRecord"       on={usage.canRecord}       label="Call Recording" />
+          <div style={{ marginTop: 10 }}>
+            <UsageBar used={usage.usage?.callsThisMonth} limit={usage.monthlyCallLimit} label="Calls this month" color="#6366f1" />
+            {usage.canSendSms && <UsageBar used={usage.usage?.smsThisMonth} limit={usage.monthlySmsLimit} label="SMS this month" color="#10b981" />}
+          </div>
         </div>
       )}
 
@@ -1490,6 +1524,148 @@ function SectionHeader({ icon, title, count, countBg, countColor }) {
   );
 }
 
+// ─── Billing Tab ─────────────────────────────────────────────────────────────
+
+function BillingTab() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchJson(`${API_URL}/superadmin/billing-summary`)
+      .then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Placeholder>Loading billing data…</Placeholder>;
+  if (!data) return <Placeholder>Failed to load billing data.</Placeholder>;
+
+  const { summary, companies, month, rates } = data;
+  const pkgColors = { Trial:'#6366f1', Starter:'#10b981', Basic:'#3b82f6', Growth:'#8b5cf6', Pro:'#f59e0b', Agency:'#ef4444', Enterprise:'#1f2937' };
+
+  const SummaryCard = ({ label, value, sub, color = '#111827', bg = '#f9fafb' }) => (
+    <div style={{ background: bg, border: '1.5px solid #e5e7eb', borderRadius: 14, padding: '18px 20px', minWidth: 0 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 900, color, letterSpacing: '-0.5px' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+
+      {/* Month header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>Billing Summary — {month}</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+            Telnyx rates: outbound ${rates.outboundPerMin}/min · inbound ${rates.inboundPerMin}/min · SMS ${rates.smsOutbound}/msg · number ${rates.numberPerMonth}/mo
+          </div>
+        </div>
+        <button onClick={() => fetchJson(`${API_URL}/superadmin/billing-summary`).then(setData)}
+          style={{ ...btnSecondary, padding: '8px 16px', fontSize: 12 }}>↻ Refresh</button>
+      </div>
+
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <SummaryCard label="Total Revenue" value={`$${summary.totalRevenue.toLocaleString()}`}
+          sub={`${companies.length} active companies`} color="#059669" bg="#f0fdf4" />
+        <SummaryCard label="Telnyx Cost" value={`$${summary.totalTelnyxCost.toFixed(2)}`}
+          sub={`${summary.totalCalls} calls · ${summary.totalSms} SMS`} color="#dc2626" bg="#fef2f2" />
+        <SummaryCard label="Net Profit" value={`$${summary.totalNetProfit.toFixed(2)}`}
+          sub="Revenue − Telnyx cost" color={summary.totalNetProfit >= 0 ? '#059669' : '#dc2626'}
+          bg={summary.totalNetProfit >= 0 ? '#f0fdf4' : '#fef2f2'} />
+        <SummaryCard label="Overall Margin" value={`${summary.overallMargin}%`}
+          sub="Net profit / Revenue" color={summary.overallMargin >= 50 ? '#059669' : summary.overallMargin >= 30 ? '#d97706' : '#dc2626'}
+          bg={summary.overallMargin >= 50 ? '#f0fdf4' : summary.overallMargin >= 30 ? '#fffbeb' : '#fef2f2'} />
+      </div>
+
+      {/* Per-company table */}
+      <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 18px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontWeight: 700, fontSize: 12, color: '#374151' }}>
+          Per-Company Breakdown
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                {['Company','Package','Pkg Price','Calls','Call Cost','SMS','SMS Cost','Numbers','Num Cost','Total Telnyx','Net Profit','Margin'].map(h => (
+                  <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {companies.length === 0 && (
+                <tr><td colSpan={12} style={{ padding: 24, color: '#9ca3af', textAlign: 'center' }}>No active companies this month.</td></tr>
+              )}
+              {companies.map((c, i) => {
+                const pkgClr = pkgColors[c.packageName] || '#9ca3af';
+                const profitClr = c.netProfit >= 0 ? '#059669' : '#dc2626';
+                const marginClr = c.margin >= 50 ? '#059669' : c.margin >= 30 ? '#d97706' : '#dc2626';
+                return (
+                  <tr key={c.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 700 }}>{c.name}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                      {c.packageName
+                        ? <span style={{ background: `${pkgClr}18`, color: pkgClr, border: `1px solid ${pkgClr}40`, borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>{c.packageName}</span>
+                        : <span style={{ color: '#d1d5db' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, color: '#059669' }}>${c.packagePrice}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                      {c.totalCalls}
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>{c.totalCallMinutes} min</div>
+                    </td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>${c.callCost.toFixed(3)}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>{c.smsCount}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>${c.smsCost.toFixed(3)}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>{c.numbers}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>${c.numCost.toFixed(2)}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, color: '#dc2626' }}>${c.totalTelnyxCost.toFixed(3)}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 800, color: profitClr }}>${c.netProfit.toFixed(2)}</td>
+                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                      {c.margin !== null
+                        ? <span style={{ background: c.margin >= 50 ? '#d1fae5' : c.margin >= 30 ? '#fef3c7' : '#fee2e2', color: marginClr, borderRadius: 20, padding: '2px 8px', fontWeight: 700, fontSize: 11 }}>{c.margin}%</span>
+                        : <span style={{ color: '#d1d5db' }}>—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {companies.length > 0 && (
+              <tfoot>
+                <tr style={{ background: '#1f2937' }}>
+                  <td colSpan={2} style={{ padding: '11px 12px', fontWeight: 800, color: '#fff', fontSize: 12 }}>TOTAL</td>
+                  <td style={{ padding: '11px 12px', fontWeight: 800, color: '#6ee7b7' }}>${summary.totalRevenue.toFixed(2)}</td>
+                  <td style={{ padding: '11px 12px', color: '#9ca3af' }}>{summary.totalCalls}</td>
+                  <td colSpan={4} style={{ padding: '11px 12px', color: '#fca5a5', fontWeight: 700 }}>Telnyx: ${summary.totalTelnyxCost.toFixed(2)}</td>
+                  <td style={{ padding: '11px 12px' }}></td>
+                  <td style={{ padding: '11px 12px', fontWeight: 800, color: '#fca5a5' }}>${summary.totalTelnyxCost.toFixed(2)}</td>
+                  <td style={{ padding: '11px 12px', fontWeight: 900, color: summary.totalNetProfit >= 0 ? '#6ee7b7' : '#fca5a5', fontSize: 13 }}>${summary.totalNetProfit.toFixed(2)}</td>
+                  <td style={{ padding: '11px 12px', fontWeight: 800, color: '#fbbf24' }}>{summary.overallMargin}%</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
+      {/* Rates reference */}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase' }}>Telnyx Rates Used for Calculation</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12 }}>
+          {[
+            ['Outbound Call', `$${rates.outboundPerMin}/min`],
+            ['Inbound Call',  `$${rates.inboundPerMin}/min`],
+            ['Recording',     `+$${rates.recordPerMin}/min`],
+            ['SMS Outbound',  `$${rates.smsOutbound}/msg`],
+            ['Phone Number',  `$${rates.numberPerMonth}/mo`],
+          ].map(([k, v]) => (
+            <div key={k}><span style={{ color: '#6b7280' }}>{k}: </span><strong style={{ color: '#111827' }}>{v}</strong></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function SuperAdmin() {
@@ -1604,6 +1780,7 @@ export default function SuperAdmin() {
               {tab === 'companies' && 'Manage all company accounts'}
               {tab === 'numbers'   && 'Manage your Telnyx number pool for assignment'}
               {tab === 'analytics' && 'Per-company call analytics'}
+              {tab === 'billing'   && 'Telnyx costs vs package revenue — net profit per company'}
             </div>
           </div>
           {openRequests > 0 && (
@@ -1634,6 +1811,7 @@ export default function SuperAdmin() {
           {tab === 'analytics' && (
             <AnalyticsTab analytics={analytics} loading={analyticsLoading} />
           )}
+          {tab === 'billing' && <BillingTab />}
         </div>
       </main>
 

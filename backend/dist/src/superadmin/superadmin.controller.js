@@ -39,6 +39,7 @@ __decorate([
 class ApproveDto {
     agentLimit;
     numberPool;
+    packageName;
 }
 __decorate([
     (0, class_validator_1.IsInt)(),
@@ -51,6 +52,11 @@ __decorate([
     (0, class_transformer_1.Type)(() => NumberEntryDto),
     __metadata("design:type", Array)
 ], ApproveDto.prototype, "numberPool", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ApproveDto.prototype, "packageName", void 0);
 class RejectDto {
     reason;
 }
@@ -76,7 +82,7 @@ let SuperAdminController = class SuperAdminController {
         return this.superAdminService.regenerateAccessCode(id);
     }
     approveCompany(id, dto) {
-        return this.superAdminService.approveCompany(id, dto.agentLimit, dto.numberPool);
+        return this.superAdminService.approveCompany(id, dto.agentLimit, dto.numberPool, dto.packageName);
     }
     rejectCompany(id, dto) {
         return this.superAdminService.rejectCompany(id, dto.reason);
@@ -84,8 +90,17 @@ let SuperAdminController = class SuperAdminController {
     deactivateCompany(id) {
         return this.superAdminService.deactivateCompany(id);
     }
+    deleteCompany(id) {
+        return this.superAdminService.deleteCompany(id);
+    }
     activateCompany(id) {
         return this.superAdminService.activateCompany(id);
+    }
+    getPendingVerifications() {
+        return this.superAdminService.getPendingVerifications();
+    }
+    resendOtp(email) {
+        return this.superAdminService.regenerateOtp(email);
     }
     getAvailableNumbers() {
         return this.superAdminService.getAvailableNumbers();
@@ -95,6 +110,24 @@ let SuperAdminController = class SuperAdminController {
     }
     unassignNumber(id, number) {
         return this.superAdminService.unassignNumber(id, number);
+    }
+    assignPackage(id, packageName) {
+        return this.superAdminService.assignPackage(id, packageName);
+    }
+    updateAgentLimit(id, agentLimit) {
+        return this.superAdminService.updateAgentLimit(id, Number(agentLimit));
+    }
+    updateFeatures(id, body) {
+        return this.superAdminService.updateFeatures(id, body);
+    }
+    getPackageUsage(id) {
+        return this.superAdminService.getPackageUsage(id);
+    }
+    getPackages() {
+        return superadmin_service_1.SuperAdminService.PACKAGES;
+    }
+    getBillingSummary() {
+        return this.superAdminService.getBillingSummary();
     }
     getAnalytics() {
         return this.superAdminService.getAnalytics();
@@ -154,12 +187,32 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "deactivateCompany", null);
 __decorate([
+    (0, common_1.Post)('companies/:id/delete'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "deleteCompany", null);
+__decorate([
     (0, common_1.Post)('companies/:id/activate'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "activateCompany", null);
+__decorate([
+    (0, common_1.Get)('pending-verifications'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getPendingVerifications", null);
+__decorate([
+    (0, common_1.Post)('pending-verifications/:email/resend-otp'),
+    __param(0, (0, common_1.Param)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "resendOtp", null);
 __decorate([
     (0, common_1.Get)('numbers'),
     __metadata("design:type", Function),
@@ -182,6 +235,49 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "unassignNumber", null);
+__decorate([
+    (0, common_1.Patch)('companies/:id/package'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('packageName')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "assignPackage", null);
+__decorate([
+    (0, common_1.Patch)('companies/:id/agent-limit'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('agentLimit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "updateAgentLimit", null);
+__decorate([
+    (0, common_1.Patch)('companies/:id/features'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "updateFeatures", null);
+__decorate([
+    (0, common_1.Get)('companies/:id/package-usage'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getPackageUsage", null);
+__decorate([
+    (0, common_1.Get)('packages'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getPackages", null);
+__decorate([
+    (0, common_1.Get)('billing-summary'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getBillingSummary", null);
 __decorate([
     (0, common_1.Get)('analytics'),
     __metadata("design:type", Function),

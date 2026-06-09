@@ -32,6 +32,9 @@ let UsersController = class UsersController {
     findAllRoles(req) {
         return this.usersService.findAllRoles(req?.user);
     }
+    getCompanyNumberInventory(req) {
+        return this.usersService.getCompanyNumberInventory(req?.user);
+    }
     findOne(id, req) {
         return this.usersService.findOne(id, req?.user);
     }
@@ -80,6 +83,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "findAllRoles", null);
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager'),
+    (0, common_1.Get)('company-number-inventory'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getCompanyNumberInventory", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
     (0, common_1.Get)(':id'),

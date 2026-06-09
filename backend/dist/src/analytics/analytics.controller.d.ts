@@ -91,6 +91,7 @@ export declare class AnalyticsController {
         direction: string | null;
         fromNumber: string | null;
         toNumber: string | null;
+        durationSeconds: number | null;
     }>;
     getCampaignStats(id: string, start?: string, end?: string, req?: any): Promise<{
         totalCalls: number;

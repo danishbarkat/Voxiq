@@ -7,6 +7,7 @@ export declare class AuthService {
     private jwtService;
     private configService;
     private readonly blockedEmailDomains;
+    private accountColumnCache;
     constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService);
     signup(dto: SignupDto): Promise<{
         message: string;
@@ -77,6 +78,20 @@ export declare class AuthService {
         requestedAt: Date;
     }[]>;
     clearPasswordResetRequest(agentEmail: string): Promise<void>;
+    getAccountPlan(accountId: string): Promise<{
+        trialExpired: boolean;
+        trialDaysLeft: number;
+        agentLimit: number | null;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    } | null>;
     requestReactivation(user: any, message?: string): Promise<{
         message: string;
     }>;
@@ -85,6 +100,9 @@ export declare class AuthService {
     private generateOtpCode;
     private assertBusinessEmail;
     private normalizeOptionalPhone;
+    private findAccountByNtn;
+    private buildSignupAccountData;
+    private getAccountColumns;
     private sendSignupVerificationEmail;
     private buildOtpAuthUrl;
     private verifyTotpCode;

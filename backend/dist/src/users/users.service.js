@@ -14,13 +14,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma_service_1 = require("../prisma/prisma.service");
 let UsersService = class UsersService {
     prisma;
-    constructor(prisma) {
+    configService;
+    constructor(prisma, configService) {
         this.prisma = prisma;
+        this.configService = configService;
     }
     defaultSelect = {
         id: true,
@@ -118,6 +121,41 @@ let UsersService = class UsersService {
             orderBy: { createdAt: 'desc' },
         });
         return users.map((user) => this.attachCallerName(user));
+    }
+    async getCompanyNumberInventory(requester) {
+        if (!requester?.accountId) {
+            throw new common_1.ForbiddenException('Company account not found');
+        }
+        const [account, allAccounts, telnyxNumbers] = await Promise.all([
+            this.prisma.account.findUnique({
+                where: { id: requester.accountId },
+                select: { id: true, name: true, numberPool: true },
+            }),
+            this.prisma.account.findMany({
+                select: { id: true, numberPool: true },
+            }),
+            this.fetchTelnyxNumbers(),
+        ]);
+        if (!account) {
+            throw new common_1.NotFoundException('Company account not found');
+        }
+        const assignedToCompany = Array.isArray(account.numberPool) ? account.numberPool : [];
+        const assignedToCompanySet = new Set(assignedToCompany.map((entry) => entry?.number).filter(Boolean));
+        const assignedElsewhere = new Set();
+        for (const otherAccount of allAccounts) {
+            if (otherAccount.id === account.id || !Array.isArray(otherAccount.numberPool))
+                continue;
+            for (const entry of otherAccount.numberPool) {
+                if (entry?.number)
+                    assignedElsewhere.add(entry.number);
+            }
+        }
+        return {
+            accountId: account.id,
+            accountName: account.name,
+            assignedNumbers: assignedToCompany,
+            availableNumbers: telnyxNumbers.filter((entry) => !assignedToCompanySet.has(entry.number) && !assignedElsewhere.has(entry.number)),
+        };
     }
     async findOne(id, requester) {
         const user = await this.prisma.user.findUnique({
@@ -337,10 +375,54 @@ let UsersService = class UsersService {
         const callerName = typeof match?.callerName === 'string' ? match.callerName.trim() : '';
         return callerName || null;
     }
+    async fetchTelnyxNumbers() {
+        const apiKey = this.configService.get('TELNYX_API_KEY');
+        if (!apiKey)
+            return [];
+        try {
+            const res = await fetch('https://api.telnyx.com/v2/phone_numbers?page[size]=200', {
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!res.ok)
+                return [];
+            const json = await res.json();
+            const data = json?.data || [];
+            return data.map((item) => ({
+                number: item.phone_number || '',
+                callerName: item.caller_name || '',
+                countryCode: this.extractCountryCode(item.phone_number || ''),
+            }));
+        }
+        catch {
+            return [];
+        }
+    }
+    extractCountryCode(e164) {
+        if (!e164.startsWith('+'))
+            return '';
+        const digits = e164.slice(1);
+        const knownCodes = new Set([
+            '1', '7', '20', '27', '30', '31', '32', '33', '34', '36', '39', '40', '41', '43',
+            '44', '45', '46', '47', '48', '49', '51', '52', '54', '55', '56', '57', '60', '61',
+            '62', '63', '64', '65', '66', '81', '82', '84', '86', '90', '91', '92', '93', '94',
+            '95', '98', '212', '213', '216', '218', '234', '971', '972', '966', '964', '963', '961',
+        ]);
+        for (const len of [3, 2, 1]) {
+            const prefix = digits.slice(0, len);
+            if (knownCodes.has(prefix)) {
+                return `+${prefix}`;
+            }
+        }
+        return `+${digits.slice(0, 1)}`;
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        config_1.ConfigService])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

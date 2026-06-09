@@ -7,6 +7,7 @@ declare class NumberEntryDto {
 declare class ApproveDto {
     agentLimit: number;
     numberPool: NumberEntryDto[];
+    packageName?: string;
 }
 declare class RejectDto {
     reason: string;
@@ -22,9 +23,17 @@ export declare class SuperAdminController {
             totalCalls: number;
             totalMinutes: number;
             revenue: any;
+            topStates: {
+                state: string;
+                calls: number;
+            }[];
         }[];
         topStates: {
             state: string;
+            calls: number;
+        }[];
+        topCountries: {
+            id: string;
             calls: number;
         }[];
         totalCompanies: number;
@@ -56,6 +65,8 @@ export declare class SuperAdminController {
         accessCode: any;
         accessCodeUsed: boolean;
         adminPhone: any;
+        ntn: any;
+        website: null;
         rejectionReason: any;
         reactivationRequested: any;
         approvedAt: any;
@@ -110,6 +121,10 @@ export declare class SuperAdminController {
         };
         topStates: {
             state: string;
+            calls: number;
+        }[];
+        topCountries: {
+            id: string;
             calls: number;
         }[];
         activityByDay: {
@@ -195,6 +210,19 @@ export declare class SuperAdminController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     rejectCompany(id: string, dto: RejectDto): Promise<{
         id: string;
@@ -213,6 +241,19 @@ export declare class SuperAdminController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     deactivateCompany(id: string): Promise<{
         id: string;
@@ -231,6 +272,23 @@ export declare class SuperAdminController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
+    deleteCompany(id: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
     activateCompany(id: string): Promise<{
         id: string;
@@ -249,6 +307,32 @@ export declare class SuperAdminController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
+    getPendingVerifications(): Promise<{
+        email: string;
+        companyName: any;
+        name: string;
+        phone: any;
+        otpCode: string;
+        expired: boolean;
+        createdAt: Date;
+    }[]>;
+    resendOtp(email: string): Promise<{
+        otpCode: string;
+        message: string;
     }>;
     getAvailableNumbers(): Promise<{
         assigned: boolean;
@@ -267,6 +351,99 @@ export declare class SuperAdminController {
     unassignNumber(id: string, number: string): Promise<{
         message: string;
         number: string;
+    }>;
+    assignPackage(id: string, packageName: string): Promise<{
+        id: string;
+        name: string;
+        agentLimit: number | null;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
+    updateAgentLimit(id: string, agentLimit: number): Promise<{
+        id: string;
+        name: string;
+        agentLimit: number | null;
+    }>;
+    updateFeatures(id: string, body: {
+        canOutboundCall?: boolean;
+        canInboundCall?: boolean;
+        canSendSms?: boolean;
+        canRecord?: boolean;
+    }): Promise<{
+        id: string;
+        name: string;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+    }>;
+    getPackageUsage(id: string): Promise<{
+        usage: {
+            callsThisMonth: number;
+            smsThisMonth: number;
+            callLimitReached: boolean;
+            smsLimitReached: boolean;
+        };
+        agentLimit: number | null;
+        packageName: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
+    getPackages(): Record<string, {
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+        agentLimit: number;
+        isTrial?: boolean;
+        trialDays?: number;
+    }>;
+    getBillingSummary(): Promise<{
+        month: string;
+        summary: {
+            totalRevenue: number;
+            totalTelnyxCost: number;
+            totalNetProfit: number;
+            overallMargin: number;
+            totalCalls: number;
+            totalSms: number;
+        };
+        companies: {
+            id: string;
+            name: string;
+            packageName: string | null;
+            packagePrice: number;
+            totalCalls: number;
+            totalCallMinutes: number;
+            callCost: number;
+            smsCount: number;
+            smsCost: number;
+            numbers: number;
+            numCost: number;
+            totalTelnyxCost: number;
+            netProfit: number;
+            margin: number | null;
+        }[];
+        rates: {
+            outboundPerMin: number;
+            inboundPerMin: number;
+            recordPerMin: number;
+            smsOutbound: number;
+            numberPerMonth: number;
+        };
     }>;
     getAnalytics(): Promise<{
         accountId: string;

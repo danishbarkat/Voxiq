@@ -20,6 +20,9 @@ class SignupDto {
     companyName;
     requestedAgentLimit;
     requestedNumbers;
+    website;
+    ntn;
+    termsAccepted;
 }
 exports.SignupDto = SignupDto;
 __decorate([
@@ -40,6 +43,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(8),
+    (0, class_validator_1.Matches)(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_#^()\-+=~`|\\:;"'<>,./\[\]{}])[A-Za-z\d@$!%*?&_#^()\-+=~`|\\:;"'<>,./\[\]{}]{8,}$/, { message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character' }),
     __metadata("design:type", String)
 ], SignupDto.prototype, "password", void 0);
 __decorate([
@@ -63,4 +67,18 @@ __decorate([
     (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], SignupDto.prototype, "requestedNumbers", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SignupDto.prototype, "website", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\d{7}-\d$/, { message: 'NTN must be in format 1234567-8 (7 digits, hyphen, 1 digit) as issued by FBR Pakistan' }),
+    __metadata("design:type", String)
+], SignupDto.prototype, "ntn", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], SignupDto.prototype, "termsAccepted", void 0);
 //# sourceMappingURL=signup.dto.js.map

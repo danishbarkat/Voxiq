@@ -10,6 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const bull_1 = require("@nestjs/bull");
+const throttler_1 = require("@nestjs/throttler");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const validation_1 = require("./config/validation");
@@ -41,6 +42,10 @@ exports.AppModule = AppModule = __decorate([
                 envFilePath: '.env',
                 validationSchema: validation_1.validationSchema,
             }),
+            throttler_1.ThrottlerModule.forRoot([
+                { name: 'short', ttl: 60000, limit: 20 },
+                { name: 'long', ttl: 900000, limit: 100 },
+            ]),
             bull_1.BullModule.forRoot({
                 redis: {
                     host: process.env.REDIS_HOST || 'localhost',
@@ -65,14 +70,9 @@ exports.AppModule = AppModule = __decorate([
         controllers: [app_controller_1.AppController],
         providers: [
             app_service_1.AppService,
-            {
-                provide: core_1.APP_GUARD,
-                useClass: jwt_auth_guard_1.JwtAuthGuard,
-            },
-            {
-                provide: core_1.APP_GUARD,
-                useClass: roles_guard_1.RolesGuard,
-            },
+            { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },
+            { provide: core_1.APP_GUARD, useClass: jwt_auth_guard_1.JwtAuthGuard },
+            { provide: core_1.APP_GUARD, useClass: roles_guard_1.RolesGuard },
         ],
     })
 ], AppModule);

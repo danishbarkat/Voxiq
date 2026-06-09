@@ -21,33 +21,31 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    buildDateFilter(startDate, endDate) {
+        if (startDate && endDate)
+            return client_1.Prisma.sql `AND "startedAt" >= ${startDate} AND "startedAt" <= ${endDate}`;
+        if (startDate)
+            return client_1.Prisma.sql `AND "startedAt" >= ${startDate}`;
+        if (endDate)
+            return client_1.Prisma.sql `AND "startedAt" <= ${endDate}`;
+        return client_1.Prisma.empty;
+    }
     async getCampaignStats(campaignId, startDate, endDate, requester) {
         await this.assertCampaignAccess(campaignId, requester);
-        let whereSql = `WHERE "campaignId" = '${campaignId}'`;
-        if (startDate || endDate) {
-            if (startDate && endDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}' AND "startedAt" <= '${endDate.toISOString()}'`;
-            }
-            else if (startDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}'`;
-            }
-            else if (endDate) {
-                whereSql += ` AND "startedAt" <= '${endDate.toISOString()}'`;
-            }
-        }
-        const statsQuery = await this.prisma.$queryRawUnsafe(`
-            SELECT 
+        const dateFilter = this.buildDateFilter(startDate, endDate);
+        const statsQuery = await this.prisma.$queryRaw(client_1.Prisma.sql `
+            SELECT
                 COUNT(*) as "totalCalls",
                 COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
                 SUM("dealValue") as "revenue",
-                AVG(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) as "avgDuration"
+                AVG(COALESCE("durationSeconds", EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))) as "avgDuration"
             FROM "CallLog"
-            ${whereSql}
+            WHERE "campaignId" = ${campaignId} ${dateFilter}
         `);
-        const dispositionQuery = await this.prisma.$queryRawUnsafe(`
-            SELECT "disposition", COUNT(*) as count 
-            FROM "CallLog" 
-            ${whereSql} 
+        const dispositionQuery = await this.prisma.$queryRaw(client_1.Prisma.sql `
+            SELECT "disposition", COUNT(*) as count
+            FROM "CallLog"
+            WHERE "campaignId" = ${campaignId} ${dateFilter}
             GROUP BY "disposition"
         `);
         const stats = statsQuery[0];
@@ -72,27 +70,16 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     }
     async getAgentStats(agentId, startDate, endDate, requester) {
         await this.assertAgentAccess(agentId, requester);
-        let whereSql = `WHERE "agentId" = '${agentId}'`;
-        if (startDate || endDate) {
-            if (startDate && endDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}' AND "startedAt" <= '${endDate.toISOString()}'`;
-            }
-            else if (startDate) {
-                whereSql += ` AND "startedAt" >= '${startDate.toISOString()}'`;
-            }
-            else if (endDate) {
-                whereSql += ` AND "startedAt" <= '${endDate.toISOString()}'`;
-            }
-        }
-        const statsQuery = await this.prisma.$queryRawUnsafe(`
-            SELECT 
+        const dateFilter = this.buildDateFilter(startDate, endDate);
+        const statsQuery = await this.prisma.$queryRaw(client_1.Prisma.sql `
+            SELECT
                 COUNT(*) as "totalCalls",
                 COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
                 COUNT(*) FILTER (WHERE LOWER("disposition") IN ('interested', 'booked')) as "appointments",
                 SUM("dealValue") as "revenue",
-                SUM(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) as "totalTalkTime"
+                SUM(COALESCE("durationSeconds", EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))) as "totalTalkTime"
             FROM "CallLog"
-            ${whereSql}
+            WHERE "agentId" = ${agentId} ${dateFilter}
         `);
         const stats = statsQuery[0];
         const totalCalls = Number(stats.totalCalls) || 0;

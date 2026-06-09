@@ -3,6 +3,14 @@ import { CreateVoicemailDto } from './voicemail.dto';
 export declare class VoicemailController {
     private readonly voicemailService;
     constructor(voicemailService: VoicemailService);
+    uploadTemplateLegacy(file: Express.Multer.File, body: CreateVoicemailDto): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        accountId: string;
+        url: string;
+        duration: number;
+    }>;
     uploadTemplate(file: Express.Multer.File, body: CreateVoicemailDto): Promise<{
         id: string;
         name: string;
@@ -11,6 +19,14 @@ export declare class VoicemailController {
         url: string;
         duration: number;
     }>;
+    getTemplatesLegacy(accountId?: string): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        accountId: string;
+        url: string;
+        duration: number;
+    }[]>;
     getTemplates(accountId?: string): Promise<{
         id: string;
         name: string;

@@ -7,4 +7,7 @@ export declare class SignupDto {
     companyName: string;
     requestedAgentLimit: number;
     requestedNumbers: number;
+    website?: string;
+    ntn: string;
+    termsAccepted: boolean;
 }

@@ -57,6 +57,7 @@ export declare class LeadsService {
             direction: string | null;
             fromNumber: string | null;
             toNumber: string | null;
+            durationSeconds: number | null;
         }[];
         list: {
             id: string;
@@ -103,6 +104,7 @@ export declare class LeadsService {
             direction: string | null;
             fromNumber: string | null;
             toNumber: string | null;
+            durationSeconds: number | null;
         }[];
         list: {
             id: string;
@@ -203,6 +205,7 @@ export declare class LeadsService {
         direction: string | null;
         fromNumber: string | null;
         toNumber: string | null;
+        durationSeconds: number | null;
     })[]>;
     findAllLists(accountId?: string, requester?: any): Promise<({
         _count: {
@@ -233,6 +236,19 @@ export declare class LeadsService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }[]>;
     createAccount(name: string, requester?: any): Promise<{
         id: string;
@@ -251,6 +267,19 @@ export declare class LeadsService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     updateAccount(id: string, data: {
         name?: string;
@@ -272,6 +301,19 @@ export declare class LeadsService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     deleteAccount(id: string, requester?: any): Promise<{
         id: string;
@@ -290,6 +332,19 @@ export declare class LeadsService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     deleteList(id: string, requester?: any): Promise<{
         id: string;

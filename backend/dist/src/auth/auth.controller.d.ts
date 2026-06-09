@@ -49,6 +49,20 @@ export declare class AuthController {
         };
     }>;
     getProfile(req: any): any;
+    getMyPlan(req: any): Promise<{
+        trialExpired: boolean;
+        trialDaysLeft: number;
+        agentLimit: number | null;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    } | null>;
     forgotPassword(email: string): Promise<{
         message: string;
     }>;

@@ -3,6 +3,7 @@ export declare class AnalyticsService {
     private prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
+    private buildDateFilter;
     getCampaignStats(campaignId: string, startDate?: Date, endDate?: Date, requester?: any): Promise<{
         totalCalls: number;
         connected: number;
@@ -110,6 +111,7 @@ export declare class AnalyticsService {
         direction: string | null;
         fromNumber: string | null;
         toNumber: string | null;
+        durationSeconds: number | null;
     }>;
     getStateHeatmap(requester?: any): Promise<{
         id: string;

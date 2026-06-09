@@ -1,3 +1,4 @@
+import type { Response } from 'express';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
@@ -5,6 +6,7 @@ import { LeadStatus } from '@prisma/client';
 export declare class LeadsController {
     private readonly leadsService;
     constructor(leadsService: LeadsService);
+    downloadTemplate(res: Response): void;
     importCsv(file: Express.Multer.File, accountId: string, listId?: string, newListName?: string, req?: any): Promise<{
         imported: number;
         duplicates: number;
@@ -48,6 +50,7 @@ export declare class LeadsController {
             direction: string | null;
             fromNumber: string | null;
             toNumber: string | null;
+            durationSeconds: number | null;
         }[];
         list: {
             id: string;
@@ -101,6 +104,19 @@ export declare class LeadsController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }[]>;
     createAccount(name: string, req?: any): Promise<{
         id: string;
@@ -119,6 +135,19 @@ export declare class LeadsController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     updateAccount(id: string, data: {
         name?: string;
@@ -140,6 +169,19 @@ export declare class LeadsController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     deleteAccount(id: string, req?: any): Promise<{
         id: string;
@@ -158,6 +200,19 @@ export declare class LeadsController {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     createList(name: string, accountId: string, description?: string, req?: any): Promise<{
         id: string;
@@ -189,6 +244,7 @@ export declare class LeadsController {
             direction: string | null;
             fromNumber: string | null;
             toNumber: string | null;
+            durationSeconds: number | null;
         }[];
         list: {
             id: string;
@@ -244,6 +300,7 @@ export declare class LeadsController {
         direction: string | null;
         fromNumber: string | null;
         toNumber: string | null;
+        durationSeconds: number | null;
     })[]>;
     update(id: string, updateLeadDto: UpdateLeadDto, req?: any): Promise<{
         id: string;

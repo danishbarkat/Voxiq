@@ -45,6 +45,7 @@ let AuthService = class AuthService {
         'yopmail.com',
         'sharklasers.com',
     ]);
+    accountColumnCache = null;
     constructor(prisma, jwtService, configService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
@@ -56,7 +57,21 @@ let AuthService = class AuthService {
             where: { email: dto.email.toLowerCase() },
         });
         if (existing) {
-            throw new common_1.BadRequestException('Email already registered');
+            throw new common_1.BadRequestException('This email is already registered. Each admin can only register one company.');
+        }
+        const emailDomain = dto.email.toLowerCase().split('@')[1];
+        const domainExists = await this.prisma.user.findFirst({
+            where: { email: { endsWith: `@${emailDomain}` } },
+            select: { id: true },
+        });
+        if (domainExists) {
+            throw new common_1.BadRequestException('A company is already registered with this email domain. Contact your company admin to add you as an agent.');
+        }
+        if (dto.ntn) {
+            const ntnExists = await this.findAccountByNtn(dto.ntn);
+            if (ntnExists) {
+                throw new common_1.BadRequestException('This NTN is already registered. Each company can only register once. Contact support if this is an error.');
+            }
         }
         const otpCode = this.generateOtpCode();
         const passwordHash = await bcryptjs_1.default.hash(dto.password, 10);
@@ -71,8 +86,11 @@ let AuthService = class AuthService {
                     passwordHash,
                     phone: this.normalizeOptionalPhone(dto.phone),
                     companyName: dto.companyName,
+                    website: dto.website || null,
                     requestedAgentLimit: dto.requestedAgentLimit,
                     requestedNumbers: dto.requestedNumbers,
+                    ntn: dto.ntn || null,
+                    termsAccepted: dto.termsAccepted,
                 },
                 expiresAt: new Date(Date.now() + 10 * 60 * 1000),
             },
@@ -86,8 +104,11 @@ let AuthService = class AuthService {
                     passwordHash,
                     phone: this.normalizeOptionalPhone(dto.phone),
                     companyName: dto.companyName,
+                    website: dto.website || null,
                     requestedAgentLimit: dto.requestedAgentLimit,
                     requestedNumbers: dto.requestedNumbers,
+                    ntn: dto.ntn || null,
+                    termsAccepted: dto.termsAccepted,
                 },
                 expiresAt: new Date(Date.now() + 10 * 60 * 1000),
             },
@@ -129,16 +150,7 @@ let AuthService = class AuthService {
             adminRole = await this.prisma.role.create({ data: { name: 'Admin' } });
         }
         const account = await this.prisma.account.create({
-            data: {
-                name: payload.companyName,
-                status: client_1.AccountStatus.PENDING,
-                approved: false,
-                accessCode: this.generateCompanyAccessCode(),
-                accessCodeIssuedAt: new Date(),
-                requestedAgentLimit: Number(payload.requestedAgentLimit),
-                requestedNumbers: Number(payload.requestedNumbers),
-                adminPhone: payload.phone || null,
-            },
+            data: await this.buildSignupAccountData(payload),
         });
         await this.prisma.user.create({
             data: {
@@ -349,6 +361,25 @@ let AuthService = class AuthService {
             where: { email: `reset_${agentEmail.toLowerCase()}` },
         });
     }
+    async getAccountPlan(accountId) {
+        const account = await this.prisma.account.findUnique({
+            where: { id: accountId },
+            select: {
+                packageName: true, isTrial: true, trialEndsAt: true,
+                canOutboundCall: true, canInboundCall: true,
+                canSendSms: true, canRecord: true,
+                monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+            },
+        });
+        if (!account)
+            return null;
+        const now = new Date();
+        const trialExpired = account.isTrial && account.trialEndsAt ? account.trialEndsAt < now : false;
+        const trialDaysLeft = account.isTrial && account.trialEndsAt && !trialExpired
+            ? Math.ceil((account.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+            : 0;
+        return { ...account, trialExpired, trialDaysLeft };
+    }
     async requestReactivation(user, message) {
         if ((user?.role || '').toLowerCase() !== 'admin') {
             throw new common_1.ForbiddenException('Only company admins can request activation');
@@ -422,6 +453,53 @@ let AuthService = class AuthService {
             return null;
         const normalized = phone.replace(/[^\d+]/g, '');
         return normalized || null;
+    }
+    async findAccountByNtn(ntn) {
+        const columns = await this.getAccountColumns();
+        if (!columns.has('ntn')) {
+            return null;
+        }
+        const rows = await this.prisma.$queryRawUnsafe('SELECT "id" FROM "Account" WHERE "ntn" = $1 LIMIT 1', ntn);
+        return rows[0] || null;
+    }
+    async buildSignupAccountData(payload) {
+        const columns = await this.getAccountColumns();
+        const data = {
+            name: payload.companyName,
+            status: client_1.AccountStatus.PENDING,
+            approved: false,
+            accessCode: this.generateCompanyAccessCode(),
+            accessCodeIssuedAt: new Date(),
+        };
+        if (columns.has('requestedAgentLimit')) {
+            data.requestedAgentLimit = Number(payload.requestedAgentLimit);
+        }
+        if (columns.has('requestedNumbers')) {
+            data.requestedNumbers = Number(payload.requestedNumbers);
+        }
+        if (columns.has('adminPhone')) {
+            data.adminPhone = payload.phone || null;
+        }
+        if (columns.has('website')) {
+            data.website = payload.website || null;
+        }
+        if (columns.has('ntn')) {
+            data.ntn = payload.ntn || null;
+        }
+        if (columns.has('termsAccepted')) {
+            data.termsAccepted = payload.termsAccepted === true;
+        }
+        return data;
+    }
+    async getAccountColumns() {
+        if (this.accountColumnCache) {
+            return this.accountColumnCache;
+        }
+        const rows = await this.prisma.$queryRawUnsafe(`SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'Account'`);
+        this.accountColumnCache = new Set(rows.map((row) => row.column_name));
+        return this.accountColumnCache;
     }
     async sendSignupVerificationEmail(email, companyName, otpCode) {
         const host = this.configService.get('MAIL_HOST') || '';

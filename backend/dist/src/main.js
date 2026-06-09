@@ -9,6 +9,8 @@ const core_1 = require("@nestjs/core");
 const express_1 = __importDefault(require("express"));
 const fs_1 = require("fs");
 const path_1 = require("path");
+const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
 const app_module_1 = require("./app.module");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
@@ -17,6 +19,11 @@ async function bootstrap() {
     if (!(0, fs_1.existsSync)(uploadsDir)) {
         (0, fs_1.mkdirSync)(uploadsDir, { recursive: true });
     }
+    app.use((0, compression_1.default)());
+    app.use((0, helmet_1.default)({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        contentSecurityPolicy: false,
+    }));
     const corsOrigin = configService.get('CORS_ORIGIN');
     const origins = corsOrigin && corsOrigin.includes(',')
         ? corsOrigin.split(',').map((o) => o.trim())
@@ -24,6 +31,8 @@ async function bootstrap() {
     app.enableCors({
         origin: origins,
         credentials: true,
+        methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,

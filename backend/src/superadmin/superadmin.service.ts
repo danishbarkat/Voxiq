@@ -707,6 +707,111 @@ export class SuperAdminService {
     });
   }
 
+  static readonly PACKAGE_PRICES: Record<string, number> = {
+    Trial: 0, Starter: 29, Basic: 49, Growth: 89,
+    Pro: 179, Agency: 399, Enterprise: 899,
+  };
+
+  private static readonly RATES = {
+    outboundPerMin: 0.007,
+    inboundPerMin:  0.005,
+    recordPerMin:   0.002,
+    smsOutbound:    0.007,
+    numberPerMonth: 1.00,
+  };
+
+  async getBillingSummary() {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const accounts = await this.prisma.account.findMany({
+      where: { id: { not: SUPERADMIN_ACCOUNT_ID }, status: AccountStatus.ACTIVE },
+      select: {
+        id: true, name: true, packageName: true, numberPool: true,
+        canRecord: true,
+        users: { select: { id: true } },
+      },
+    });
+
+    const rows = await Promise.all(accounts.map(async (acc) => {
+      const [callLogs, smsCount] = await Promise.all([
+        this.prisma.callLog.findMany({
+          where: { agent: { accountId: acc.id }, startedAt: { gte: monthStart } },
+          select: { durationSeconds: true, direction: true, startedAt: true, endedAt: true },
+        }),
+        this.prisma.smsMessage.count({
+          where: { accountId: acc.id, direction: 'outbound', createdAt: { gte: monthStart } },
+        }),
+      ]);
+
+      const R = SuperAdminService.RATES;
+      let callCost = 0;
+      let totalCallSec = 0;
+
+      for (const log of callLogs) {
+        const secs = log.durationSeconds != null
+          ? log.durationSeconds
+          : log.endedAt && log.startedAt
+            ? (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000
+            : 0;
+        totalCallSec += secs;
+        const mins = secs / 60;
+        const rate = (log.direction || 'outbound').toLowerCase() === 'inbound' ? R.inboundPerMin : R.outboundPerMin;
+        callCost += mins * rate;
+        if (acc.canRecord) callCost += mins * R.recordPerMin;
+      }
+
+      const numbers = Array.isArray(acc.numberPool) ? (acc.numberPool as any[]).length : 0;
+      const smsCost   = smsCount * R.smsOutbound;
+      const numCost   = numbers * R.numberPerMonth;
+      const totalTelnyx = parseFloat((callCost + smsCost + numCost).toFixed(4));
+
+      const pkgPrice  = SuperAdminService.PACKAGE_PRICES[acc.packageName || ''] ?? 0;
+      const netProfit = parseFloat((pkgPrice - totalTelnyx).toFixed(2));
+      const margin    = pkgPrice > 0 ? parseFloat(((netProfit / pkgPrice) * 100).toFixed(1)) : null;
+
+      return {
+        id: acc.id,
+        name: acc.name,
+        packageName: acc.packageName || null,
+        packagePrice: pkgPrice,
+        totalCalls: callLogs.length,
+        totalCallMinutes: parseFloat((totalCallSec / 60).toFixed(2)),
+        callCost: parseFloat(callCost.toFixed(4)),
+        smsCount,
+        smsCost: parseFloat(smsCost.toFixed(4)),
+        numbers,
+        numCost: parseFloat(numCost.toFixed(2)),
+        totalTelnyxCost: totalTelnyx,
+        netProfit,
+        margin,
+      };
+    }));
+
+    const totals = rows.reduce((acc, r) => ({
+      totalRevenue:     acc.totalRevenue     + r.packagePrice,
+      totalTelnyxCost:  acc.totalTelnyxCost  + r.totalTelnyxCost,
+      totalNetProfit:   acc.totalNetProfit   + r.netProfit,
+      totalCalls:       acc.totalCalls       + r.totalCalls,
+      totalSms:         acc.totalSms         + r.smsCount,
+    }), { totalRevenue: 0, totalTelnyxCost: 0, totalNetProfit: 0, totalCalls: 0, totalSms: 0 });
+
+    return {
+      month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+      summary: {
+        totalRevenue:    parseFloat(totals.totalRevenue.toFixed(2)),
+        totalTelnyxCost: parseFloat(totals.totalTelnyxCost.toFixed(2)),
+        totalNetProfit:  parseFloat(totals.totalNetProfit.toFixed(2)),
+        overallMargin:   totals.totalRevenue > 0
+          ? parseFloat(((totals.totalNetProfit / totals.totalRevenue) * 100).toFixed(1)) : 0,
+        totalCalls: totals.totalCalls,
+        totalSms:   totals.totalSms,
+      },
+      companies: rows.sort((a, b) => b.netProfit - a.netProfit),
+      rates: SuperAdminService.RATES,
+    };
+  }
+
   async updateAgentLimit(accountId: string, agentLimit: number) {
     if (!agentLimit || agentLimit < 1) throw new BadRequestException('Agent limit must be at least 1');
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
@@ -715,6 +820,21 @@ export class SuperAdminService {
       where: { id: accountId },
       data: { agentLimit },
       select: { id: true, name: true, agentLimit: true },
+    });
+  }
+
+  async updateFeatures(accountId: string, features: {
+    canOutboundCall?: boolean;
+    canInboundCall?: boolean;
+    canSendSms?: boolean;
+    canRecord?: boolean;
+  }) {
+    const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Company not found');
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: features,
+      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true },
     });
   }
 

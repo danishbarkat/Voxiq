@@ -23,6 +23,9 @@ let VoicemailController = class VoicemailController {
     constructor(voicemailService) {
         this.voicemailService = voicemailService;
     }
+    async uploadTemplateLegacy(file, body) {
+        return this.uploadTemplate(file, body);
+    }
     async uploadTemplate(file, body) {
         if (!file) {
             throw new common_1.BadRequestException('No file uploaded');
@@ -31,6 +34,9 @@ let VoicemailController = class VoicemailController {
             throw new common_1.BadRequestException('name and accountId are required');
         }
         return this.voicemailService.uploadVoicemailAudio(file, body.name, body.accountId);
+    }
+    async getTemplatesLegacy(accountId) {
+        return this.getTemplates(accountId);
     }
     async getTemplates(accountId) {
         return this.voicemailService.getVoicemailTemplates(accountId);
@@ -50,6 +56,16 @@ let VoicemailController = class VoicemailController {
 exports.VoicemailController = VoicemailController;
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
+    (0, common_1.Post)(),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, voicemail_dto_1.CreateVoicemailDto]),
+    __metadata("design:returntype", Promise)
+], VoicemailController.prototype, "uploadTemplateLegacy", null);
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
     (0, common_1.Post)('templates'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
     __param(0, (0, common_1.UploadedFile)()),
@@ -58,6 +74,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, voicemail_dto_1.CreateVoicemailDto]),
     __metadata("design:returntype", Promise)
 ], VoicemailController.prototype, "uploadTemplate", null);
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
+    (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('accountId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], VoicemailController.prototype, "getTemplatesLegacy", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
     (0, common_1.Get)('templates'),

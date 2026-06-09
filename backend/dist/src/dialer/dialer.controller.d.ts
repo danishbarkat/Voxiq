@@ -75,6 +75,7 @@ export declare class DialerController {
         direction: string | null;
         fromNumber: string | null;
         toNumber: string | null;
+        durationSeconds: number | null;
     }>;
     logCall(body: {
         leadId?: string;

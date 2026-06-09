@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export declare class SuperAdminService {
     private prisma;
     private configService;
+    private readonly accountSummarySelect;
     constructor(prisma: PrismaService, configService: ConfigService);
     getOverview(): Promise<{
         connectionRate: number;
@@ -12,9 +13,17 @@ export declare class SuperAdminService {
             totalCalls: number;
             totalMinutes: number;
             revenue: any;
+            topStates: {
+                state: string;
+                calls: number;
+            }[];
         }[];
         topStates: {
             state: string;
+            calls: number;
+        }[];
+        topCountries: {
+            id: string;
             calls: number;
         }[];
         totalCompanies: number;
@@ -46,6 +55,8 @@ export declare class SuperAdminService {
         accessCode: any;
         accessCodeUsed: boolean;
         adminPhone: any;
+        ntn: any;
+        website: null;
         rejectionReason: any;
         reactivationRequested: any;
         approvedAt: any;
@@ -100,6 +111,10 @@ export declare class SuperAdminService {
         };
         topStates: {
             state: string;
+            calls: number;
+        }[];
+        topCountries: {
+            id: string;
             calls: number;
         }[];
         activityByDay: {
@@ -166,7 +181,7 @@ export declare class SuperAdminService {
         number: string;
         callerName: string;
         areaCode: string;
-    }>): Promise<{
+    }>, packageName?: string): Promise<{
         id: string;
         name: string;
         status: import("@prisma/client").$Enums.AccountStatus;
@@ -183,6 +198,19 @@ export declare class SuperAdminService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     rejectCompany(accountId: string, reason: string): Promise<{
         id: string;
@@ -201,6 +229,19 @@ export declare class SuperAdminService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     deactivateCompany(accountId: string): Promise<{
         id: string;
@@ -219,6 +260,23 @@ export declare class SuperAdminService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
+    deleteCompany(accountId: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
     activateCompany(accountId: string): Promise<{
         id: string;
@@ -237,6 +295,19 @@ export declare class SuperAdminService {
         rejectionReason: string | null;
         approvedAt: Date | null;
         adminPhone: string | null;
+        website: string | null;
+        ntn: string | null;
+        termsAccepted: boolean;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        requestedPackage: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
     }>;
     getAnalytics(): Promise<{
         accountId: string;
@@ -331,6 +402,19 @@ export declare class SuperAdminService {
             }[];
         };
     }>;
+    getPendingVerifications(): Promise<{
+        email: string;
+        companyName: any;
+        name: string;
+        phone: any;
+        otpCode: string;
+        expired: boolean;
+        createdAt: Date;
+    }[]>;
+    regenerateOtp(email: string): Promise<{
+        otpCode: string;
+        message: string;
+    }>;
     getAvailableNumbers(): Promise<{
         assigned: boolean;
         number: string;
@@ -361,11 +445,108 @@ export declare class SuperAdminService {
         accessCode: string | null;
         accessCodeIssuedAt: Date | null;
     }>;
+    static readonly PACKAGES: Record<string, {
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+        agentLimit: number;
+        isTrial?: boolean;
+        trialDays?: number;
+    }>;
+    assignPackage(accountId: string, packageName: string): Promise<{
+        id: string;
+        name: string;
+        agentLimit: number | null;
+        packageName: string | null;
+        isTrial: boolean;
+        trialEndsAt: Date | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
+    static readonly PACKAGE_PRICES: Record<string, number>;
+    private static readonly RATES;
+    getBillingSummary(): Promise<{
+        month: string;
+        summary: {
+            totalRevenue: number;
+            totalTelnyxCost: number;
+            totalNetProfit: number;
+            overallMargin: number;
+            totalCalls: number;
+            totalSms: number;
+        };
+        companies: {
+            id: string;
+            name: string;
+            packageName: string | null;
+            packagePrice: number;
+            totalCalls: number;
+            totalCallMinutes: number;
+            callCost: number;
+            smsCount: number;
+            smsCost: number;
+            numbers: number;
+            numCost: number;
+            totalTelnyxCost: number;
+            netProfit: number;
+            margin: number | null;
+        }[];
+        rates: {
+            outboundPerMin: number;
+            inboundPerMin: number;
+            recordPerMin: number;
+            smsOutbound: number;
+            numberPerMonth: number;
+        };
+    }>;
+    updateAgentLimit(accountId: string, agentLimit: number): Promise<{
+        id: string;
+        name: string;
+        agentLimit: number | null;
+    }>;
+    updateFeatures(accountId: string, features: {
+        canOutboundCall?: boolean;
+        canInboundCall?: boolean;
+        canSendSms?: boolean;
+        canRecord?: boolean;
+    }): Promise<{
+        id: string;
+        name: string;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+    }>;
+    getPackageUsage(accountId: string): Promise<{
+        usage: {
+            callsThisMonth: number;
+            smsThisMonth: number;
+            callLimitReached: boolean;
+            smsLimitReached: boolean;
+        };
+        agentLimit: number | null;
+        packageName: string | null;
+        canOutboundCall: boolean;
+        canInboundCall: boolean;
+        canSendSms: boolean;
+        canRecord: boolean;
+        monthlyCallLimit: number | null;
+        monthlySmsLimit: number | null;
+    }>;
     private getAccountStats;
+    private getDashboardLogs;
     private groupLogsByAccount;
     private buildCompanySnapshot;
     private computeLogStats;
     private buildTopStates;
+    private buildTopCountries;
     private buildDailyActivity;
     private buildTopAgents;
     private detectServices;

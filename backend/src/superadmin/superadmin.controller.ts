@@ -105,6 +105,16 @@ export class SuperAdminController {
     return this.superAdminService.updateAgentLimit(id, Number(agentLimit));
   }
 
+  @Patch('companies/:id/features')
+  updateFeatures(@Param('id') id: string, @Body() body: {
+    canOutboundCall?: boolean;
+    canInboundCall?: boolean;
+    canSendSms?: boolean;
+    canRecord?: boolean;
+  }) {
+    return this.superAdminService.updateFeatures(id, body);
+  }
+
   @Get('companies/:id/package-usage')
   getPackageUsage(@Param('id') id: string) {
     return this.superAdminService.getPackageUsage(id);
@@ -113,6 +123,11 @@ export class SuperAdminController {
   @Get('packages')
   getPackages() {
     return SuperAdminService.PACKAGES;
+  }
+
+  @Get('billing-summary')
+  getBillingSummary() {
+    return this.superAdminService.getBillingSummary();
   }
 
   @Get('analytics')

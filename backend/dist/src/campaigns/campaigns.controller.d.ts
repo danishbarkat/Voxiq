@@ -66,6 +66,19 @@ export declare class CampaignsController {
             rejectionReason: string | null;
             approvedAt: Date | null;
             adminPhone: string | null;
+            website: string | null;
+            ntn: string | null;
+            termsAccepted: boolean;
+            packageName: string | null;
+            isTrial: boolean;
+            trialEndsAt: Date | null;
+            requestedPackage: string | null;
+            canOutboundCall: boolean;
+            canInboundCall: boolean;
+            canSendSms: boolean;
+            canRecord: boolean;
+            monthlyCallLimit: number | null;
+            monthlySmsLimit: number | null;
         };
         lists: ({
             list: {
@@ -102,6 +115,7 @@ export declare class CampaignsController {
             direction: string | null;
             fromNumber: string | null;
             toNumber: string | null;
+            durationSeconds: number | null;
         }[];
     } & {
         id: string;

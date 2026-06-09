@@ -25,6 +25,18 @@ let LeadsController = class LeadsController {
     constructor(leadsService) {
         this.leadsService = leadsService;
     }
+    downloadTemplate(res) {
+        const headers = ['firstName', 'lastName', 'phone', 'address', 'tags', 'email', 'company', 'notes'];
+        const sample1 = ['Muhammad', 'Usman', '+923001234567', 'House 5 Block A DHA Lahore', 'hot-lead,interested', 'usman@yourcompany.com', 'Usman Trading Co', 'Interested in product - call back requested'];
+        const sample2 = ['Ayesha', 'Siddiqui', '+923451234567', 'Flat 12 Gulshan-e-Iqbal Karachi', 'follow-up,callback', 'ayesha@yourcompany.com', 'Siddiqui Enterprises', 'Wants demo on Wednesday afternoon'];
+        const sample3 = ['Bilal', 'Ahmed', '+923211234567', 'Street 3 G-11 Islamabad', 'new', 'bilal@yourcompany.com', 'Ahmed Solutions', ''];
+        const rows = [headers, sample1, sample2, sample3]
+            .map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="voxiq-leads-template.csv"');
+        res.send('﻿' + rows);
+    }
     async importCsv(file, accountId, listId, newListName, req) {
         if (!file) {
             throw new common_1.BadRequestException('No file uploaded');
@@ -97,6 +109,14 @@ let LeadsController = class LeadsController {
     }
 };
 exports.LeadsController = LeadsController;
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager'),
+    (0, common_1.Get)('import/template'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "downloadTemplate", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager'),
     (0, common_1.Post)('import'),

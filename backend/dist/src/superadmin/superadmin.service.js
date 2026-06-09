@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var SuperAdminService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SuperAdminService = void 0;
 const common_1 = require("@nestjs/common");
@@ -17,46 +18,65 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const areaCodes_1 = require("../utils/areaCodes");
 const SUPERADMIN_ACCOUNT_ID = 'super-admin-account';
 let SuperAdminService = class SuperAdminService {
+    static { SuperAdminService_1 = this; }
     prisma;
     configService;
+    accountSummarySelect = {
+        id: true,
+        name: true,
+        status: true,
+        approved: true,
+        agentLimit: true,
+        requestedAgentLimit: true,
+        requestedNumbers: true,
+        accessCode: true,
+        accessCodeUsedAt: true,
+        approvedAt: true,
+        createdAt: true,
+        numberPool: true,
+        adminPhone: true,
+        rejectionReason: true,
+        ntn: true,
+        packageName: true,
+        isTrial: true,
+        trialEndsAt: true,
+        canOutboundCall: true,
+        canInboundCall: true,
+        canSendSms: true,
+        canRecord: true,
+        monthlyCallLimit: true,
+        monthlySmsLimit: true,
+        users: {
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                status: true,
+                createdAt: true,
+                role: { select: { name: true } },
+            },
+        },
+        _count: {
+            select: {
+                users: true,
+                leads: true,
+                lists: true,
+                campaigns: true,
+            },
+        },
+    };
     constructor(prisma, configService) {
         this.prisma = prisma;
         this.configService = configService;
     }
     async getOverview() {
-        const accounts = await this.prisma.account.findMany({
-            where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
-            include: {
-                users: {
-                    select: {
-                        id: true,
-                        role: { select: { name: true } },
-                    },
-                },
-                _count: {
-                    select: {
-                        users: true,
-                        leads: true,
-                        lists: true,
-                        campaigns: true,
-                    },
-                },
-            },
-        });
-        const callLogs = await this.prisma.callLog.findMany({
-            include: {
-                agent: {
-                    select: {
-                        accountId: true,
-                    },
-                },
-                lead: {
-                    select: {
-                        phone: true,
-                    },
-                },
-            },
-        });
+        const [accounts, callLogs] = await Promise.all([
+            this.prisma.account.findMany({
+                where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+                select: this.accountSummarySelect,
+            }),
+            this.getDashboardLogs(),
+        ]);
         const byAccount = this.groupLogsByAccount(callLogs);
         const companySummaries = accounts.map((account) => this.buildCompanySnapshot(account, byAccount.get(account.id) || []));
         const totals = companySummaries.reduce((acc, company) => {
@@ -106,6 +126,7 @@ let SuperAdminService = class SuperAdminService {
             totalCalls: company.totalCalls,
             totalMinutes: company.totalMinutes,
             revenue: company.revenue,
+            topStates: company.topStates?.slice(0, 3) || [],
         }));
         const stateCounts = {};
         for (const company of companySummaries) {
@@ -117,57 +138,55 @@ let SuperAdminService = class SuperAdminService {
             .map(([state, calls]) => ({ state, calls }))
             .sort((a, b) => b.calls - a.calls)
             .slice(0, 8);
+        const topCountries = this.buildTopCountries(callLogs);
         return {
             ...totals,
             connectionRate: totals.totalCalls > 0 ? Number(((totals.connectedCalls / totals.totalCalls) * 100).toFixed(1)) : 0,
             topCompanies,
             topStates,
+            topCountries,
         };
     }
     async getAllCompanies() {
-        const accounts = await this.prisma.account.findMany({
-            where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
-            orderBy: { createdAt: 'desc' },
-            include: {
-                users: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        role: { select: { name: true } },
-                    },
-                },
-                _count: {
-                    select: {
-                        users: true,
-                        leads: true,
-                        lists: true,
-                        campaigns: true,
-                    },
-                },
-            },
-        });
-        const callLogs = await this.prisma.callLog.findMany({
-            include: {
-                agent: {
-                    select: {
-                        accountId: true,
-                    },
-                },
-                lead: {
-                    select: {
-                        phone: true,
-                    },
-                },
-            },
-        });
+        const [accounts, callLogs] = await Promise.all([
+            this.prisma.account.findMany({
+                where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+                orderBy: { createdAt: 'desc' },
+                select: this.accountSummarySelect,
+            }),
+            this.getDashboardLogs(),
+        ]);
         const byAccount = this.groupLogsByAccount(callLogs);
         return accounts.map((account) => this.buildCompanySnapshot(account, byAccount.get(account.id) || []));
     }
     async getCompanyDetails(accountId) {
         const account = await this.prisma.account.findUnique({
             where: { id: accountId },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                status: true,
+                approved: true,
+                agentLimit: true,
+                requestedAgentLimit: true,
+                requestedNumbers: true,
+                accessCode: true,
+                accessCodeUsedAt: true,
+                approvedAt: true,
+                createdAt: true,
+                numberPool: true,
+                adminPhone: true,
+                rejectionReason: true,
+                ntn: true,
+                packageName: true,
+                isTrial: true,
+                trialEndsAt: true,
+                canOutboundCall: true,
+                canInboundCall: true,
+                canSendSms: true,
+                canRecord: true,
+                monthlyCallLimit: true,
+                monthlySmsLimit: true,
                 users: {
                     include: {
                         role: { select: { name: true } },
@@ -235,6 +254,7 @@ let SuperAdminService = class SuperAdminService {
         const stats = this.computeLogStats(logs);
         const activityByDay = this.buildDailyActivity(logs);
         const topStates = this.buildTopStates(logs);
+        const topCountries = this.buildTopCountries(logs);
         const topAgents = this.buildTopAgents(logs, account.users);
         return {
             id: account.id,
@@ -253,6 +273,7 @@ let SuperAdminService = class SuperAdminService {
             services: this.detectServices(account, logs),
             stats,
             topStates,
+            topCountries,
             activityByDay,
             topAgents,
             admins: account.users
@@ -300,22 +321,36 @@ let SuperAdminService = class SuperAdminService {
             })),
         };
     }
-    async approveCompany(accountId, agentLimit, numberPool) {
+    async approveCompany(accountId, agentLimit, numberPool, packageName) {
         const account = await this.prisma.account.findUnique({ where: { id: accountId } });
         if (!account)
             throw new common_1.NotFoundException('Company not found');
         if (account.status === client_1.AccountStatus.ACTIVE) {
             throw new common_1.BadRequestException('Company is already active');
         }
+        const pkgName = packageName || 'Trial';
+        const preset = SuperAdminService_1.PACKAGES[pkgName] || SuperAdminService_1.PACKAGES['Trial'];
+        const trialEndsAt = preset.isTrial
+            ? new Date(Date.now() + (preset.trialDays || 7) * 24 * 60 * 60 * 1000)
+            : null;
         return this.prisma.account.update({
             where: { id: accountId },
             data: {
                 status: client_1.AccountStatus.ACTIVE,
                 approved: true,
-                agentLimit,
+                agentLimit: packageName ? preset.agentLimit : agentLimit,
                 numberPool,
                 approvedAt: new Date(),
                 rejectionReason: null,
+                packageName: pkgName,
+                isTrial: !!preset.isTrial,
+                trialEndsAt,
+                canOutboundCall: preset.canOutboundCall,
+                canInboundCall: preset.canInboundCall,
+                canSendSms: preset.canSendSms,
+                canRecord: preset.canRecord,
+                monthlyCallLimit: preset.monthlyCallLimit,
+                monthlySmsLimit: preset.monthlySmsLimit,
             },
         });
     }
@@ -340,6 +375,30 @@ let SuperAdminService = class SuperAdminService {
             where: { id: accountId },
             data: { status: client_1.AccountStatus.INACTIVE, rejectionReason: null },
         });
+    }
+    async deleteCompany(accountId) {
+        const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+        if (!account)
+            throw new common_1.NotFoundException('Company not found');
+        if (accountId === 'super-admin-account')
+            throw new common_1.BadRequestException('Cannot delete super admin account');
+        const userIds = (await this.prisma.user.findMany({
+            where: { accountId },
+            select: { id: true },
+        })).map(u => u.id);
+        await this.prisma.callLog.deleteMany({ where: { agentId: { in: userIds } } });
+        await this.prisma.smsMessage.deleteMany({ where: { accountId } });
+        await this.prisma.agentList.deleteMany({ where: { agentId: { in: userIds } } });
+        await this.prisma.lead.deleteMany({ where: { accountId } });
+        await this.prisma.list.deleteMany({ where: { accountId } });
+        await this.prisma.campaign.deleteMany({ where: { accountId } });
+        try {
+            await this.prisma.voicemailTemplate.deleteMany({ where: { accountId } });
+        }
+        catch { }
+        await this.prisma.user.deleteMany({ where: { accountId } });
+        await this.prisma.account.delete({ where: { id: accountId } });
+        return { success: true, message: 'Company and all associated data permanently deleted' };
     }
     async activateCompany(accountId) {
         const account = await this.prisma.account.findUnique({ where: { id: accountId } });
@@ -393,6 +452,34 @@ let SuperAdminService = class SuperAdminService {
             this.getAccountStats(accountId, monthAgo),
         ]);
         return { accountId, companyName: account.name, daily, weekly, monthly };
+    }
+    async getPendingVerifications() {
+        const records = await this.prisma.signupVerification.findMany({
+            orderBy: { createdAt: 'desc' },
+        });
+        return records.map(r => {
+            const payload = r.payload;
+            return {
+                email: r.email,
+                companyName: payload?.companyName || '',
+                name: `${payload?.name || ''} ${payload?.lastName || ''}`.trim(),
+                phone: payload?.phone || '',
+                otpCode: r.otpCode,
+                expired: r.expiresAt < new Date(),
+                createdAt: r.createdAt,
+            };
+        });
+    }
+    async regenerateOtp(email) {
+        const record = await this.prisma.signupVerification.findUnique({ where: { email } });
+        if (!record)
+            throw new Error('No pending verification for this email');
+        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        await this.prisma.signupVerification.update({
+            where: { email },
+            data: { otpCode: newOtp, expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+        });
+        return { otpCode: newOtp, message: 'OTP refreshed — share with user' };
     }
     async getAvailableNumbers() {
         const telnyxNumbers = await this.fetchTelnyxNumbers();
@@ -517,6 +604,191 @@ let SuperAdminService = class SuperAdminService {
             },
         });
     }
+    static PACKAGES = {
+        Trial: { canOutboundCall: true, canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 100, monthlySmsLimit: 0, agentLimit: 1, isTrial: true, trialDays: 7 },
+        Starter: { canOutboundCall: true, canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 300, monthlySmsLimit: 0, agentLimit: 1 },
+        Basic: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: false, monthlyCallLimit: 500, monthlySmsLimit: 400, agentLimit: 3 },
+        Growth: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: 1000, monthlySmsLimit: 800, agentLimit: 5 },
+        Pro: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: 2500, monthlySmsLimit: 2000, agentLimit: 10 },
+        Agency: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: 6000, monthlySmsLimit: 5000, agentLimit: 25 },
+        Enterprise: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 100 },
+    };
+    async assignPackage(accountId, packageName) {
+        const preset = SuperAdminService_1.PACKAGES[packageName];
+        if (!preset)
+            throw new common_1.BadRequestException(`Unknown package: ${packageName}`);
+        const trialEndsAt = preset.isTrial
+            ? new Date(Date.now() + (preset.trialDays || 7) * 24 * 60 * 60 * 1000)
+            : null;
+        return this.prisma.account.update({
+            where: { id: accountId },
+            data: {
+                packageName,
+                isTrial: !!preset.isTrial,
+                trialEndsAt,
+                canOutboundCall: preset.canOutboundCall,
+                canInboundCall: preset.canInboundCall,
+                canSendSms: preset.canSendSms,
+                canRecord: preset.canRecord,
+                monthlyCallLimit: preset.monthlyCallLimit,
+                monthlySmsLimit: preset.monthlySmsLimit,
+                agentLimit: preset.agentLimit,
+            },
+            select: {
+                id: true, name: true, packageName: true, isTrial: true, trialEndsAt: true,
+                canOutboundCall: true, canInboundCall: true,
+                canSendSms: true, canRecord: true,
+                monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+            },
+        });
+    }
+    static PACKAGE_PRICES = {
+        Trial: 0, Starter: 29, Basic: 49, Growth: 89,
+        Pro: 179, Agency: 399, Enterprise: 899,
+    };
+    static RATES = {
+        outboundPerMin: 0.007,
+        inboundPerMin: 0.005,
+        recordPerMin: 0.002,
+        smsOutbound: 0.007,
+        numberPerMonth: 1.00,
+    };
+    async getBillingSummary() {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const accounts = await this.prisma.account.findMany({
+            where: { id: { not: SUPERADMIN_ACCOUNT_ID }, status: client_1.AccountStatus.ACTIVE },
+            select: {
+                id: true, name: true, packageName: true, numberPool: true,
+                canRecord: true,
+                users: { select: { id: true } },
+            },
+        });
+        const rows = await Promise.all(accounts.map(async (acc) => {
+            const [callLogs, smsCount] = await Promise.all([
+                this.prisma.callLog.findMany({
+                    where: { agent: { accountId: acc.id }, startedAt: { gte: monthStart } },
+                    select: { durationSeconds: true, direction: true, startedAt: true, endedAt: true },
+                }),
+                this.prisma.smsMessage.count({
+                    where: { accountId: acc.id, direction: 'outbound', createdAt: { gte: monthStart } },
+                }),
+            ]);
+            const R = SuperAdminService_1.RATES;
+            let callCost = 0;
+            let totalCallSec = 0;
+            for (const log of callLogs) {
+                const secs = log.durationSeconds != null
+                    ? log.durationSeconds
+                    : log.endedAt && log.startedAt
+                        ? (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000
+                        : 0;
+                totalCallSec += secs;
+                const mins = secs / 60;
+                const rate = (log.direction || 'outbound').toLowerCase() === 'inbound' ? R.inboundPerMin : R.outboundPerMin;
+                callCost += mins * rate;
+                if (acc.canRecord)
+                    callCost += mins * R.recordPerMin;
+            }
+            const numbers = Array.isArray(acc.numberPool) ? acc.numberPool.length : 0;
+            const smsCost = smsCount * R.smsOutbound;
+            const numCost = numbers * R.numberPerMonth;
+            const totalTelnyx = parseFloat((callCost + smsCost + numCost).toFixed(4));
+            const pkgPrice = SuperAdminService_1.PACKAGE_PRICES[acc.packageName || ''] ?? 0;
+            const netProfit = parseFloat((pkgPrice - totalTelnyx).toFixed(2));
+            const margin = pkgPrice > 0 ? parseFloat(((netProfit / pkgPrice) * 100).toFixed(1)) : null;
+            return {
+                id: acc.id,
+                name: acc.name,
+                packageName: acc.packageName || null,
+                packagePrice: pkgPrice,
+                totalCalls: callLogs.length,
+                totalCallMinutes: parseFloat((totalCallSec / 60).toFixed(2)),
+                callCost: parseFloat(callCost.toFixed(4)),
+                smsCount,
+                smsCost: parseFloat(smsCost.toFixed(4)),
+                numbers,
+                numCost: parseFloat(numCost.toFixed(2)),
+                totalTelnyxCost: totalTelnyx,
+                netProfit,
+                margin,
+            };
+        }));
+        const totals = rows.reduce((acc, r) => ({
+            totalRevenue: acc.totalRevenue + r.packagePrice,
+            totalTelnyxCost: acc.totalTelnyxCost + r.totalTelnyxCost,
+            totalNetProfit: acc.totalNetProfit + r.netProfit,
+            totalCalls: acc.totalCalls + r.totalCalls,
+            totalSms: acc.totalSms + r.smsCount,
+        }), { totalRevenue: 0, totalTelnyxCost: 0, totalNetProfit: 0, totalCalls: 0, totalSms: 0 });
+        return {
+            month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+            summary: {
+                totalRevenue: parseFloat(totals.totalRevenue.toFixed(2)),
+                totalTelnyxCost: parseFloat(totals.totalTelnyxCost.toFixed(2)),
+                totalNetProfit: parseFloat(totals.totalNetProfit.toFixed(2)),
+                overallMargin: totals.totalRevenue > 0
+                    ? parseFloat(((totals.totalNetProfit / totals.totalRevenue) * 100).toFixed(1)) : 0,
+                totalCalls: totals.totalCalls,
+                totalSms: totals.totalSms,
+            },
+            companies: rows.sort((a, b) => b.netProfit - a.netProfit),
+            rates: SuperAdminService_1.RATES,
+        };
+    }
+    async updateAgentLimit(accountId, agentLimit) {
+        if (!agentLimit || agentLimit < 1)
+            throw new common_1.BadRequestException('Agent limit must be at least 1');
+        const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+        if (!account)
+            throw new common_1.NotFoundException('Company not found');
+        return this.prisma.account.update({
+            where: { id: accountId },
+            data: { agentLimit },
+            select: { id: true, name: true, agentLimit: true },
+        });
+    }
+    async updateFeatures(accountId, features) {
+        const account = await this.prisma.account.findUnique({ where: { id: accountId } });
+        if (!account)
+            throw new common_1.NotFoundException('Company not found');
+        return this.prisma.account.update({
+            where: { id: accountId },
+            data: features,
+            select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true },
+        });
+    }
+    async getPackageUsage(accountId) {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const [callCount, smsCount, account] = await Promise.all([
+            this.prisma.callLog.count({
+                where: { agent: { accountId }, startedAt: { gte: monthStart } },
+            }),
+            this.prisma.smsMessage.count({
+                where: { accountId, direction: 'outbound', createdAt: { gte: monthStart } },
+            }),
+            this.prisma.account.findUnique({
+                where: { id: accountId },
+                select: {
+                    packageName: true, canOutboundCall: true, canInboundCall: true,
+                    canSendSms: true, canRecord: true,
+                    monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+                },
+            }),
+        ]);
+        if (!account)
+            throw new common_1.NotFoundException('Company not found');
+        return {
+            ...account,
+            usage: {
+                callsThisMonth: callCount,
+                smsThisMonth: smsCount,
+                callLimitReached: account.monthlyCallLimit !== null && callCount >= account.monthlyCallLimit,
+                smsLimitReached: account.monthlySmsLimit !== null && smsCount >= account.monthlySmsLimit,
+            },
+        };
+    }
     async getAccountStats(accountId, since) {
         const logs = await this.prisma.callLog.findMany({
             where: {
@@ -543,6 +815,33 @@ let SuperAdminService = class SuperAdminService {
             recordings: stats.recordings,
             topStates: this.buildTopStates(logs).slice(0, 5),
         };
+    }
+    getDashboardLogs() {
+        return this.prisma.callLog.findMany({
+            select: {
+                id: true,
+                startedAt: true,
+                endedAt: true,
+                callStatus: true,
+                dealValue: true,
+                recordingUrl: true,
+                direction: true,
+                toNumber: true,
+                fromNumber: true,
+                agent: {
+                    select: {
+                        accountId: true,
+                    },
+                },
+                lead: {
+                    select: {
+                        phone: true,
+                    },
+                },
+            },
+            orderBy: { startedAt: 'desc' },
+            take: 5000,
+        });
     }
     groupLogsByAccount(logs) {
         const byAccount = new Map();
@@ -571,6 +870,8 @@ let SuperAdminService = class SuperAdminService {
             accessCode: account.accessCode,
             accessCodeUsed: !!account.accessCodeUsedAt,
             adminPhone: account.adminPhone,
+            ntn: account.ntn || null,
+            website: null,
             rejectionReason: account.rejectionReason,
             reactivationRequested: account.status === client_1.AccountStatus.INACTIVE &&
                 typeof account.rejectionReason === 'string' &&
@@ -602,11 +903,13 @@ let SuperAdminService = class SuperAdminService {
         const totalCalls = logs.length;
         const connectedCalls = logs.filter((log) => log.callStatus === client_1.CallStatus.CONNECTED || log.callStatus === client_1.CallStatus.COMPLETED).length;
         const totalSeconds = logs.reduce((sum, log) => {
+            if (log.durationSeconds != null)
+                return sum + log.durationSeconds;
             if (!log.endedAt || !log.startedAt)
                 return sum;
             return sum + (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000;
         }, 0);
-        const totalMinutes = Math.round(totalSeconds / 60);
+        const totalMinutes = parseFloat((totalSeconds / 60).toFixed(2));
         const avgDuration = totalCalls > 0 ? Math.round(totalSeconds / totalCalls) : 0;
         const revenue = logs.reduce((sum, log) => sum + (log.dealValue || 0), 0);
         const recordings = logs.filter((log) => !!log.recordingUrl).length;
@@ -626,7 +929,7 @@ let SuperAdminService = class SuperAdminService {
     buildTopStates(logs) {
         const stateCounts = {};
         for (const log of logs) {
-            const phone = log.lead?.phone;
+            const phone = log.lead?.phone || log.toNumber;
             const state = phone ? (0, areaCodes_1.getStateFromE164)(phone) : null;
             if (!state)
                 continue;
@@ -634,6 +937,43 @@ let SuperAdminService = class SuperAdminService {
         }
         return Object.entries(stateCounts)
             .map(([state, calls]) => ({ state, calls }))
+            .sort((a, b) => b.calls - a.calls);
+    }
+    buildTopCountries(logs) {
+        const PHONE_COUNTRY_MAP = {
+            '1': 'US', '7': 'RU', '20': 'EG', '27': 'ZA', '30': 'GR', '31': 'NL',
+            '32': 'BE', '33': 'FR', '34': 'ES', '36': 'HU', '39': 'IT', '40': 'RO',
+            '41': 'CH', '43': 'AT', '44': 'GB', '45': 'DK', '46': 'SE', '47': 'NO',
+            '48': 'PL', '49': 'DE', '51': 'PE', '52': 'MX', '54': 'AR', '55': 'BR',
+            '56': 'CL', '57': 'CO', '58': 'VE', '60': 'MY', '61': 'AU', '62': 'ID',
+            '63': 'PH', '64': 'NZ', '65': 'SG', '66': 'TH', '81': 'JP', '82': 'KR',
+            '84': 'VN', '86': 'CN', '90': 'TR', '91': 'IN', '92': 'PK', '93': 'AF',
+            '94': 'LK', '95': 'MM', '98': 'IR', '212': 'MA', '213': 'DZ', '216': 'TN',
+            '218': 'LY', '234': 'NG', '249': 'SD', '251': 'ET', '254': 'KE',
+            '255': 'TZ', '256': 'UG', '260': 'ZM', '263': 'ZW', '351': 'PT',
+            '353': 'IE', '358': 'FI', '380': 'UA', '420': 'CZ', '421': 'SK',
+            '971': 'AE', '966': 'SA', '965': 'KW', '974': 'QA', '973': 'BH',
+            '968': 'OM', '967': 'YE', '962': 'JO', '961': 'LB', '964': 'IQ', '972': 'IL',
+        };
+        const counts = {};
+        for (const log of logs) {
+            const phone = (log.lead?.phone || log.toNumber || '').replace(/[^0-9]/g, '');
+            if (!phone)
+                continue;
+            let country = null;
+            for (const len of [3, 2, 1]) {
+                const prefix = phone.slice(0, len);
+                if (PHONE_COUNTRY_MAP[prefix]) {
+                    country = PHONE_COUNTRY_MAP[prefix];
+                    break;
+                }
+            }
+            if (!country)
+                continue;
+            counts[country] = (counts[country] || 0) + 1;
+        }
+        return Object.entries(counts)
+            .map(([id, calls]) => ({ id, calls }))
             .sort((a, b) => b.calls - a.calls);
     }
     buildDailyActivity(logs) {
@@ -699,7 +1039,7 @@ let SuperAdminService = class SuperAdminService {
     }
 };
 exports.SuperAdminService = SuperAdminService;
-exports.SuperAdminService = SuperAdminService = __decorate([
+exports.SuperAdminService = SuperAdminService = SuperAdminService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         config_1.ConfigService])

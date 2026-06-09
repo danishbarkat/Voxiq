@@ -12,6 +12,16 @@ export declare class UsersController {
         createdAt: Date;
         updatedAt: Date;
     }[]>;
+    getCompanyNumberInventory(req: any): Promise<{
+        accountId: string;
+        accountName: string;
+        assignedNumbers: import("@prisma/client/runtime/library").JsonArray;
+        availableNumbers: {
+            number: string;
+            callerName: string;
+            countryCode: string;
+        }[];
+    }>;
     findOne(id: string, req: any): Promise<any>;
     update(id: string, dto: UpdateUserDto, req: any): Promise<any>;
     updateSipCredentials(id: string, body: {

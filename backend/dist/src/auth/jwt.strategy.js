@@ -14,27 +14,54 @@ const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const passport_jwt_1 = require("passport-jwt");
 const config_1 = require("@nestjs/config");
+const prisma_service_1 = require("../prisma/prisma.service");
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
-    constructor(configService) {
+    prisma;
+    constructor(configService, prisma) {
         super({
             jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
             secretOrKey: configService.get('JWT_SECRET'),
         });
+        this.prisma = prisma;
     }
     async validate(payload) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: payload.sub },
+            select: {
+                id: true,
+                status: true,
+                account: { select: { id: true, status: true } },
+                role: { select: { name: true } },
+            },
+        });
+        if (!user || !user.account) {
+            throw new common_1.UnauthorizedException('Account no longer exists');
+        }
+        if (user.status === 'INACTIVE') {
+            throw new common_1.UnauthorizedException('Your account has been deactivated');
+        }
+        const roleName = user.role?.name?.toLowerCase() || '';
+        const accountStatus = user.account.status;
+        if (accountStatus === 'PENDING') {
+            throw new common_1.UnauthorizedException('Account pending approval');
+        }
+        if (accountStatus === 'INACTIVE' && roleName !== 'admin' && roleName !== 'superadmin') {
+            throw new common_1.UnauthorizedException('Company account is deactivated. Contact your admin.');
+        }
         return {
             userId: payload.sub,
             role: payload.role,
             accountId: payload.accountId,
             teamId: payload.teamId,
-            accountStatus: payload.accountStatus,
+            accountStatus,
         };
     }
 };
 exports.JwtStrategy = JwtStrategy;
 exports.JwtStrategy = JwtStrategy = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [config_1.ConfigService])
+    __metadata("design:paramtypes", [config_1.ConfigService,
+        prisma_service_1.PrismaService])
 ], JwtStrategy);
 //# sourceMappingURL=jwt.strategy.js.map
