@@ -46,6 +46,7 @@ model Account {
   users               User[]
   VoicemailTemplate   VoicemailTemplate[]
   smsMessages         SmsMessage[]
+  scheduledCallbacks  ScheduledCallback[]
 }
 
 model SignupVerification {
@@ -115,9 +116,10 @@ model User {
   sipUri       String?
   sipPassword  String?
   AgentList    AgentList[]
-  callLogs     CallLog[]   @relation("AgentCalls")
-  smsMessages  SmsMessage[] @relation("AgentSmsMessages")
-  account      Account     @relation(fields: [accountId], references: [id])
+  callLogs           CallLog[]            @relation("AgentCalls")
+  smsMessages        SmsMessage[]         @relation("AgentSmsMessages")
+  scheduledCallbacks ScheduledCallback[]  @relation("AgentScheduledCallbacks")
+  account            Account              @relation(fields: [accountId], references: [id])
   role         Role        @relation(fields: [roleId], references: [id])
   team         Team?       @relation(fields: [teamId], references: [id])
 }
@@ -292,4 +294,27 @@ enum CallStatus {
   COMPLETED
   MISSED
   REJECTED
+}
+
+model ScheduledCallback {
+  id            String                  @id @default(uuid())
+  agentId       String
+  accountId     String
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  scheduledAt   DateTime
+  notes         String?
+  status        ScheduledCallbackStatus @default(PENDING)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  agent   User    @relation("AgentScheduledCallbacks", fields: [agentId], references: [id])
+  account Account @relation(fields: [accountId], references: [id])
+}
+
+enum ScheduledCallbackStatus {
+  PENDING
+  DONE
+  CANCELLED
 }

@@ -1,11 +1,16 @@
 import {
     Controller,
+    Get,
     Post,
     Patch,
+    Delete,
     Param,
     Body,
+    Query,
+    Req,
     SetMetadata,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { DialerService } from './dialer.service';
 import { VoipService } from '../voip/voip.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -316,6 +321,68 @@ export class DialerController {
         return { success: true, leadId, phone: lead.phone };
     }
 
+
+    // ── Scheduled Callbacks ────────────────────────────────────────────────
+
+    @Get('scheduled-callbacks')
+    async getScheduledCallbacks(@Req() req: Request & { user?: any }, @Query('agentId') agentId?: string) {
+        const aid = agentId || req.user?.userId;
+        return this.prisma.scheduledCallback.findMany({
+            where: { agentId: aid, status: 'PENDING' },
+            orderBy: { scheduledAt: 'asc' },
+        });
+    }
+
+    @Post('scheduled-callbacks')
+    async createScheduledCallback(
+        @Req() req: Request & { user?: any },
+        @Body() body: {
+            agentId?: string;
+            accountId?: string;
+            customerName: string;
+            customerPhone: string;
+            customerEmail?: string;
+            scheduledAt: string;
+            notes?: string;
+        },
+    ) {
+        const agentId = body.agentId || req.user?.userId;
+        const accountId = body.accountId || req.user?.accountId;
+        return this.prisma.scheduledCallback.create({
+            data: {
+                agentId,
+                accountId,
+                customerName: body.customerName,
+                customerPhone: body.customerPhone,
+                customerEmail: body.customerEmail,
+                scheduledAt: new Date(body.scheduledAt),
+                notes: body.notes,
+            },
+        });
+    }
+
+    @Patch('scheduled-callbacks/:id')
+    async updateScheduledCallback(
+        @Param('id') id: string,
+        @Body() body: { status?: 'PENDING' | 'DONE' | 'CANCELLED'; notes?: string; scheduledAt?: string },
+    ) {
+        return this.prisma.scheduledCallback.update({
+            where: { id },
+            data: {
+                ...(body.status && { status: body.status }),
+                ...(body.notes !== undefined && { notes: body.notes }),
+                ...(body.scheduledAt && { scheduledAt: new Date(body.scheduledAt) }),
+            },
+        });
+    }
+
+    @Delete('scheduled-callbacks/:id')
+    async deleteScheduledCallback(@Param('id') id: string) {
+        await this.prisma.scheduledCallback.delete({ where: { id } });
+        return { success: true };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
 
     /** Convert any phone format to E.164 (+12345678900) */
     private normalizeToE164(phone: string): string {

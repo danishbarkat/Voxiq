@@ -115,6 +115,17 @@ export default function Agent() {
   const [callbackTime, setCallbackTime] = useState('');
   const [dealValue, setDealValue] = useState('');
 
+  // ── Calendar / Scheduled Callbacks ────────────────────────────────────────
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [calViewMonth, setCalViewMonth] = useState(() => {
+    const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() };
+  });
+  const [calSelectedDate, setCalSelectedDate] = useState(null); // 'YYYY-MM-DD'
+  const [showApptModal, setShowApptModal] = useState(false);
+  const [apptForm, setApptForm] = useState({ customerName: '', customerPhone: '', customerEmail: '', scheduledAt: '', notes: '' });
+  const [apptSaving, setApptSaving] = useState(false);
+
   // Persist today's stats to localStorage whenever they change
   useEffect(() => {
     try { localStorage.setItem(todayKey, JSON.stringify(stats)); } catch { /* ignore */ }
@@ -214,6 +225,17 @@ export default function Agent() {
     }
   }, []);
 
+  const fetchAppointments = useCallback(async (aid) => {
+    const id = aid || agentId;
+    if (!id) return;
+    setAppointmentsLoading(true);
+    try {
+      const data = await fetchJson(`${API_URL}/dialer/scheduled-callbacks?agentId=${id}`);
+      setAppointments(Array.isArray(data) ? data : []);
+    } catch { /* silent */ }
+    finally { setAppointmentsLoading(false); }
+  }, [agentId]);
+
   useEffect(() => {
     // Reconnect socket on mount to ensure fresh token is used
     if (reconnect) reconnect();
@@ -236,6 +258,7 @@ export default function Agent() {
         // 3. Fetch leads for this agent
         fetchLeads(auth.userId);
         fetchHistory();
+        fetchAppointments(auth.userId);
       }
     });
 
@@ -243,7 +266,7 @@ export default function Agent() {
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('winfi_token') || ''}` };
     fetch(`${API_URL}/voicemail/templates`, { headers: authHeaders }).then(r => r.ok ? r.json() : []).then(d => setVmTemplates(Array.isArray(d) ? d : []));
     fetch(`${API_URL}/integrations/sms-templates`, { headers: authHeaders }).then(r => r.ok ? r.json() : []).then(d => setSmsTemplates(Array.isArray(d) ? d : []));
-  }, [fetchLeads, fetchHistory]);
+  }, [fetchLeads, fetchHistory, fetchAppointments]);
 
   // Call timer
   useEffect(() => {
@@ -918,6 +941,54 @@ export default function Agent() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [submitDisposition, callState, sendDTMF]);
+
+  // ── Appointment handlers ───────────────────────────────────────────────
+  const saveAppointment = async () => {
+    if (!apptForm.customerName || !apptForm.customerPhone || !apptForm.scheduledAt) return;
+    setApptSaving(true);
+    try {
+      await fetchJson(`${API_URL}/dialer/scheduled-callbacks`, {
+        method: 'POST',
+        body: JSON.stringify({
+          agentId,
+          customerName: apptForm.customerName,
+          customerPhone: apptForm.customerPhone,
+          customerEmail: apptForm.customerEmail || undefined,
+          scheduledAt: apptForm.scheduledAt,
+          notes: apptForm.notes || undefined,
+        }),
+      });
+      setShowApptModal(false);
+      setApptForm({ customerName: '', customerPhone: '', customerEmail: '', scheduledAt: '', notes: '' });
+      fetchAppointments(agentId);
+    } catch { /* silent */ }
+    finally { setApptSaving(false); }
+  };
+
+  const markApptDone = async (id) => {
+    try {
+      await fetchJson(`${API_URL}/dialer/scheduled-callbacks/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'DONE' }) });
+      fetchAppointments(agentId);
+    } catch { /* silent */ }
+  };
+
+  const cancelAppt = async (id) => {
+    try {
+      await fetchJson(`${API_URL}/dialer/scheduled-callbacks/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'CANCELLED' }) });
+      fetchAppointments(agentId);
+    } catch { /* silent */ }
+  };
+
+  // Calendar helper computed values
+  const apptsByDate = appointments.reduce((acc, a) => {
+    const d = new Date(a.scheduledAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(a);
+    return acc;
+  }, {});
+
+  const calFilteredAppts = calSelectedDate ? (apptsByDate[calSelectedDate] || []) : appointments;
 
   const filteredLeads = leads.filter(lead => {
     if (!leadSearch) return true;
@@ -1910,6 +1981,210 @@ export default function Agent() {
           </table>
         </div>
         </section>
+
+        {/* ── CALENDAR / SCHEDULED CALLBACKS ── */}
+        <section className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>📅</span> Callback Calendar
+            </h2>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {calSelectedDate && (
+                <button className="btn" style={{ fontSize: '0.75rem', background: '#f1f5f9' }} onClick={() => setCalSelectedDate(null)}>
+                  ✕ Show All
+                </button>
+              )}
+              <button className="btn btn-primary" style={{ fontSize: '0.82rem' }} onClick={() => {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                setApptForm(f => ({ ...f, scheduledAt: now.toISOString().slice(0, 16) }));
+                setShowApptModal(true);
+              }}>
+                + Schedule Callback
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+            {/* Mini Calendar */}
+            <div style={{ background: '#f8fafc', borderRadius: 12, padding: '1rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <button onClick={() => setCalViewMonth(m => {
+                  let mo = m.month - 1; let yr = m.year;
+                  if (mo < 0) { mo = 11; yr--; }
+                  return { year: yr, month: mo };
+                })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#64748b', padding: '2px 6px', borderRadius: 6 }}>‹</button>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                  {new Date(calViewMonth.year, calViewMonth.month).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </span>
+                <button onClick={() => setCalViewMonth(m => {
+                  let mo = m.month + 1; let yr = m.year;
+                  if (mo > 11) { mo = 0; yr++; }
+                  return { year: yr, month: mo };
+                })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#64748b', padding: '2px 6px', borderRadius: 6 }}>›</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+                {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                  <div key={d} style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', padding: '4px 0' }}>{d}</div>
+                ))}
+                {(() => {
+                  const firstDay = new Date(calViewMonth.year, calViewMonth.month, 1).getDay();
+                  const daysInMonth = new Date(calViewMonth.year, calViewMonth.month + 1, 0).getDate();
+                  const today = new Date();
+                  const cells = [];
+                  for (let i = 0; i < firstDay; i++) cells.push(<div key={`e${i}`} />);
+                  for (let d = 1; d <= daysInMonth; d++) {
+                    const key = `${calViewMonth.year}-${String(calViewMonth.month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const hasAppts = !!apptsByDate[key];
+                    const isToday = today.getFullYear() === calViewMonth.year && today.getMonth() === calViewMonth.month && today.getDate() === d;
+                    const isSelected = calSelectedDate === key;
+                    cells.push(
+                      <button key={d} onClick={() => setCalSelectedDate(isSelected ? null : key)} style={{
+                        background: isSelected ? '#4f46e5' : isToday ? '#eff6ff' : 'transparent',
+                        color: isSelected ? 'white' : isToday ? '#4f46e5' : '#0f172a',
+                        border: isToday && !isSelected ? '1.5px solid #6366f1' : '1.5px solid transparent',
+                        borderRadius: 7,
+                        fontSize: '0.8rem',
+                        fontWeight: hasAppts ? 700 : 400,
+                        padding: '5px 2px',
+                        cursor: 'pointer',
+                        position: 'relative',
+                      }}>
+                        {d}
+                        {hasAppts && <span style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 5, height: 5, borderRadius: '50%', background: isSelected ? 'white' : '#6366f1', display: 'block' }} />}
+                      </button>
+                    );
+                  }
+                  return cells;
+                })()}
+              </div>
+            </div>
+
+            {/* Appointments List */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
+                  {calSelectedDate
+                    ? `Appointments on ${new Date(calSelectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`
+                    : 'Upcoming Callbacks'}
+                </span>
+                <span style={{ background: '#ede9fe', color: '#6d28d9', borderRadius: 999, padding: '2px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                  {calFilteredAppts.length}
+                </span>
+                <button className="btn" style={{ marginLeft: 'auto', fontSize: '0.72rem', background: '#f1f5f9' }} onClick={() => fetchAppointments(agentId)}>↻ Refresh</button>
+              </div>
+
+              {appointmentsLoading ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>Loading...</div>
+              ) : calFilteredAppts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.3 }}>📅</div>
+                  <p style={{ fontSize: '0.85rem' }}>
+                    {calSelectedDate ? 'No callbacks scheduled for this day' : 'No upcoming callbacks — schedule one above'}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: 320, overflowY: 'auto' }}>
+                  {calFilteredAppts.map(appt => {
+                    const dt = new Date(appt.scheduledAt);
+                    const isPast = dt < new Date();
+                    return (
+                      <div key={appt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: isPast ? '#fffbeb' : '#f8fafc', border: `1px solid ${isPast ? '#fcd34d' : '#e2e8f0'}`, borderRadius: 10, padding: '0.75rem 1rem' }}>
+                        <div style={{ width: 44, textAlign: 'center', flexShrink: 0 }}>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>{dt.getDate()}</div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{dt.toLocaleString('default', { month: 'short' })}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>{dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.customerName}</div>
+                          <div style={{ fontSize: '0.82rem', color: '#64748b', fontFamily: 'monospace' }}>{appt.customerPhone}</div>
+                          {appt.customerEmail && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{appt.customerEmail}</div>}
+                          {appt.notes && <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2, fontStyle: 'italic' }}>{appt.notes}</div>}
+                          {isPast && <span style={{ fontSize: '0.68rem', background: '#fef9c3', color: '#b45309', borderRadius: 999, padding: '2px 6px', fontWeight: 700 }}>OVERDUE</span>}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
+                          <button
+                            className="btn btn-primary"
+                            style={{ fontSize: '0.72rem', padding: '0.35rem 0.75rem' }}
+                            onClick={() => {
+                              setDialNumber(appt.customerPhone);
+                              setDialName(appt.customerName);
+                            }}
+                            title="Pre-fill dial pad with this number"
+                          >
+                            📞 Call
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ fontSize: '0.72rem', padding: '0.35rem 0.75rem', background: '#dcfce7', color: '#15803d' }}
+                            onClick={() => markApptDone(appt.id)}
+                          >
+                            ✓ Done
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ fontSize: '0.72rem', padding: '0.35rem 0.75rem', background: '#fef2f2', color: '#b91c1c' }}
+                            onClick={() => cancelAppt(appt.id)}
+                          >
+                            ✕ Cancel
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ── ADD APPOINTMENT MODAL ── */}
+        {showApptModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: '2rem', width: '100%', maxWidth: 480, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>📅 Schedule Callback</h3>
+                <button onClick={() => setShowApptModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Customer Name *</label>
+                  <input className="input-field" placeholder="e.g. John Smith" value={apptForm.customerName} onChange={e => setApptForm(f => ({ ...f, customerName: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Phone *</label>
+                  <input className="input-field" placeholder="+1 555 000 0000" value={apptForm.customerPhone}
+                    onChange={e => setApptForm(f => ({ ...f, customerPhone: e.target.value }))}
+                    defaultValue={currentLead?.phone || ''} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Email</label>
+                  <input className="input-field" placeholder="customer@email.com" value={apptForm.customerEmail} onChange={e => setApptForm(f => ({ ...f, customerEmail: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Date & Time *</label>
+                  <input type="datetime-local" className="input-field" value={apptForm.scheduledAt} onChange={e => setApptForm(f => ({ ...f, scheduledAt: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Notes</label>
+                  <textarea className="input-field" rows={2} placeholder="What did they say? When are they free?" value={apptForm.notes} onChange={e => setApptForm(f => ({ ...f, notes: e.target.value }))} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button className="btn" style={{ flex: 1 }} onClick={() => setShowApptModal(false)}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 2 }}
+                  onClick={saveAppointment}
+                  disabled={apptSaving || !apptForm.customerName || !apptForm.customerPhone || !apptForm.scheduledAt}
+                >
+                  {apptSaving ? 'Saving...' : '✓ Save Callback'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         </>)} {/* end !smsTab */}
       </div> {/* end page body */}
 
