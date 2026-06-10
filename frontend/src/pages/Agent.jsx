@@ -1853,8 +1853,10 @@ export default function Agent() {
         </div> {/* end RIGHT COLUMN */}
         </div> {/* end main 2-col grid */}
 
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+
         {/* ── LEAD QUEUE ── */}
-        <section className="card">
+        <section className="card" style={{ height: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div>
               <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2058,7 +2060,7 @@ export default function Agent() {
         </section>
 
         {/* ── CALENDAR / SCHEDULED CALLBACKS ── */}
-        <section className="card">
+        <section className="card" style={{ height: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📅</span> Callback Calendar
@@ -2080,7 +2082,7 @@ export default function Agent() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 260px) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
             {/* Mini Calendar */}
             <div style={{ background: '#f8fafc', borderRadius: 12, padding: '1rem', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -2212,6 +2214,7 @@ export default function Agent() {
             </div>
           </div>
         </section>
+        </div>
 
         {/* ── ADD APPOINTMENT MODAL ── */}
         {showApptModal && (
@@ -2280,3 +2283,5 @@ export default function Agent() {
     </div>
   );
 }
+
+
