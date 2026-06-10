@@ -28,6 +28,18 @@ import { fetchJson } from '../lib/api';
 import { getToken, setToken, clearToken } from '../lib/auth';
 import ProWorldMap from '../components/ProWorldMap';
 
+const COUNTRY_LABELS = {
+  US: 'United States', GB: 'United Kingdom', PK: 'Pakistan', IN: 'India', CN: 'China',
+  AU: 'Australia', CA: 'Canada', DE: 'Germany', FR: 'France', JP: 'Japan', BR: 'Brazil',
+  MX: 'Mexico', SA: 'Saudi Arabia', AE: 'UAE', NG: 'Nigeria', ZA: 'South Africa',
+  RU: 'Russia', TR: 'Turkey', IT: 'Italy', ES: 'Spain', KR: 'South Korea', ID: 'Indonesia',
+  PH: 'Philippines', BD: 'Bangladesh', EG: 'Egypt', MY: 'Malaysia', TH: 'Thailand',
+  VN: 'Vietnam', NL: 'Netherlands', SE: 'Sweden', NO: 'Norway', DK: 'Denmark',
+  FI: 'Finland', PL: 'Poland', UA: 'Ukraine', PT: 'Portugal', IL: 'Israel', NZ: 'New Zealand',
+  AR: 'Argentina', CO: 'Colombia', PE: 'Peru', AF: 'Afghanistan', LK: 'Sri Lanka',
+  MA: 'Morocco', DZ: 'Algeria', TN: 'Tunisia', KE: 'Kenya', ET: 'Ethiopia',
+};
+
 // ─── Tiny pure-CSS bar chart ──────────────────────────────────────────────────
 function BarChart({ data = [], labelKey = 'label', valueKey = 'value', max, color = 'var(--vx-accent)' }) {
   const m = max || Math.max(...data.map(d => d[valueKey] || 0), 1);
@@ -1793,6 +1805,50 @@ export default function Admin() {
                     ))}
                   </div>
                 )}
+
+                {(() => {
+                  const sortedCountries = [...heatmapData].sort((a, b) => (b?.value || 0) - (a?.value || 0));
+                  const topCountryStats = sortedCountries.slice(0, 5);
+                  const mappedCalls = sortedCountries.reduce((sum, item) => sum + (item?.value || 0), 0);
+
+                  return (
+                    <div className="dynamic-grid mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                      <div className="card stat-card">
+                        <span className="stat-label">Active Countries</span>
+                        <span className="stat-val" style={{ color: '#2563eb' }}>{sortedCountries.length}</span>
+                      </div>
+                      <div className="card stat-card">
+                        <span className="stat-label">Mapped Calls</span>
+                        <span className="stat-val" style={{ color: '#0f766e' }}>{mappedCalls}</span>
+                      </div>
+                      <div className="card" style={{ padding: '1rem 1.1rem' }}>
+                        <div className="stat-label" style={{ marginBottom: '0.65rem' }}>Top Countries</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                          {topCountryStats.length > 0 ? topCountryStats.map(country => (
+                            <span
+                              key={country.id}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.32rem 0.65rem',
+                                borderRadius: '999px',
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {COUNTRY_LABELS[country.id] || country.id} {country.value}
+                            </span>
+                          )) : (
+                            <span className="text-dim" style={{ fontSize: '0.78rem' }}>No country data yet</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* State Heatmap section */}
                 <section className="card mb-6">
