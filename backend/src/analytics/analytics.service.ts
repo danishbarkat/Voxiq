@@ -9,6 +9,68 @@ export class AnalyticsService {
 
     constructor(private prisma: PrismaService) { }
 
+    private getTzAwareDayStart(date: Date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const startShifted = Date.UTC(
+            shifted.getUTCFullYear(),
+            shifted.getUTCMonth(),
+            shifted.getUTCDate(),
+            0,
+            0,
+            0,
+            0,
+        );
+        return new Date(startShifted + offsetMs);
+    }
+
+    private getTzAwareMonthStart(date: Date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const startShifted = Date.UTC(
+            shifted.getUTCFullYear(),
+            shifted.getUTCMonth(),
+            1,
+            0,
+            0,
+            0,
+            0,
+        );
+        return new Date(startShifted + offsetMs);
+    }
+
+    private getTzAwareYearStart(date: Date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const startShifted = Date.UTC(
+            shifted.getUTCFullYear(),
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+        );
+        return new Date(startShifted + offsetMs);
+    }
+
+    private getTzAwareWeekStart(date: Date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const dayOfWeek = shifted.getUTCDay(); // 0=Sun
+        const daysToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const startShifted = Date.UTC(
+            shifted.getUTCFullYear(),
+            shifted.getUTCMonth(),
+            shifted.getUTCDate() - daysToMon,
+            0,
+            0,
+            0,
+            0,
+        );
+        return new Date(startShifted + offsetMs);
+    }
+
     private buildDateFilter(startDate?: Date, endDate?: Date): Prisma.Sql {
         if (startDate && endDate) return Prisma.sql`AND "startedAt" >= ${startDate} AND "startedAt" <= ${endDate}`;
         if (startDate) return Prisma.sql`AND "startedAt" >= ${startDate}`;
@@ -417,25 +479,20 @@ export class AnalyticsService {
     }
 
     /** Returns call counts for Today / Yesterday / This Week / Last Week / This Month / This Year */
-    async getMyPeriodStats(requester?: any) {
+    async getMyPeriodStats(requester?: any, tzOffsetMinutes = 0) {
         const agentId = requester?.userId;
         if (!agentId) return null;
 
         const now = new Date();
-        // Today boundaries (UTC-based, same as DB)
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const safeOffset = Number.isFinite(tzOffsetMinutes) ? tzOffsetMinutes : 0;
+        const todayStart = this.getTzAwareDayStart(now, safeOffset);
         const yesterdayStart = new Date(todayStart.getTime() - 86400000);
         const yesterdayEnd = new Date(todayStart.getTime() - 1);
-
-        // Week: Monday as start
-        const dayOfWeek = now.getDay(); // 0=Sun
-        const daysToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon);
+        const thisWeekStart = this.getTzAwareWeekStart(now, safeOffset);
         const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
         const lastWeekEnd = new Date(thisWeekStart.getTime() - 1);
-
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const thisYearStart = new Date(now.getFullYear(), 0, 1);
+        const thisMonthStart = this.getTzAwareMonthStart(now, safeOffset);
+        const thisYearStart = this.getTzAwareYearStart(now, safeOffset);
 
         const rows = await this.prisma.$queryRaw<any[]>(Prisma.sql`
             SELECT

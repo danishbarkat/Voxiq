@@ -45,6 +45,9 @@ let AnalyticsController = class AnalyticsController {
             dateTo,
         }, req?.user);
     }
+    getMyPeriodStats(tzOffset, req) {
+        return this.analyticsService.getMyPeriodStats(req?.user, tzOffset !== undefined ? parseInt(tzOffset, 10) : undefined);
+    }
     getHistory(limit, req) {
         return this.analyticsService.getHistory({
             limit: limit ? parseInt(limit) : 150,
@@ -116,6 +119,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String, Object]),
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getRecordings", null);
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
+    (0, common_1.Get)('my-period-stats'),
+    __param(0, (0, common_1.Query)('tzOffset')),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AnalyticsController.prototype, "getMyPeriodStats", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager', 'Agent'),
     (0, common_1.Get)('history'),

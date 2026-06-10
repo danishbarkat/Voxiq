@@ -64,8 +64,14 @@ export class AnalyticsController {
 
     @Roles('Admin', 'Manager', 'Agent')
     @Get('my-period-stats')
-    getMyPeriodStats(@Req() req?: any) {
-        return this.analyticsService.getMyPeriodStats(req?.user);
+    getMyPeriodStats(
+        @Query('tzOffset') tzOffset?: string,
+        @Req() req?: any,
+    ) {
+        return this.analyticsService.getMyPeriodStats(
+            req?.user,
+            tzOffset !== undefined ? parseInt(tzOffset, 10) : undefined,
+        );
     }
 
     @Roles('Admin', 'Manager', 'Agent')

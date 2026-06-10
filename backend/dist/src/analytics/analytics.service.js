@@ -21,6 +21,32 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    getTzAwareDayStart(date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const startShifted = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate(), 0, 0, 0, 0);
+        return new Date(startShifted + offsetMs);
+    }
+    getTzAwareMonthStart(date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const startShifted = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1, 0, 0, 0, 0);
+        return new Date(startShifted + offsetMs);
+    }
+    getTzAwareYearStart(date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const startShifted = Date.UTC(shifted.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
+        return new Date(startShifted + offsetMs);
+    }
+    getTzAwareWeekStart(date, tzOffsetMinutes = 0) {
+        const offsetMs = tzOffsetMinutes * 60_000;
+        const shifted = new Date(date.getTime() - offsetMs);
+        const dayOfWeek = shifted.getUTCDay();
+        const daysToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const startShifted = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate() - daysToMon, 0, 0, 0, 0);
+        return new Date(startShifted + offsetMs);
+    }
     buildDateFilter(startDate, endDate) {
         if (startDate && endDate)
             return client_1.Prisma.sql `AND "startedAt" >= ${startDate} AND "startedAt" <= ${endDate}`;
@@ -383,6 +409,41 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
             outboundMessages: smsItems.filter((item) => item.direction === 'outbound').length,
         };
         return { stats, items };
+    }
+    async getMyPeriodStats(requester, tzOffsetMinutes = 0) {
+        const agentId = requester?.userId;
+        if (!agentId)
+            return null;
+        const now = new Date();
+        const safeOffset = Number.isFinite(tzOffsetMinutes) ? tzOffsetMinutes : 0;
+        const todayStart = this.getTzAwareDayStart(now, safeOffset);
+        const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+        const yesterdayEnd = new Date(todayStart.getTime() - 1);
+        const thisWeekStart = this.getTzAwareWeekStart(now, safeOffset);
+        const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
+        const lastWeekEnd = new Date(thisWeekStart.getTime() - 1);
+        const thisMonthStart = this.getTzAwareMonthStart(now, safeOffset);
+        const thisYearStart = this.getTzAwareYearStart(now, safeOffset);
+        const rows = await this.prisma.$queryRaw(client_1.Prisma.sql `
+            SELECT
+                COUNT(*) FILTER (WHERE "startedAt" >= ${todayStart})                           AS today,
+                COUNT(*) FILTER (WHERE "startedAt" >= ${yesterdayStart} AND "startedAt" <= ${yesterdayEnd}) AS yesterday,
+                COUNT(*) FILTER (WHERE "startedAt" >= ${thisWeekStart})                        AS "thisWeek",
+                COUNT(*) FILTER (WHERE "startedAt" >= ${lastWeekStart} AND "startedAt" <= ${lastWeekEnd}) AS "lastWeek",
+                COUNT(*) FILTER (WHERE "startedAt" >= ${thisMonthStart})                       AS "thisMonth",
+                COUNT(*) FILTER (WHERE "startedAt" >= ${thisYearStart})                        AS "thisYear"
+            FROM "CallLog"
+            WHERE "agentId" = ${agentId}
+        `);
+        const r = rows[0] || {};
+        return {
+            today: Number(r.today) || 0,
+            yesterday: Number(r.yesterday) || 0,
+            thisWeek: Number(r.thisWeek) || 0,
+            lastWeek: Number(r.lastWeek) || 0,
+            thisMonth: Number(r.thisMonth) || 0,
+            thisYear: Number(r.thisYear) || 0,
+        };
     }
     async updateCallTags(id, tags, requester) {
         await this.assertCallLogAccess(id, requester);

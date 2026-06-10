@@ -263,7 +263,8 @@ export default function Agent() {
         fetchLeads(auth.userId);
         fetchHistory();
         fetchAppointments(auth.userId);
-        fetchJson(`${API_URL}/analytics/my-period-stats`).then(d => { if (d) setPeriodStats(d); }).catch(() => {});
+        const tzOffset = new Date().getTimezoneOffset();
+        fetchJson(`${API_URL}/analytics/my-period-stats?tzOffset=${encodeURIComponent(tzOffset)}`).then(d => { if (d) setPeriodStats(d); }).catch(() => {});
       }
     });
 

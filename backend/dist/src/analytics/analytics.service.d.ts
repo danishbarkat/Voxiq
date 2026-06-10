@@ -3,6 +3,10 @@ export declare class AnalyticsService {
     private prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
+    private getTzAwareDayStart;
+    private getTzAwareMonthStart;
+    private getTzAwareYearStart;
+    private getTzAwareWeekStart;
     private buildDateFilter;
     getCampaignStats(campaignId: string, startDate?: Date, endDate?: Date, requester?: any): Promise<{
         totalCalls: number;
@@ -143,6 +147,14 @@ export declare class AnalyticsService {
             agent: any;
         })[];
     }>;
+    getMyPeriodStats(requester?: any, tzOffsetMinutes?: number): Promise<{
+        today: number;
+        yesterday: number;
+        thisWeek: number;
+        lastWeek: number;
+        thisMonth: number;
+        thisYear: number;
+    } | null>;
     updateCallTags(id: string, tags: string[], requester?: any): Promise<{
         id: string;
         createdAt: Date;

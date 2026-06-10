@@ -66,6 +66,14 @@ export declare class AnalyticsController {
         fromNumber: string | null;
         toNumber: string | null;
     }[]>;
+    getMyPeriodStats(tzOffset?: string, req?: any): Promise<{
+        today: number;
+        yesterday: number;
+        thisWeek: number;
+        lastWeek: number;
+        thisMonth: number;
+        thisYear: number;
+    } | null>;
     getHistory(limit?: string, req?: any): Promise<{
         stats: {
             missedCalls: number;
