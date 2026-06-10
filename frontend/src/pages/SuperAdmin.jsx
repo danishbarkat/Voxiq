@@ -64,6 +64,100 @@ function MiniBars({ data, valueKey = 'calls', labelKey = 'label', color = '#6366
   );
 }
 
+const TREND_COLORS = ['#22c55e', '#38bdf8', '#f59e0b', '#f43f5e', '#8b5cf6', '#14b8a6'];
+
+function MultiCompanyLineChart({ series = [] }) {
+  const chartCompanies = useMemo(() => {
+    const unique = new Map();
+    series.forEach(point => {
+      (point.companies || []).forEach(company => {
+        if (!unique.has(company.accountId)) {
+          unique.set(company.accountId, {
+            accountId: company.accountId,
+            companyName: company.companyName,
+            color: TREND_COLORS[unique.size % TREND_COLORS.length],
+          });
+        }
+      });
+    });
+    return [...unique.values()];
+  }, [series]);
+
+  const maxCalls = Math.max(
+    ...series.flatMap(point => (point.companies || []).map(company => company.calls || 0)),
+    1,
+  );
+
+  const width = 760;
+  const height = 260;
+  const padding = { top: 24, right: 24, bottom: 40, left: 40 };
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
+  const stepX = series.length > 1 ? innerWidth / (series.length - 1) : innerWidth / 2;
+
+  const getX = index => padding.left + (series.length > 1 ? index * stepX : innerWidth / 2);
+  const getY = value => padding.top + innerHeight - ((value || 0) / maxCalls) * innerHeight;
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {chartCompanies.map(company => (
+          <div key={company.accountId} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, background: '#0f172a', color: '#e5eefb', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 999, background: company.color }} />
+            {company.companyName}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ borderRadius: 18, padding: 16, background: 'radial-gradient(circle at top, rgba(34,197,94,0.14), rgba(15,23,42,0.98) 45%)', border: '1px solid rgba(148,163,184,0.18)', boxShadow: '0 24px 50px rgba(15,23,42,0.16)' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          {Array.from({ length: 5 }).map((_, idx) => {
+            const y = padding.top + (innerHeight / 4) * idx;
+            const value = Math.round(maxCalls - (maxCalls / 4) * idx);
+            return (
+              <g key={idx}>
+                <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="rgba(148,163,184,0.18)" strokeDasharray="4 6" />
+                <text x={8} y={y + 4} fill="#94a3b8" fontSize="10">{value}</text>
+              </g>
+            );
+          })}
+
+          {chartCompanies.map(company => {
+            const points = series.map((point, index) => {
+              const match = (point.companies || []).find(item => item.accountId === company.accountId);
+              return {
+                x: getX(index),
+                y: getY(match?.calls || 0),
+                value: match?.calls || 0,
+                label: point.label,
+              };
+            });
+
+            const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+            return (
+              <g key={company.accountId}>
+                <path d={path} fill="none" stroke={company.color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                {points.map(point => (
+                  <g key={`${company.accountId}-${point.label}`}>
+                    <circle cx={point.x} cy={point.y} r="4.5" fill={company.color} stroke="#0f172a" strokeWidth="2" />
+                    <title>{`${company.companyName} • ${point.label}: ${point.value} calls`}</title>
+                  </g>
+                ))}
+              </g>
+            );
+          })}
+
+          {series.map((point, index) => (
+            <text key={point.key || point.label} x={getX(index)} y={height - 12} textAnchor="middle" fill="#cbd5e1" fontSize="10">
+              {point.label}
+            </text>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 // ─── modals ───────────────────────────────────────────────────────────────────
 
 const OVERLAY = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
@@ -382,6 +476,8 @@ function DashboardTab({ overview, overviewLoading }) {
   const topCompanies  = overview?.topCompanies || [];
   const topStates     = (overview?.topStates || []).map(s => ({ id: s.state, value: s.calls, label: s.state }));
   const topCountries  = (overview?.topCountries || []).map(c => ({ id: c.id, value: c.calls }));
+  const [trendPeriod, setTrendPeriod] = useState('daily');
+  const trendSeries = overview?.companyTrends?.[trendPeriod] || [];
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
@@ -414,7 +510,41 @@ function DashboardTab({ overview, overviewLoading }) {
 
       {/* ── Graphs row ── */}
       {!overviewLoading && overview && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr 1fr', gap: 18 }}>
+
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Company Call Trends</div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>Daily, weekly, and monthly performance by company</div>
+              </div>
+              <div style={{ display: 'inline-flex', gap: 6, padding: 4, borderRadius: 999, background: '#eef2ff' }}>
+                {['daily', 'weekly', 'monthly'].map(period => (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setTrendPeriod(period)}
+                    style={{
+                      border: 'none',
+                      borderRadius: 999,
+                      padding: '7px 12px',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      background: trendPeriod === period ? '#111827' : 'transparent',
+                      color: trendPeriod === period ? '#fff' : '#4f46e5',
+                    }}
+                  >
+                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {trendSeries.length > 0
+              ? <MultiCompanyLineChart series={trendSeries} />
+              : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', padding: '80px 0' }}>No trend data yet</div>
+            }
+          </div>
 
           {/* Companies by calls bar chart */}
           <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>

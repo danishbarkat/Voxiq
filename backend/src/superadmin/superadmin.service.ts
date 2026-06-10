@@ -144,6 +144,13 @@ export class SuperAdminService {
       .slice(0, 8);
 
     const topCountries = this.buildTopCountries(callLogs);
+    const companyTrends = this.buildCompanyTrendSeries(
+      topCompanies.map((company) => ({
+        accountId: company.accountId,
+        companyName: company.companyName,
+      })),
+      byAccount,
+    );
 
     return {
       ...totals,
@@ -151,6 +158,7 @@ export class SuperAdminService {
       topCompanies,
       topStates,
       topCountries,
+      companyTrends,
     };
   }
 
@@ -1232,6 +1240,84 @@ export class SuperAdminService {
     return Object.values(bucket)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-14);
+  }
+
+  private buildCompanyTrendSeries(
+    companies: Array<{ accountId: string; companyName: string }>,
+    byAccount: Map<string, any[]>,
+  ) {
+    const definitions = {
+      daily: { buckets: 14, key: 'day' as const },
+      weekly: { buckets: 8, key: 'week' as const },
+      monthly: { buckets: 6, key: 'month' as const },
+    };
+
+    return {
+      daily: this.buildTrendPoints(companies, byAccount, definitions.daily.buckets, definitions.daily.key),
+      weekly: this.buildTrendPoints(companies, byAccount, definitions.weekly.buckets, definitions.weekly.key),
+      monthly: this.buildTrendPoints(companies, byAccount, definitions.monthly.buckets, definitions.monthly.key),
+    };
+  }
+
+  private buildTrendPoints(
+    companies: Array<{ accountId: string; companyName: string }>,
+    byAccount: Map<string, any[]>,
+    bucketCount: number,
+    mode: 'day' | 'week' | 'month',
+  ) {
+    const now = new Date();
+    const buckets: Array<{ label: string; key: string; start: Date; end: Date }> = [];
+
+    for (let index = bucketCount - 1; index >= 0; index -= 1) {
+      const anchor = new Date(now);
+      let start = new Date(anchor);
+      let end = new Date(anchor);
+      let label = '';
+      let key = '';
+
+      if (mode === 'day') {
+        start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - index, 0, 0, 0, 0);
+        end = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - index, 23, 59, 59, 999);
+        label = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        key = start.toISOString().slice(0, 10);
+      } else if (mode === 'week') {
+        const currentWeekStart = new Date(anchor);
+        currentWeekStart.setDate(anchor.getDate() - anchor.getDay());
+        currentWeekStart.setHours(0, 0, 0, 0);
+        start = new Date(currentWeekStart);
+        start.setDate(currentWeekStart.getDate() - (index * 7));
+        end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        key = `${start.toISOString().slice(0, 10)}:week`;
+      } else {
+        start = new Date(anchor.getFullYear(), anchor.getMonth() - index, 1, 0, 0, 0, 0);
+        end = new Date(anchor.getFullYear(), anchor.getMonth() - index + 1, 0, 23, 59, 59, 999);
+        label = start.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        key = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      buckets.push({ key, label, start, end });
+    }
+
+    return buckets.map((bucket) => ({
+      label: bucket.label,
+      key: bucket.key,
+      companies: companies.map((company) => {
+        const logs = byAccount.get(company.accountId) || [];
+        const calls = logs.filter((log) => {
+          const startedAt = log?.startedAt ? new Date(log.startedAt) : null;
+          return startedAt && startedAt >= bucket.start && startedAt <= bucket.end;
+        }).length;
+
+        return {
+          accountId: company.accountId,
+          companyName: company.companyName,
+          calls,
+        };
+      }),
+    }));
   }
 
   private buildTopAgents(logs: any[], users: any[]) {
