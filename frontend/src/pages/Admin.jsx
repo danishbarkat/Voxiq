@@ -298,6 +298,7 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [localRecs, setLocalRecs] = useState(recordings);
   const [loading, setLoading] = useState(false);
+  const [agentPickerExpanded, setAgentPickerExpanded] = useState(false);
 
   // Sync prop updates (initial load)
   useEffect(() => { setLocalRecs(recordings); }, [recordings]);
@@ -348,6 +349,7 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
   const totalRecs = localRecs.length;
   const withVm = localRecs.filter(r => r.vmRecordingUrl).length;
   const sortedUsers = [...users].sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
+  const selectedAgentName = sortedUsers.find(u => u.id === filterAgent)?.name || 'All Agents';
 
   return (
     <div>
@@ -393,13 +395,48 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
         </div>
         <div style={{ flex: '1 1 360px' }}>
           <label style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, display: 'block', marginBottom: '4px' }}>👤 FILTER BY AGENT</label>
+          <button
+            type="button"
+            className="input-field"
+            onClick={() => setAgentPickerExpanded(prev => !prev)}
+            style={{
+              width: '100%',
+              background: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              cursor: 'pointer',
+              marginBottom: agentPickerExpanded ? '0.55rem' : 0,
+            }}
+          >
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.36rem 0.78rem',
+              borderRadius: '999px',
+              background: filterAgent ? 'linear-gradient(135deg, #6366f1, #7c3aed)' : '#eef2ff',
+              color: filterAgent ? '#fff' : '#4338ca',
+              fontSize: '0.76rem',
+              fontWeight: 700,
+              maxWidth: 'calc(100% - 28px)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {selectedAgentName}
+            </span>
+            <span style={{ color: '#6366f1', fontSize: '0.95rem', fontWeight: 700 }}>
+              {agentPickerExpanded ? '▴' : '▾'}
+            </span>
+          </button>
           <div
             className="input-field"
             style={{
               width: '100%',
               background: '#fff',
               padding: '0.65rem',
-              display: 'flex',
+              display: agentPickerExpanded ? 'flex' : 'none',
               flexWrap: 'wrap',
               alignItems: 'flex-start',
               gap: '0.55rem',
@@ -416,7 +453,10 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
                 <button
                   key={agent.id || 'all-agents'}
                   type="button"
-                  onClick={() => setFilterAgent(agent.id)}
+                  onClick={() => {
+                    setFilterAgent(agent.id);
+                    setAgentPickerExpanded(false);
+                  }}
                   style={{
                     border: `1px solid ${isActive ? '#4338ca' : '#dbe4ff'}`,
                     background: isActive ? 'linear-gradient(135deg, #6366f1, #7c3aed)' : '#f8faff',
@@ -457,7 +497,7 @@ function RecordingsTab({ recordings, users, onFetch, apiUrl, getToken }) {
           className="btn"
           style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}
           onClick={() => {
-            setSearch(''); setFilterAgent(''); setFilterDateFrom(''); setFilterDateTo('');
+            setSearch(''); setFilterAgent(''); setFilterDateFrom(''); setFilterDateTo(''); setAgentPickerExpanded(false);
             onFetch();
           }}
         >
