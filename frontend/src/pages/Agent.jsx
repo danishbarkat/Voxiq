@@ -1482,7 +1482,7 @@ export default function Agent() {
           </section>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
-          <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 494, maxHeight: 494 }}>
             {/* Header row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
               <h2 className="font-head" style={{ fontSize: '1rem', margin: 0 }}>Call &amp; SMS History</h2>
@@ -1513,7 +1513,7 @@ export default function Agent() {
               })}
             </div>
 
-            <div className="table-container" style={{ flex: 1 }}>
+            <div className="table-container" style={{ flex: 1, minHeight: 0, maxHeight: 320, overflowY: 'auto', overflowX: 'auto' }}>
               <table>
                 <thead>
                   <tr>
