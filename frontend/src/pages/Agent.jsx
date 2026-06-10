@@ -1414,6 +1414,7 @@ export default function Agent() {
             </div>
           </section>
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(320px, 0.95fr)', gap: '1.25rem', alignItems: 'start' }}>
           {/* Disposition Card */}
           <section className="card">
             <h2 className="font-head mb-4" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1479,6 +1480,123 @@ export default function Agent() {
               </div>
             )}
           </section>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <section className="card">
+            {/* Header row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
+              <h2 className="font-head" style={{ fontSize: '1rem', margin: 0 }}>Call &amp; SMS History</h2>
+              <button className="btn" style={{ fontSize: '0.75rem', background: '#f8fafc' }} onClick={fetchHistory} disabled={historyLoading}>
+                {historyLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+
+            {/* Filter capsule tabs */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
+              {[
+                { key: 'all',      label: `All (${historyFeed.length})`,                                        bg: '#f1f5f9', activeBg: '#1d4ed8', color: '#475569', activeColor: '#fff' },
+                { key: 'dialed',   label: `Dialed (${historyStats.dialedCalls})`,                               bg: '#dbeafe', activeBg: '#1d4ed8', color: '#1d4ed8', activeColor: '#fff' },
+                { key: 'missed',   label: `Missed (${historyStats.missedCalls})`,                               bg: '#fee2e2', activeBg: '#b91c1c', color: '#b91c1c', activeColor: '#fff' },
+                { key: 'received', label: `Received (${historyStats.receivedCalls})`,                           bg: '#dcfce7', activeBg: '#15803d', color: '#15803d', activeColor: '#fff' },
+                { key: 'sms',      label: `SMS (${historyStats.totalMessages})`,                                bg: '#ede9fe', activeBg: '#6d28d9', color: '#6d28d9', activeColor: '#fff' },
+              ].map(({ key, label, bg, activeBg, color, activeColor }) => {
+                const isActive = historyFilter === key;
+                return (
+                  <button key={key} onClick={() => setHistoryFilter(key)} style={{
+                    padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    fontSize: '0.78rem', fontWeight: 700,
+                    background: isActive ? activeBg : bg,
+                    color: isActive ? activeColor : color,
+                    transition: 'all 0.15s',
+                  }}>{label}</button>
+                );
+              })}
+            </div>
+
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Lead / Contact</th>
+                    <th>Number Dialed</th>
+                    <th>Time</th>
+                    <th>Duration</th>
+                    <th>Disposition</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const filtered = historyFeed.filter((item) => {
+                      if (historyFilter === 'all') return true;
+                      if (historyFilter === 'sms') return item.type === 'sms';
+                      return item.type === 'call' && item.category === historyFilter;
+                    });
+                    if (filtered.length === 0) return (
+                      <tr>
+                        <td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+                          {historyFeed.length === 0 ? 'No history yet — calls will appear here after they complete.' : `No ${historyFilter} entries found.`}
+                        </td>
+                      </tr>
+                    );
+                    return filtered.map((item) => {
+                      const contactName = (item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '') || item.agent?.name || '';
+                      // For outbound calls: toNumber is the dialed number. For inbound: fromNumber is the caller.
+                      const displayNumber = item.type === 'call'
+                        ? (item.direction === 'inbound' ? (item.fromNumber || item.lead?.phone || '—') : (item.toNumber || item.lead?.phone || item.fromNumber || '—'))
+                        : (item.toNumber || item.fromNumber || '—');
+                      const durSec = item.durationSeconds;
+                      const durDisplay = durSec != null
+                        ? durSec >= 60 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : `${Math.round(durSec)}s`
+                        : item.type === 'call' ? '—' : '';
+                      return (
+                        <tr key={`${item.type}-${item.id}`}>
+                          <td><AgentHistoryBadge item={item} /></td>
+                          <td style={{ fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {contactName || <span style={{ color: '#94a3b8', fontWeight: 400 }}>Unknown</span>}
+                          </td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#1e40af', fontWeight: 600 }}>
+                            {displayNumber}
+                          </td>
+                          <td style={{ color: '#94a3b8', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                            {new Date(item.startedAt || item.createdAt).toLocaleString()}
+                          </td>
+                          <td style={{ fontSize: '0.78rem', color: '#475569' }}>{durDisplay}</td>
+                          <td style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.type === 'call' ? (item.disposition || '—') : (item.body || '')}
+                          </td>
+                          <td>
+                            {item.type === 'call' && displayNumber !== '—' && (
+                              <button
+                                disabled={callActive}
+                                onClick={() => {
+                                  const num = displayNumber.replace(/\D/g, '');
+                                  setDialNumber(num);
+                                  setDialName(contactName || num);
+                                  setShowDialpad(true);
+                                }}
+                                style={{
+                                  background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
+                                  color: callActive ? '#94a3b8' : '#fff',
+                                  border: 'none', borderRadius: 8,
+                                  padding: '4px 10px', fontSize: '0.72rem',
+                                  cursor: callActive ? 'not-allowed' : 'pointer',
+                                  fontWeight: 700, whiteSpace: 'nowrap',
+                                }}
+                              >Call Back</button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          </div>
+          </div>
         </div> {/* end LEFT COLUMN */}
 
         {/* ── RIGHT COLUMN ── */}
@@ -1669,187 +1787,6 @@ export default function Agent() {
             )}
           </section>
 
-          <section className="card">
-            {/* Header row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
-              <h2 className="font-head" style={{ fontSize: '1rem', margin: 0 }}>Call &amp; SMS History</h2>
-              <button className="btn" style={{ fontSize: '0.75rem', background: '#f8fafc' }} onClick={fetchHistory} disabled={historyLoading}>
-                {historyLoading ? 'Loading...' : 'Refresh'}
-              </button>
-            </div>
-
-            {/* Filter capsule tabs */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
-              {[
-                { key: 'all',      label: `All (${historyFeed.length})`,                                        bg: '#f1f5f9', activeBg: '#1d4ed8', color: '#475569', activeColor: '#fff' },
-                { key: 'dialed',   label: `Dialed (${historyStats.dialedCalls})`,                               bg: '#dbeafe', activeBg: '#1d4ed8', color: '#1d4ed8', activeColor: '#fff' },
-                { key: 'missed',   label: `Missed (${historyStats.missedCalls})`,                               bg: '#fee2e2', activeBg: '#b91c1c', color: '#b91c1c', activeColor: '#fff' },
-                { key: 'received', label: `Received (${historyStats.receivedCalls})`,                           bg: '#dcfce7', activeBg: '#15803d', color: '#15803d', activeColor: '#fff' },
-                { key: 'sms',      label: `SMS (${historyStats.totalMessages})`,                                bg: '#ede9fe', activeBg: '#6d28d9', color: '#6d28d9', activeColor: '#fff' },
-              ].map(({ key, label, bg, activeBg, color, activeColor }) => {
-                const isActive = historyFilter === key;
-                return (
-                  <button key={key} onClick={() => setHistoryFilter(key)} style={{
-                    padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                    fontSize: '0.78rem', fontWeight: 700,
-                    background: isActive ? activeBg : bg,
-                    color: isActive ? activeColor : color,
-                    transition: 'all 0.15s',
-                  }}>{label}</button>
-                );
-              })}
-            </div>
-
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Lead / Contact</th>
-                    <th>Number Dialed</th>
-                    <th>Time</th>
-                    <th>Duration</th>
-                    <th>Disposition</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const filtered = historyFeed.filter((item) => {
-                      if (historyFilter === 'all') return true;
-                      if (historyFilter === 'sms') return item.type === 'sms';
-                      return item.type === 'call' && item.category === historyFilter;
-                    });
-                    if (filtered.length === 0) return (
-                      <tr>
-                        <td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>
-                          {historyFeed.length === 0 ? 'No history yet — calls will appear here after they complete.' : `No ${historyFilter} entries found.`}
-                        </td>
-                      </tr>
-                    );
-                    return filtered.map((item) => {
-                      const contactName = (item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '') || item.agent?.name || '';
-                      // For outbound calls: toNumber is the dialed number. For inbound: fromNumber is the caller.
-                      const displayNumber = item.type === 'call'
-                        ? (item.direction === 'inbound' ? (item.fromNumber || item.lead?.phone || '—') : (item.toNumber || item.lead?.phone || item.fromNumber || '—'))
-                        : (item.toNumber || item.fromNumber || '—');
-                      const durSec = item.durationSeconds;
-                      const durDisplay = durSec != null
-                        ? durSec >= 60 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : `${Math.round(durSec)}s`
-                        : item.type === 'call' ? '—' : '';
-                      return (
-                        <tr key={`${item.type}-${item.id}`}>
-                          <td><AgentHistoryBadge item={item} /></td>
-                          <td style={{ fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {contactName || <span style={{ color: '#94a3b8', fontWeight: 400 }}>Unknown</span>}
-                          </td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#1e40af', fontWeight: 600 }}>
-                            {displayNumber}
-                          </td>
-                          <td style={{ color: '#94a3b8', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                            {new Date(item.startedAt || item.createdAt).toLocaleString()}
-                          </td>
-                          <td style={{ fontSize: '0.78rem', color: '#475569' }}>{durDisplay}</td>
-                          <td style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.type === 'call' ? (item.disposition || '—') : (item.body || '')}
-                          </td>
-                          <td>
-                            {item.type === 'call' && displayNumber !== '—' && (
-                              <button
-                                disabled={callActive}
-                                onClick={() => {
-                                  const num = displayNumber.replace(/\D/g, '');
-                                  setDialNumber(num);
-                                  setDialName(contactName || num);
-                                  setShowDialpad(true);
-                                }}
-                                style={{
-                                  background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
-                                  color: callActive ? '#94a3b8' : '#fff',
-                                  border: 'none', borderRadius: 8,
-                                  padding: '4px 10px', fontSize: '0.72rem',
-                                  cursor: callActive ? 'not-allowed' : 'pointer',
-                                  fontWeight: 700, whiteSpace: 'nowrap',
-                                }}
-                              >Call Back</button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Recent Activity */}
-          <section className="card">
-            <h2 className="font-head mb-4" style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>🕐</span> Recent Activity
-            </h2>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Caller / Lead</th>
-                    <th>Number</th>
-                    <th>Time</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentCalls.map((call, i) => (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 600 }}>
-                        {call.direction === 'inbound' ? '📲 ' : '📞 '}
-                        {call.lead}
-                      </td>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>
-                        {call.number || '—'}
-                      </td>
-                      <td style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{call.time}</td>
-                      <td>
-                        <span className={`pill-status ${call.disposition === 'Missed' ? 'pill-error' : 'pill-success'}`}
-                          style={{ fontSize: '0.65rem' }}>
-                          {call.disposition === 'Missed' ? '📵 Missed' : call.disposition === 'Received' ? '✅ Received' : call.disposition}
-                        </span>
-                      </td>
-                      <td>
-                        {call.number && (
-                          <button
-                            disabled={callActive}
-                            onClick={() => {
-                              const num = call.number.replace(/\D/g, '');
-                              setDialNumber(num);
-                              setDialName(call.lead || num);
-                              setShowDialpad(true);
-                            }}
-                            style={{
-                              background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
-                              color: callActive ? '#94a3b8' : '#fff',
-                              border: 'none', borderRadius: 8,
-                              padding: '4px 10px', fontSize: '0.75rem',
-                              cursor: callActive ? 'not-allowed' : 'pointer',
-                              fontWeight: 700, whiteSpace: 'nowrap',
-                            }}
-                          >
-                            📞 Call Back
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {recentCalls.length === 0 && (
-                    <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>No calls yet this session</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
         </div> {/* end RIGHT COLUMN */}
         </div> {/* end main 2-col grid */}
 
