@@ -1,17 +1,18 @@
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from 'react-router-dom'
-import { useEffect, useRef } from 'react'
-import Agent from './pages/Agent'
-import Admin from './pages/Admin'
-import Manager from './pages/Manager'
-import SuperAdmin from './pages/SuperAdmin'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import TermsAndConditions from './pages/TermsAndConditions'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import Navbar from './components/Navbar'
 import { getToken } from './lib/auth'
 import { SoftphoneProvider } from './context/SoftphoneContext'
 import './App.css'
+
+const Home = lazy(() => import('./pages/Home'))
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'))
+const SuperAdmin = lazy(() => import('./pages/SuperAdmin'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Manager = lazy(() => import('./pages/Manager'))
+const Agent = lazy(() => import('./pages/Agent'))
 
 function getUserRole() {
   const token = getToken();
@@ -52,36 +53,53 @@ function PageWrapper({ children }) {
   return <div ref={ref} className="page-enter">{children}</div>;
 }
 
+function RouteFallback() {
+  return (
+    <div style={{
+      minHeight: '40vh',
+      display: 'grid',
+      placeItems: 'center',
+      color: '#64748b',
+      fontWeight: 700,
+      letterSpacing: '0.02em',
+    }}>
+      Loading...
+    </div>
+  );
+}
+
 function AppRoutes() {
   return (
     <PageWrapper>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/superadmin" element={
-          <ProtectedRoute allowedRoles={['superadmin']}>
-            <SuperAdmin />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Admin />
-          </ProtectedRoute>
-        } />
-        <Route path="/manager" element={
-          <ProtectedRoute allowedRoles={['manager']}>
-            <Manager />
-          </ProtectedRoute>
-        } />
-        <Route path="/agent" element={
-          <ProtectedRoute allowedRoles={['agent']}>
-            <Agent />
-          </ProtectedRoute>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/superadmin" element={
+            <ProtectedRoute allowedRoles={['superadmin']}>
+              <SuperAdmin />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Admin />
+            </ProtectedRoute>
+          } />
+          <Route path="/manager" element={
+            <ProtectedRoute allowedRoles={['manager']}>
+              <Manager />
+            </ProtectedRoute>
+          } />
+          <Route path="/agent" element={
+            <ProtectedRoute allowedRoles={['agent']}>
+              <Agent />
+            </ProtectedRoute>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </PageWrapper>
   );
 }

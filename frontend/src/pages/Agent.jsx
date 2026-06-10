@@ -249,22 +249,31 @@ export default function Agent() {
       if (auth?.userId) {
         setAgentId(auth.userId);
         try { localStorage.setItem('voxiq_agent_id', auth.userId); } catch { }
-        // 2. Get full user details (number, lists)
-        const fullUser = await fetchJson(`${API_URL}/users/${auth.userId}`);
+        const tzOffset = new Date().getTimezoneOffset();
+        const [fullUser, historyData, appointmentData, periodData, leadData] = await Promise.all([
+          fetchJson(`${API_URL}/users/${auth.userId}`),
+          fetchJson(`${API_URL}/analytics/history?limit=100`).catch(() => null),
+          fetchJson(`${API_URL}/dialer/scheduled-callbacks?agentId=${auth.userId}`).catch(() => null),
+          fetchJson(`${API_URL}/analytics/my-period-stats?tzOffset=${encodeURIComponent(tzOffset)}`).catch(() => null),
+          fetchJson(`${API_URL}/leads?agentId=${auth.userId}&limit=500`).catch(() => null),
+        ]);
+
         setProfile(fullUser);
-        // Update global SIP credentials with profile-specific values
         updateCredentials({
           login: SIP_URI || fullUser?.sipUri || 'winfiagent',
           password: SIP_PASSWORD || fullUser?.sipPassword || 'WinFi2024',
           callerName: fullUser?.name || 'Voxiq Agent',
           callerNumber: fullUser?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259',
         });
-        // 3. Fetch leads for this agent
-        fetchLeads(auth.userId);
-        fetchHistory();
-        fetchAppointments(auth.userId);
-        const tzOffset = new Date().getTimezoneOffset();
-        fetchJson(`${API_URL}/analytics/my-period-stats?tzOffset=${encodeURIComponent(tzOffset)}`).then(d => { if (d) setPeriodStats(d); }).catch(() => {});
+
+        setHistoryFeed(Array.isArray(historyData?.items) ? historyData.items : []);
+        setHistoryStats(historyData?.stats || { missedCalls: 0, receivedCalls: 0, dialedCalls: 0, totalMessages: 0 });
+        setAppointments(Array.isArray(appointmentData) ? appointmentData : []);
+        if (periodData) setPeriodStats(periodData);
+        setLeads(Array.isArray(leadData) ? leadData : []);
+        setLeadsLoading(false);
+        setAppointmentsLoading(false);
+        setHistoryLoading(false);
       }
     });
 
