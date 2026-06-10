@@ -63,6 +63,12 @@ export class AnalyticsController {
     }
 
     @Roles('Admin', 'Manager', 'Agent')
+    @Get('my-period-stats')
+    getMyPeriodStats(@Req() req?: any) {
+        return this.analyticsService.getMyPeriodStats(req?.user);
+    }
+
+    @Roles('Admin', 'Manager', 'Agent')
     @Get('history')
     getHistory(
         @Query('limit') limit?: string,

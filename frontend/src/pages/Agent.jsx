@@ -115,6 +115,10 @@ export default function Agent() {
   const [callbackTime, setCallbackTime] = useState('');
   const [dealValue, setDealValue] = useState('');
 
+  // ── Period Call Stats ──────────────────────────────────────────────────────
+  const [periodStats, setPeriodStats] = useState({ today: 0, yesterday: 0, thisWeek: 0, lastWeek: 0, thisMonth: 0, thisYear: 0 });
+  const [statsPeriod, setStatsPeriod] = useState('today'); // which period is highlighted
+
   // ── Calendar / Scheduled Callbacks ────────────────────────────────────────
   const [appointments, setAppointments] = useState([]);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
@@ -259,6 +263,7 @@ export default function Agent() {
         fetchLeads(auth.userId);
         fetchHistory();
         fetchAppointments(auth.userId);
+        fetchJson(`${API_URL}/analytics/my-period-stats`).then(d => { if (d) setPeriodStats(d); }).catch(() => {});
       }
     });
 
@@ -851,6 +856,49 @@ export default function Agent() {
     navigate('/login');
   };
 
+  const ensureDispositionCallLog = useCallback(async () => {
+    if (callLogId) return callLogId;
+    if (!agentId) return null;
+
+    try {
+      if (currentLead?.id) {
+        const logData = await fetchJson(`${API_URL}/dialer/call/log`, {
+          method: 'POST',
+          body: JSON.stringify({ leadId: currentLead.id, agentId }),
+        });
+        if (logData?.id) {
+          setCallLogId(logData.id);
+          return logData.id;
+        }
+      }
+
+      const manualNumber = currentLead?.phone || dialNumber || '';
+      const manualName = currentLead
+        ? `${currentLead.firstName || ''} ${currentLead.lastName || ''}`.trim()
+        : dialName;
+
+      if (manualNumber) {
+        const logData = await fetchJson(`${API_URL}/dialer/call/log`, {
+          method: 'POST',
+          body: JSON.stringify({
+            manualNumber,
+            manualName: manualName || undefined,
+            agentId,
+            isManual: true,
+          }),
+        });
+        if (logData?.id) {
+          setCallLogId(logData.id);
+          return logData.id;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create fallback call log for disposition:', error);
+    }
+
+    return null;
+  }, [agentId, callLogId, currentLead, dialName, dialNumber]);
+
   const submitDisposition = useCallback(async (disposition) => {
     // ── Manual Disposition Triggers: trigger outcome before hangup so lead moves to bottom
     const leadForOutcome = currentLeadRef.current || currentLead;
@@ -867,7 +915,9 @@ export default function Agent() {
       currentLeadRef.current = null; // Consumed: prevent auto-effector from overwriting with 'no_answer'
     }
 
-    if (!callLogId) {
+    const effectiveCallLogId = callLogId || await ensureDispositionCallLog();
+
+    if (!effectiveCallLogId) {
       setRecentCalls(prev => [{
         lead: currentLead ? `${currentLead.firstName} ${currentLead.lastName}` : 'Manual',
         number: currentLead?.phone || dialNumber || '',
@@ -888,7 +938,7 @@ export default function Agent() {
       await fetchJson(`${API_URL}/dialer/call/disposition`, {
         method: 'POST',
         body: JSON.stringify({
-          callLogId,
+          callLogId: effectiveCallLogId,
           disposition,
           notes,
           ...(disposition === 'Callback' && callbackTime ? { callbackAt: callbackTime } : {}),
@@ -915,7 +965,7 @@ export default function Agent() {
       console.error('Failed to submit disposition:', error);
       handleHangup();
     }
-  }, [callLogId, notes, callbackTime, currentLead, handleHangup, dealValue, handleCallOutcome, fetchHistory]);
+  }, [callLogId, notes, callbackTime, currentLead, handleHangup, dealValue, handleCallOutcome, fetchHistory, ensureDispositionCallLog, dialNumber]);
 
   // Native keyboard shortcuts - works on Mac and all browsers
   useEffect(() => {
@@ -1254,9 +1304,33 @@ export default function Agent() {
 
         {/* Stats Row + Dialer panels (hidden when SMS tab is active) */}
         {!smsTab && (<>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
+          {/* Calls — period selector card */}
+          <div className="card" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #6366f1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span className="stat-label">Calls</span>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {[
+                  { key: 'today', label: 'Today' },
+                  { key: 'yesterday', label: 'Yesterday' },
+                  { key: 'thisWeek', label: 'This Week' },
+                  { key: 'lastWeek', label: 'Last Week' },
+                  { key: 'thisMonth', label: 'Month' },
+                  { key: 'thisYear', label: 'Year' },
+                ].map(p => (
+                  <button key={p.key} onClick={() => setStatsPeriod(p.key)} style={{
+                    fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                    background: statsPeriod === p.key ? '#6366f1' : '#f1f5f9',
+                    color: statsPeriod === p.key ? 'white' : '#64748b',
+                  }}>{p.label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#0f172a', fontFamily: 'Outfit,sans-serif', letterSpacing: '-0.02em', lineHeight: 1.15, marginTop: '0.5rem' }}>
+              {periodStats[statsPeriod] ?? 0}
+            </div>
+          </div>
           {[
-            { label: 'Calls Today', value: stats.calls, accent: '#6366f1' },
             { label: 'Appointments', value: stats.appointments, accent: '#10b981' },
             { label: 'Conversion Rate', value: `${stats.calls > 0 ? ((stats.appointments / stats.calls) * 100).toFixed(1) : '0.0'}%`, accent: '#f59e0b' },
             { label: 'Leads in Queue', value: leads.length, accent: '#06b6d4' },

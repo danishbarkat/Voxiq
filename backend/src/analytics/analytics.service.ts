@@ -416,6 +416,50 @@ export class AnalyticsService {
         return { stats, items };
     }
 
+    /** Returns call counts for Today / Yesterday / This Week / Last Week / This Month / This Year */
+    async getMyPeriodStats(requester?: any) {
+        const agentId = requester?.userId;
+        if (!agentId) return null;
+
+        const now = new Date();
+        // Today boundaries (UTC-based, same as DB)
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+        const yesterdayEnd = new Date(todayStart.getTime() - 1);
+
+        // Week: Monday as start
+        const dayOfWeek = now.getDay(); // 0=Sun
+        const daysToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const thisWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon);
+        const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
+        const lastWeekEnd = new Date(thisWeekStart.getTime() - 1);
+
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const thisYearStart = new Date(now.getFullYear(), 0, 1);
+
+        const rows = await this.prisma.$queryRaw<any[]>(Prisma.sql`
+            SELECT
+                COUNT(*) FILTER (WHERE "startedAt" >= ${todayStart})                           AS today,
+                COUNT(*) FILTER (WHERE "startedAt" >= ${yesterdayStart} AND "startedAt" <= ${yesterdayEnd}) AS yesterday,
+                COUNT(*) FILTER (WHERE "startedAt" >= ${thisWeekStart})                        AS "thisWeek",
+                COUNT(*) FILTER (WHERE "startedAt" >= ${lastWeekStart} AND "startedAt" <= ${lastWeekEnd}) AS "lastWeek",
+                COUNT(*) FILTER (WHERE "startedAt" >= ${thisMonthStart})                       AS "thisMonth",
+                COUNT(*) FILTER (WHERE "startedAt" >= ${thisYearStart})                        AS "thisYear"
+            FROM "CallLog"
+            WHERE "agentId" = ${agentId}
+        `);
+
+        const r = rows[0] || {};
+        return {
+            today: Number(r.today) || 0,
+            yesterday: Number(r.yesterday) || 0,
+            thisWeek: Number(r.thisWeek) || 0,
+            lastWeek: Number(r.lastWeek) || 0,
+            thisMonth: Number(r.thisMonth) || 0,
+            thisYear: Number(r.thisYear) || 0,
+        };
+    }
+
     /** Update tags for a specific call log */
     async updateCallTags(id: string, tags: string[], requester?: any) {
         await this.assertCallLogAccess(id, requester);
