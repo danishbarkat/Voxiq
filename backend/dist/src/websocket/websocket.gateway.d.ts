@@ -2,14 +2,17 @@ import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 export declare class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private jwtService;
     private configService;
+    private prisma;
     server: Server;
     private readonly logger;
     private agentSessions;
-    constructor(jwtService: JwtService, configService: ConfigService);
-    handleConnection(client: Socket): void;
+    private userSockets;
+    constructor(jwtService: JwtService, configService: ConfigService, prisma: PrismaService);
+    handleConnection(client: Socket): Promise<void>;
     handleDisconnect(client: Socket): void;
     handleAgentRegister(client: Socket, data: {
         agentId: string;
@@ -32,4 +35,5 @@ export declare class WebsocketGateway implements OnGatewayConnection, OnGatewayD
     private broadcastAgentStatus;
     getAvailableAgents(): string[];
     isAgentOnline(agentId: string): boolean;
+    disconnectSupersededSessions(userId: string, activeSessionId: string, reason: string): void;
 }

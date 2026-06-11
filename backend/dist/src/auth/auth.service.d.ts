@@ -2,13 +2,15 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupDto } from './dto/signup.dto';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 export declare class AuthService {
     private prisma;
     private jwtService;
     private configService;
+    private websocketGateway;
     private readonly blockedEmailDomains;
     private accountColumnCache;
-    constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService);
+    constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, websocketGateway: WebsocketGateway);
     signup(dto: SignupDto): Promise<{
         message: string;
         verificationCodePreview: string;

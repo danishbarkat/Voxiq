@@ -10,12 +10,13 @@ exports.WebsocketModule = void 0;
 const common_1 = require("@nestjs/common");
 const websocket_gateway_1 = require("./websocket.gateway");
 const auth_module_1 = require("../auth/auth.module");
+const prisma_module_1 = require("../prisma/prisma.module");
 let WebsocketModule = class WebsocketModule {
 };
 exports.WebsocketModule = WebsocketModule;
 exports.WebsocketModule = WebsocketModule = __decorate([
     (0, common_1.Module)({
-        imports: [(0, common_1.forwardRef)(() => auth_module_1.AuthModule)],
+        imports: [(0, common_1.forwardRef)(() => auth_module_1.AuthModule), prisma_module_1.PrismaModule],
         providers: [websocket_gateway_1.WebsocketGateway],
         exports: [websocket_gateway_1.WebsocketGateway],
     })

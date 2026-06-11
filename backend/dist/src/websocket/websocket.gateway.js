@@ -19,17 +19,21 @@ const socket_io_1 = require("socket.io");
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
+const prisma_service_1 = require("../prisma/prisma.service");
 let WebsocketGateway = WebsocketGateway_1 = class WebsocketGateway {
     jwtService;
     configService;
+    prisma;
     server;
     logger = new common_1.Logger(WebsocketGateway_1.name);
     agentSessions = new Map();
-    constructor(jwtService, configService) {
+    userSockets = new Map();
+    constructor(jwtService, configService, prisma) {
         this.jwtService = jwtService;
         this.configService = configService;
+        this.prisma = prisma;
     }
-    handleConnection(client) {
+    async handleConnection(client) {
         const requireAuth = this.configService.get('REQUIRE_WS_AUTH');
         const token = client.handshake.auth?.token ||
             client.handshake.query?.token ||
@@ -42,7 +46,22 @@ let WebsocketGateway = WebsocketGateway_1 = class WebsocketGateway {
         if (token) {
             try {
                 const payload = this.jwtService.verify(token);
+                const user = await this.prisma.user.findUnique({
+                    where: { id: payload.sub },
+                    select: { id: true, lastSessionId: true },
+                });
+                if (!user || (payload.sessionId && user.lastSessionId && payload.sessionId !== user.lastSessionId)) {
+                    this.logger.warn(`WS connection rejected (stale session): ${client.id} user:${payload.sub}`);
+                    client.emit('auth:force-logout', {
+                        reason: 'You have been logged out from this tab or device because this account signed in from another browser or device.',
+                    });
+                    client.disconnect(true);
+                    return;
+                }
                 client.data.user = payload;
+                const socketIds = this.userSockets.get(payload.sub) || new Set();
+                socketIds.add(client.id);
+                this.userSockets.set(payload.sub, socketIds);
                 this.logger.log(`Client connected: ${client.id} user:${payload.sub} role:${payload.role}`);
             }
             catch (err) {
@@ -62,6 +81,16 @@ let WebsocketGateway = WebsocketGateway_1 = class WebsocketGateway {
                 this.agentSessions.delete(agentId);
                 this.logger.log(`Agent ${agentId} session removed`);
                 break;
+            }
+        }
+        const userId = client.data?.user?.sub;
+        if (userId) {
+            const socketIds = this.userSockets.get(userId);
+            if (socketIds) {
+                socketIds.delete(client.id);
+                if (socketIds.size === 0) {
+                    this.userSockets.delete(userId);
+                }
             }
         }
     }
@@ -134,6 +163,21 @@ let WebsocketGateway = WebsocketGateway_1 = class WebsocketGateway {
     isAgentOnline(agentId) {
         return this.agentSessions.has(agentId);
     }
+    disconnectSupersededSessions(userId, activeSessionId, reason) {
+        const socketIds = this.userSockets.get(userId);
+        if (!socketIds?.size) {
+            return;
+        }
+        for (const socketId of Array.from(socketIds)) {
+            const socket = this.server.sockets.sockets.get(socketId);
+            const socketSessionId = socket?.data?.user?.sessionId;
+            if (!socket || socketSessionId === activeSessionId) {
+                continue;
+            }
+            socket.emit('auth:force-logout', { reason });
+            socket.disconnect(true);
+        }
+    }
 };
 exports.WebsocketGateway = WebsocketGateway;
 __decorate([
@@ -166,6 +210,7 @@ exports.WebsocketGateway = WebsocketGateway = WebsocketGateway_1 = __decorate([
         path: '/socket.io',
     }),
     __metadata("design:paramtypes", [jwt_1.JwtService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        prisma_service_1.PrismaService])
 ], WebsocketGateway);
 //# sourceMappingURL=websocket.gateway.js.map

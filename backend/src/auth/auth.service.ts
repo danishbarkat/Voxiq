@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
+  forwardRef,
   UnauthorizedException,
 } from '@nestjs/common';
 import { createHmac, randomBytes } from 'crypto';
@@ -12,6 +14,7 @@ import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupDto } from './dto/signup.dto';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class AuthService {
@@ -41,6 +44,8 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    @Inject(forwardRef(() => WebsocketGateway))
+    private websocketGateway: WebsocketGateway,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -288,6 +293,11 @@ export class AuthService {
       where: { id: user.id },
       data: { lastSessionId: sessionId },
     });
+    this.websocketGateway.disconnectSupersededSessions(
+      user.id,
+      sessionId,
+      'You have been logged out from this tab or device because this account signed in from another browser or device.',
+    );
 
     const payload = {
       sub: user.id,

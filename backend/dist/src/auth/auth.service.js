@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -21,10 +24,12 @@ const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const prisma_service_1 = require("../prisma/prisma.service");
+const websocket_gateway_1 = require("../websocket/websocket.gateway");
 let AuthService = class AuthService {
     prisma;
     jwtService;
     configService;
+    websocketGateway;
     blockedEmailDomains = new Set([
         'gmail.com',
         'googlemail.com',
@@ -46,10 +51,11 @@ let AuthService = class AuthService {
         'sharklasers.com',
     ]);
     accountColumnCache = null;
-    constructor(prisma, jwtService, configService) {
+    constructor(prisma, jwtService, configService, websocketGateway) {
         this.prisma = prisma;
         this.jwtService = jwtService;
         this.configService = configService;
+        this.websocketGateway = websocketGateway;
     }
     async signup(dto) {
         this.assertBusinessEmail(dto.email);
@@ -261,6 +267,7 @@ let AuthService = class AuthService {
             where: { id: user.id },
             data: { lastSessionId: sessionId },
         });
+        this.websocketGateway.disconnectSupersededSessions(user.id, sessionId, 'You have been logged out from this tab or device because this account signed in from another browser or device.');
         const payload = {
             sub: user.id,
             role: user.role?.name,
@@ -580,8 +587,10 @@ let AuthService = class AuthService {
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => websocket_gateway_1.WebsocketGateway))),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         jwt_1.JwtService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        websocket_gateway_1.WebsocketGateway])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

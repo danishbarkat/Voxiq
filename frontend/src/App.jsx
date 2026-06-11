@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import Navbar from './components/Navbar'
+import SessionLogoutModal from './components/SessionLogoutModal'
 import { getToken } from './lib/auth'
 import { SoftphoneProvider } from './context/SoftphoneContext'
 import './App.css'
@@ -110,6 +111,7 @@ function App() {
       <SoftphoneProvider>
         <div className="shell">
           <NavbarWrapper />
+          <SessionLogoutModal />
           <main className="page" style={{ padding: 0 }}>
             <AppRoutes />
           </main>

@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface AgentSession {
     socketId: string;
@@ -34,13 +35,15 @@ export class WebsocketGateway
 
     private readonly logger = new Logger(WebsocketGateway.name);
     private agentSessions: Map<string, AgentSession> = new Map();
+    private userSockets: Map<string, Set<string>> = new Map();
 
     constructor(
         private jwtService: JwtService,
         private configService: ConfigService,
+        private prisma: PrismaService,
     ) { }
 
-    handleConnection(client: Socket) {
+    async handleConnection(client: Socket) {
         const requireAuth = this.configService.get<boolean>('REQUIRE_WS_AUTH');
         const token =
             client.handshake.auth?.token ||
@@ -56,7 +59,22 @@ export class WebsocketGateway
         if (token) {
             try {
                 const payload = this.jwtService.verify(token);
+                const user = await this.prisma.user.findUnique({
+                    where: { id: payload.sub },
+                    select: { id: true, lastSessionId: true },
+                });
+                if (!user || (payload.sessionId && user.lastSessionId && payload.sessionId !== user.lastSessionId)) {
+                    this.logger.warn(`WS connection rejected (stale session): ${client.id} user:${payload.sub}`);
+                    client.emit('auth:force-logout', {
+                        reason: 'You have been logged out from this tab or device because this account signed in from another browser or device.',
+                    });
+                    client.disconnect(true);
+                    return;
+                }
                 client.data.user = payload;
+                const socketIds = this.userSockets.get(payload.sub) || new Set<string>();
+                socketIds.add(client.id);
+                this.userSockets.set(payload.sub, socketIds);
                 this.logger.log(
                     `Client connected: ${client.id} user:${payload.sub} role:${payload.role}`,
                 );
@@ -79,6 +97,17 @@ export class WebsocketGateway
                 this.agentSessions.delete(agentId);
                 this.logger.log(`Agent ${agentId} session removed`);
                 break;
+            }
+        }
+
+        const userId = client.data?.user?.sub as string | undefined;
+        if (userId) {
+            const socketIds = this.userSockets.get(userId);
+            if (socketIds) {
+                socketIds.delete(client.id);
+                if (socketIds.size === 0) {
+                    this.userSockets.delete(userId);
+                }
             }
         }
     }
@@ -205,5 +234,23 @@ export class WebsocketGateway
      */
     isAgentOnline(agentId: string): boolean {
         return this.agentSessions.has(agentId);
+    }
+
+    disconnectSupersededSessions(userId: string, activeSessionId: string, reason: string) {
+        const socketIds = this.userSockets.get(userId);
+        if (!socketIds?.size) {
+            return;
+        }
+
+        for (const socketId of Array.from(socketIds)) {
+            const socket = this.server.sockets.sockets.get(socketId);
+            const socketSessionId = socket?.data?.user?.sessionId as string | undefined;
+            if (!socket || socketSessionId === activeSessionId) {
+                continue;
+            }
+
+            socket.emit('auth:force-logout', { reason });
+            socket.disconnect(true);
+        }
     }
 }
