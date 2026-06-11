@@ -2117,14 +2117,52 @@ function RecordingsTab() {
 
 // ─── Billing Tab ─────────────────────────────────────────────────────────────
 
+const COUNTRY_FLAGS = {
+  US:'🇺🇸', GB:'🇬🇧', AU:'🇦🇺', DE:'🇩🇪', FR:'🇫🇷', NL:'🇳🇱', SE:'🇸🇪', NO:'🇳🇴',
+  DK:'🇩🇰', BE:'🇧🇪', PL:'🇵🇱', CH:'🇨🇭', AT:'🇦🇹', ES:'🇪🇸', IT:'🇮🇹', CA:'🇨🇦',
+  BR:'🇧🇷', MX:'🇲🇽', IN:'🇮🇳', PK:'🇵🇰', AE:'🇦🇪', SA:'🇸🇦', IL:'🇮🇱', NZ:'🇳🇿',
+  SG:'🇸🇬', JP:'🇯🇵', KR:'🇰🇷', CN:'🇨🇳', INBOUND:'📥', OTHER:'🌐',
+};
+
+function CountryBreakdown({ breakdown }) {
+  if (!breakdown?.length) return <div style={{ padding: '10px 18px', color: '#9ca3af', fontSize: 12 }}>No call data</div>;
+  return (
+    <div style={{ padding: '10px 18px 14px', background: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+        Country-wise Call Breakdown
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
+        {breakdown.map(b => (
+          <div key={b.country} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>{COUNTRY_FLAGS[b.country] || '🌐'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 12, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {b.countryName}
+              </div>
+              <div style={{ fontSize: 10, color: '#6b7280' }}>
+                {b.calls} calls · {b.minutes} min · <span style={{ color: '#dc2626', fontWeight: 700 }}>${b.cost.toFixed(4)}</span>
+              </div>
+            </div>
+            <span style={{ fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap' }}>${b.rate}/min</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BillingTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState({});
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     fetchJson(`${API_URL}/superadmin/billing-summary`)
       .then(setData).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (loading) return <Placeholder>Loading billing data…</Placeholder>;
   if (!data) return <Placeholder>Failed to load billing data.</Placeholder>;
@@ -2148,11 +2186,10 @@ function BillingTab() {
         <div>
           <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>Billing Summary — {month}</div>
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-            Telnyx rates: outbound ${rates.outboundPerMin}/min · inbound ${rates.inboundPerMin}/min · SMS ${rates.smsOutbound}/msg · number ${rates.numberPerMonth}/mo
+            US→US ${rates.usOutboundPerMin}/min · US→UK ${rates.ukOutboundPerMin}/min · Intl ${rates.intlOutboundPerMin}/min · Inbound ${rates.usInboundPerMin}/min · SMS ${rates.smsOutbound}/msg
           </div>
         </div>
-        <button onClick={() => fetchJson(`${API_URL}/superadmin/billing-summary`).then(setData)}
-          style={{ ...btnSecondary, padding: '8px 16px', fontSize: 12 }}>↻ Refresh</button>
+        <button onClick={load} style={{ ...btnSecondary, padding: '8px 16px', fontSize: 12 }}>↻ Refresh</button>
       </div>
 
       {/* Summary cards */}
@@ -2172,58 +2209,76 @@ function BillingTab() {
       {/* Per-company table */}
       <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 14, overflow: 'hidden' }}>
         <div style={{ padding: '12px 18px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontWeight: 700, fontSize: 12, color: '#374151' }}>
-          Per-Company Breakdown
+          Per-Company Breakdown — click row to see country detail
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['Company','Package','Pkg Price','Calls','Call Cost','SMS','SMS Cost','Numbers','Num Cost','Total Telnyx','Net Profit','Margin'].map(h => (
+                {['','Company','Package','Pkg Price','Calls','Call Cost','SMS','SMS Cost','Numbers','Num Cost','Total Telnyx','Net Profit','Margin'].map(h => (
                   <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {companies.length === 0 && (
-                <tr><td colSpan={12} style={{ padding: 24, color: '#9ca3af', textAlign: 'center' }}>No active companies this month.</td></tr>
+                <tr><td colSpan={13} style={{ padding: 24, color: '#9ca3af', textAlign: 'center' }}>No active companies this month.</td></tr>
               )}
               {companies.map((c, i) => {
                 const pkgClr = pkgColors[c.packageName] || '#9ca3af';
                 const profitClr = c.netProfit >= 0 ? '#059669' : '#dc2626';
                 const marginClr = c.margin >= 50 ? '#059669' : c.margin >= 30 ? '#d97706' : '#dc2626';
+                const isExpanded = !!expanded[c.id];
                 return (
-                  <tr key={c.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 700 }}>{c.name}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                      {c.packageName
-                        ? <span style={{ background: `${pkgClr}18`, color: pkgClr, border: `1px solid ${pkgClr}40`, borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>{c.packageName}</span>
-                        : <span style={{ color: '#d1d5db' }}>—</span>}
-                    </td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, color: '#059669' }}>${c.packagePrice}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                      {c.totalCalls}
-                      <div style={{ fontSize: 10, color: '#9ca3af' }}>{c.totalCallMinutes} min</div>
-                    </td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>${c.callCost.toFixed(3)}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>{c.smsCount}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>${c.smsCost.toFixed(3)}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>{c.numbers}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>${c.numCost.toFixed(2)}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, color: '#dc2626' }}>${c.totalTelnyxCost.toFixed(3)}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 800, color: profitClr }}>${c.netProfit.toFixed(2)}</td>
-                    <td style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                      {c.margin !== null
-                        ? <span style={{ background: c.margin >= 50 ? '#d1fae5' : c.margin >= 30 ? '#fef3c7' : '#fee2e2', color: marginClr, borderRadius: 20, padding: '2px 8px', fontWeight: 700, fontSize: 11 }}>{c.margin}%</span>
-                        : <span style={{ color: '#d1d5db' }}>—</span>}
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={c.id}
+                      onClick={() => setExpanded(prev => ({ ...prev, [c.id]: !prev[c.id] }))}
+                      style={{ background: isExpanded ? '#f0f9ff' : i % 2 === 0 ? '#fff' : '#fafafa', cursor: 'pointer' }}>
+                      <td style={{ padding: '10px 8px 10px 14px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
+                        <span style={{ fontSize: 10, color: '#6366f1' }}>{isExpanded ? '▼' : '▶'}</span>
+                      </td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 700 }}>{c.name}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
+                        {c.packageName
+                          ? <span style={{ background: `${pkgClr}18`, color: pkgClr, border: `1px solid ${pkgClr}40`, borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>{c.packageName}</span>
+                          : <span style={{ color: '#d1d5db' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 700, color: '#059669' }}>${c.packagePrice}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
+                        {c.totalCalls}
+                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{c.totalCallMinutes} min</div>
+                      </td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', color: '#dc2626' }}>${c.callCost.toFixed(3)}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>{c.smsCount}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', color: '#dc2626' }}>${c.smsCost.toFixed(3)}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
+                        {c.numbers}
+                        {c.ukNumbers > 0 && <div style={{ fontSize: 9, color: '#1d4ed8' }}>🇬🇧 {c.ukNumbers} UK · 🇺🇸 {c.usNumbers} US</div>}
+                      </td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', color: '#dc2626' }}>${c.numCost.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 700, color: '#dc2626' }}>${c.totalTelnyxCost.toFixed(3)}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 800, color: profitClr }}>${c.netProfit.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
+                        {c.margin !== null
+                          ? <span style={{ background: c.margin >= 50 ? '#d1fae5' : c.margin >= 30 ? '#fef3c7' : '#fee2e2', color: marginClr, borderRadius: 20, padding: '2px 8px', fontWeight: 700, fontSize: 11 }}>{c.margin}%</span>
+                          : <span style={{ color: '#d1d5db' }}>—</span>}
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${c.id}-breakdown`}>
+                        <td colSpan={13} style={{ padding: 0, borderBottom: '1px solid #e5e7eb' }}>
+                          <CountryBreakdown breakdown={c.countryBreakdown} />
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
             {companies.length > 0 && (
               <tfoot>
                 <tr style={{ background: '#1f2937' }}>
-                  <td colSpan={2} style={{ padding: '11px 12px', fontWeight: 800, color: '#fff', fontSize: 12 }}>TOTAL</td>
+                  <td colSpan={3} style={{ padding: '11px 12px', fontWeight: 800, color: '#fff', fontSize: 12 }}>TOTAL</td>
                   <td style={{ padding: '11px 12px', fontWeight: 800, color: '#6ee7b7' }}>${summary.totalRevenue.toFixed(2)}</td>
                   <td style={{ padding: '11px 12px', color: '#9ca3af' }}>{summary.totalCalls}</td>
                   <td colSpan={4} style={{ padding: '11px 12px', color: '#fca5a5', fontWeight: 700 }}>Telnyx: ${summary.totalTelnyxCost.toFixed(2)}</td>
@@ -2240,16 +2295,25 @@ function BillingTab() {
 
       {/* Rates reference */}
       <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 18px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase' }}>Telnyx Rates Used for Calculation</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 10, textTransform: 'uppercase' }}>Telnyx Rates Used for Calculation</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, fontSize: 12 }}>
           {[
-            ['Outbound Call', `$${rates.outboundPerMin}/min`],
-            ['Inbound Call',  `$${rates.inboundPerMin}/min`],
-            ['Recording',     `+$${rates.recordPerMin}/min`],
-            ['SMS Outbound',  `$${rates.smsOutbound}/msg`],
-            ['Phone Number',  `$${rates.numberPerMonth}/mo`],
+            ['🇺🇸 US→US Outbound',  `$${rates.usOutboundPerMin}/min`],
+            ['🇬🇧 US→UK Outbound',  `$${rates.ukOutboundPerMin}/min`],
+            ['🌐 Intl Outbound',    `$${rates.intlOutboundPerMin}/min`],
+            ['📥 US Inbound',       `$${rates.usInboundPerMin}/min`],
+            ['📥 UK Inbound',       `$${rates.ukInboundPerMin}/min`],
+            ['🔴 Toll-Free In',     `$${rates.tollfreeInboundPerMin}/min`],
+            ['🎙 Recording',        `+$${rates.recordPerMin}/min`],
+            ['💬 SMS Out',          `$${rates.smsOutbound}/msg`],
+            ['💬 SMS In',           `$${rates.smsInbound}/msg`],
+            ['🇺🇸 US Number',       `$${rates.usNumberPerMonth}/mo`],
+            ['🇬🇧 UK Number',       `$${rates.ukNumberPerMonth}/mo`],
           ].map(([k, v]) => (
-            <div key={k}><span style={{ color: '#6b7280' }}>{k}: </span><strong style={{ color: '#111827' }}>{v}</strong></div>
+            <div key={k} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '7px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#374151' }}>{k}</span>
+              <strong style={{ color: '#dc2626' }}>{v}</strong>
+            </div>
           ))}
         </div>
       </div>

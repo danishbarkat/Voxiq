@@ -925,13 +925,66 @@ export class SuperAdminService {
     Pro: 179, Agency: 399, Enterprise: 899,
   };
 
+  // Telnyx rates from pricing sheet (June 2026)
   private static readonly RATES = {
-    outboundPerMin: 0.007,
-    inboundPerMin:  0.005,
-    recordPerMin:   0.002,
-    smsOutbound:    0.007,
-    numberPerMonth: 1.00,
+    // Outbound by destination
+    usOutboundPerMin:    0.007,  // US/CA destination (+1)
+    ukOutboundPerMin:    0.012,  // UK destination (+44)
+    intlOutboundPerMin:  0.010,  // Other international (conservative estimate)
+    // Inbound by number type
+    usInboundPerMin:     0.005,  // US inbound
+    ukInboundPerMin:     0.006,  // UK inbound
+    tollfreeInboundPerMin: 0.017,// Toll-free inbound
+    // Add-ons
+    recordPerMin:        0.002,
+    // SMS
+    smsOutbound:         0.007,
+    smsInbound:          0.004,
+    // Numbers monthly
+    usNumberPerMonth:    1.00,
+    ukNumberPerMonth:    1.50,
   };
+
+  private detectDestCountry(phone: string): string {
+    if (!phone || !phone.startsWith('+')) return 'OTHER';
+    const digits = phone.slice(1);
+    if (digits.startsWith('1')) return 'US';
+    if (digits.startsWith('44')) return 'GB';
+    if (digits.startsWith('61')) return 'AU';
+    if (digits.startsWith('49')) return 'DE';
+    if (digits.startsWith('33')) return 'FR';
+    if (digits.startsWith('34')) return 'ES';
+    if (digits.startsWith('39')) return 'IT';
+    if (digits.startsWith('31')) return 'NL';
+    if (digits.startsWith('32')) return 'BE';
+    if (digits.startsWith('46')) return 'SE';
+    if (digits.startsWith('47')) return 'NO';
+    if (digits.startsWith('45')) return 'DK';
+    if (digits.startsWith('48')) return 'PL';
+    if (digits.startsWith('41')) return 'CH';
+    if (digits.startsWith('43')) return 'AT';
+    if (digits.startsWith('55')) return 'BR';
+    if (digits.startsWith('52')) return 'MX';
+    if (digits.startsWith('91')) return 'IN';
+    if (digits.startsWith('92')) return 'PK';
+    if (digits.startsWith('971')) return 'AE';
+    if (digits.startsWith('966')) return 'SA';
+    if (digits.startsWith('972')) return 'IL';
+    if (digits.startsWith('61')) return 'AU';
+    if (digits.startsWith('64')) return 'NZ';
+    if (digits.startsWith('65')) return 'SG';
+    if (digits.startsWith('81')) return 'JP';
+    if (digits.startsWith('82')) return 'KR';
+    if (digits.startsWith('86')) return 'CN';
+    return 'OTHER';
+  }
+
+  private getOutboundRate(destCountry: string): number {
+    const R = SuperAdminService.RATES;
+    if (destCountry === 'US' || destCountry === 'CA') return R.usOutboundPerMin;
+    if (destCountry === 'GB') return R.ukOutboundPerMin;
+    return R.intlOutboundPerMin;
+  }
 
   async getBillingSummary() {
     const now = new Date();
@@ -950,7 +1003,7 @@ export class SuperAdminService {
       const [callLogs, smsCount] = await Promise.all([
         this.prisma.callLog.findMany({
           where: { agent: { accountId: acc.id }, startedAt: { gte: monthStart } },
-          select: { durationSeconds: true, direction: true, startedAt: true, endedAt: true },
+          select: { durationSeconds: true, direction: true, startedAt: true, endedAt: true, toNumber: true },
         }),
         this.prisma.smsMessage.count({
           where: { accountId: acc.id, direction: 'outbound', createdAt: { gte: monthStart } },
@@ -958,6 +1011,10 @@ export class SuperAdminService {
       ]);
 
       const R = SuperAdminService.RATES;
+
+      // Country-wise breakdown
+      const countryMap = new Map<string, { calls: number; seconds: number; cost: number; rate: number }>();
+
       let callCost = 0;
       let totalCallSec = 0;
 
@@ -969,19 +1026,58 @@ export class SuperAdminService {
             : 0;
         totalCallSec += secs;
         const mins = secs / 60;
-        const rate = (log.direction || 'outbound').toLowerCase() === 'inbound' ? R.inboundPerMin : R.outboundPerMin;
-        callCost += mins * rate;
-        if (acc.canRecord) callCost += mins * R.recordPerMin;
+
+        const isInbound = (log.direction || 'outbound').toLowerCase() === 'inbound';
+        const destCountry = isInbound ? 'INBOUND' : this.detectDestCountry(log.toNumber || '');
+        const rate = isInbound ? R.usInboundPerMin : this.getOutboundRate(destCountry);
+        const callMinCost = mins * rate + (acc.canRecord ? mins * R.recordPerMin : 0);
+
+        callCost += callMinCost;
+
+        const bucket = countryMap.get(destCountry) || { calls: 0, seconds: 0, cost: 0, rate };
+        bucket.calls += 1;
+        bucket.seconds += secs;
+        bucket.cost += callMinCost;
+        countryMap.set(destCountry, bucket);
       }
 
-      const numbers = Array.isArray(acc.numberPool) ? (acc.numberPool as any[]).length : 0;
-      const smsCost   = smsCount * R.smsOutbound;
-      const numCost   = numbers * R.numberPerMonth;
-      const totalTelnyx = parseFloat((callCost + smsCost + numCost).toFixed(4));
+      // Number cost — detect UK vs US numbers
+      const numberPool = Array.isArray(acc.numberPool) ? (acc.numberPool as any[]) : [];
+      let numCost = 0;
+      let usNumbers = 0;
+      let ukNumbers = 0;
+      for (const n of numberPool) {
+        const num: string = n?.number || '';
+        if (num.startsWith('+44')) { ukNumbers++; numCost += R.ukNumberPerMonth; }
+        else { usNumbers++; numCost += R.usNumberPerMonth; }
+      }
 
-      const pkgPrice  = SuperAdminService.PACKAGE_PRICES[acc.packageName || ''] ?? 0;
-      const netProfit = parseFloat((pkgPrice - totalTelnyx).toFixed(2));
-      const margin    = pkgPrice > 0 ? parseFloat(((netProfit / pkgPrice) * 100).toFixed(1)) : null;
+      const smsCost     = smsCount * R.smsOutbound;
+      const totalTelnyx = parseFloat((callCost + smsCost + numCost).toFixed(4));
+      const pkgPrice    = SuperAdminService.PACKAGE_PRICES[acc.packageName || ''] ?? 0;
+      const netProfit   = parseFloat((pkgPrice - totalTelnyx).toFixed(2));
+      const margin      = pkgPrice > 0 ? parseFloat(((netProfit / pkgPrice) * 100).toFixed(1)) : null;
+
+      const COUNTRY_NAMES: Record<string, string> = {
+        US: 'United States', GB: 'United Kingdom', AU: 'Australia', DE: 'Germany',
+        FR: 'France', IN: 'India', PK: 'Pakistan', AE: 'UAE', SA: 'Saudi Arabia',
+        CA: 'Canada', NL: 'Netherlands', SE: 'Sweden', NO: 'Norway', PL: 'Poland',
+        CH: 'Switzerland', AT: 'Austria', BR: 'Brazil', MX: 'Mexico', ES: 'Spain',
+        IT: 'Italy', BE: 'Belgium', DK: 'Denmark', IL: 'Israel', NZ: 'New Zealand',
+        SG: 'Singapore', JP: 'Japan', KR: 'South Korea', CN: 'China',
+        INBOUND: 'Inbound Calls', OTHER: 'Other International',
+      };
+
+      const countryBreakdown = [...countryMap.entries()]
+        .map(([country, data]) => ({
+          country,
+          countryName: COUNTRY_NAMES[country] || country,
+          calls: data.calls,
+          minutes: parseFloat((data.seconds / 60).toFixed(2)),
+          cost: parseFloat(data.cost.toFixed(4)),
+          rate: data.rate,
+        }))
+        .sort((a, b) => b.calls - a.calls);
 
       return {
         id: acc.id,
@@ -993,11 +1089,14 @@ export class SuperAdminService {
         callCost: parseFloat(callCost.toFixed(4)),
         smsCount,
         smsCost: parseFloat(smsCost.toFixed(4)),
-        numbers,
+        numbers: numberPool.length,
+        usNumbers,
+        ukNumbers,
         numCost: parseFloat(numCost.toFixed(2)),
         totalTelnyxCost: totalTelnyx,
         netProfit,
         margin,
+        countryBreakdown,
       };
     }));
 
