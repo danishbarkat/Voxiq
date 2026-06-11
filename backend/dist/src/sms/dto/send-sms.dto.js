@@ -15,6 +15,7 @@ class SendSmsDto {
     to;
     body;
     from;
+    channel;
 }
 exports.SendSmsDto = SendSmsDto;
 __decorate([
@@ -32,4 +33,10 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], SendSmsDto.prototype, "from", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['sms', 'whatsapp']),
+    __metadata("design:type", String)
+], SendSmsDto.prototype, "channel", void 0);
 //# sourceMappingURL=send-sms.dto.js.map

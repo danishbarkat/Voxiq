@@ -1,3 +1,4 @@
+import { Request } from 'express';
 import { DialerService } from './dialer.service';
 import { VoipService } from '../voip/voip.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,6 +21,13 @@ export declare class DialerController {
         error: string;
         message: string;
         existingCallLogId: string;
+        callId?: undefined;
+        status?: undefined;
+        callLogId?: undefined;
+    } | {
+        error: string;
+        message: string;
+        existingCallLogId?: undefined;
         callId?: undefined;
         status?: undefined;
         callLogId?: undefined;
@@ -126,6 +134,64 @@ export declare class DialerController {
         leadId: string;
         phone: string;
         error?: undefined;
+    }>;
+    getScheduledCallbacks(req: Request & {
+        user?: any;
+    }, agentId?: string): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.ScheduledCallbackStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        agentId: string;
+        notes: string | null;
+        customerName: string;
+        customerPhone: string;
+        customerEmail: string | null;
+        scheduledAt: Date;
+    }[]>;
+    createScheduledCallback(req: Request & {
+        user?: any;
+    }, body: {
+        agentId?: string;
+        accountId?: string;
+        customerName: string;
+        customerPhone: string;
+        customerEmail?: string;
+        scheduledAt: string;
+        notes?: string;
+    }): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.ScheduledCallbackStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        agentId: string;
+        notes: string | null;
+        customerName: string;
+        customerPhone: string;
+        customerEmail: string | null;
+        scheduledAt: Date;
+    }>;
+    updateScheduledCallback(id: string, body: {
+        status?: 'PENDING' | 'DONE' | 'CANCELLED';
+        notes?: string;
+        scheduledAt?: string;
+    }): Promise<{
+        id: string;
+        status: import("@prisma/client").$Enums.ScheduledCallbackStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        accountId: string;
+        agentId: string;
+        notes: string | null;
+        customerName: string;
+        customerPhone: string;
+        customerEmail: string | null;
+        scheduledAt: Date;
+    }>;
+    deleteScheduledCallback(id: string): Promise<{
+        success: boolean;
     }>;
     private normalizeToE164;
 }

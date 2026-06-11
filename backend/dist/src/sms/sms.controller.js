@@ -24,17 +24,25 @@ let SmsController = class SmsController {
     async send(dto, req) {
         const agentId = req.user.userId;
         const accountId = req.user.accountId;
-        return this.smsService.send(dto.to, dto.body, dto.from, agentId, accountId);
+        return this.smsService.send(dto.to, dto.body, dto.from, agentId, accountId, dto.channel || 'sms');
     }
-    async getConversations(req) {
+    async getConversations(req, channel) {
         const accountId = req.user.accountId;
         const role = (req.user.role || '').toLowerCase();
         const agentId = (role === 'admin' || role === 'superadmin') ? undefined : req.user.userId;
-        return this.smsService.getConversations(accountId, agentId);
+        return this.smsService.getConversations(accountId, agentId, channel);
     }
-    async getThread(number, req) {
+    async getThread(number, req, channel) {
         const accountId = req.user.accountId;
-        return this.smsService.getThread(number, accountId);
+        return this.smsService.getThread(number, accountId, channel);
+    }
+    async deleteConversation(number, req, channel) {
+        const accountId = req.user.accountId;
+        const role = (req.user.role || '').toLowerCase();
+        if (role !== 'admin' && role !== 'superadmin') {
+            return { error: 'Only admins can delete conversations' };
+        }
+        return this.smsService.deleteConversation(number, accountId, channel);
     }
 };
 exports.SmsController = SmsController;
@@ -49,18 +57,29 @@ __decorate([
 __decorate([
     (0, common_1.Get)('conversations'),
     __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Query)('channel')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], SmsController.prototype, "getConversations", null);
 __decorate([
     (0, common_1.Get)('conversations/:number'),
     __param(0, (0, common_1.Param)('number')),
     __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Query)('channel')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", Promise)
 ], SmsController.prototype, "getThread", null);
+__decorate([
+    (0, common_1.Delete)('conversations/:number'),
+    __param(0, (0, common_1.Param)('number')),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Query)('channel')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, String]),
+    __metadata("design:returntype", Promise)
+], SmsController.prototype, "deleteConversation", null);
 exports.SmsController = SmsController = __decorate([
     (0, common_1.Controller)('sms'),
     __metadata("design:paramtypes", [sms_service_1.SmsService])

@@ -9,6 +9,9 @@ declare class ApproveDto {
     numberPool: NumberEntryDto[];
     packageName?: string;
 }
+declare class AssignNumbersDto {
+    numberPool: NumberEntryDto[];
+}
 declare class RejectDto {
     reason: string;
 }
@@ -36,6 +39,35 @@ export declare class SuperAdminController {
             id: string;
             calls: number;
         }[];
+        companyTrends: {
+            daily: {
+                label: string;
+                key: string;
+                companies: {
+                    accountId: string;
+                    companyName: string;
+                    calls: number;
+                }[];
+            }[];
+            weekly: {
+                label: string;
+                key: string;
+                companies: {
+                    accountId: string;
+                    companyName: string;
+                    calls: number;
+                }[];
+            }[];
+            monthly: {
+                label: string;
+                key: string;
+                companies: {
+                    accountId: string;
+                    companyName: string;
+                    calls: number;
+                }[];
+            }[];
+        };
         totalCompanies: number;
         activeCompanies: number;
         pendingCompanies: number;
@@ -220,9 +252,12 @@ export declare class SuperAdminController {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     rejectCompany(id: string, dto: RejectDto): Promise<{
         id: string;
@@ -251,9 +286,12 @@ export declare class SuperAdminController {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     deactivateCompany(id: string): Promise<{
         id: string;
@@ -282,9 +320,12 @@ export declare class SuperAdminController {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     deleteCompany(id: string): Promise<{
         success: boolean;
@@ -317,9 +358,12 @@ export declare class SuperAdminController {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     getPendingVerifications(): Promise<{
         email: string;
@@ -340,7 +384,29 @@ export declare class SuperAdminController {
         callerName: string;
         countryCode: string;
     }[]>;
-    assignNumbers(id: string, dto: ApproveDto): Promise<{
+    searchAvailableNumbers(country: string, areaCode?: string, type?: string): Promise<any>;
+    orderNumber(body: {
+        phoneNumber: string;
+        features?: string[];
+    }): Promise<{
+        success: boolean;
+        phoneNumber: string;
+        status: any;
+        features: string[];
+        messagingEnabled: boolean;
+    }>;
+    createMessagingProfile(name?: string): Promise<{
+        success: boolean;
+        profileId: any;
+        name: any;
+        instructions: string;
+    }>;
+    getMessagingProfile(): Promise<{
+        profiles: any;
+        configuredId: string | null;
+        hasConfigured: boolean;
+    }>;
+    assignNumbers(id: string, dto: AssignNumbersDto): Promise<{
         message: string;
         assigned: {
             number: string;
@@ -375,14 +441,18 @@ export declare class SuperAdminController {
         canOutboundCall?: boolean;
         canInboundCall?: boolean;
         canSendSms?: boolean;
+        canSendWhatsapp?: boolean;
         canRecord?: boolean;
+        canCallInternational?: boolean;
     }): Promise<{
         id: string;
         name: string;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
     }>;
     getPackageUsage(id: string): Promise<{
         usage: {
@@ -418,6 +488,9 @@ export declare class SuperAdminController {
             totalTelnyxCost: number;
             totalNetProfit: number;
             overallMargin: number;
+            totalUsageBill: number;
+            totalUsageProfit: number;
+            usageMargin: number;
             totalCalls: number;
             totalSms: number;
         };
@@ -432,17 +505,50 @@ export declare class SuperAdminController {
             smsCount: number;
             smsCost: number;
             numbers: number;
+            usNumbers: number;
+            ukNumbers: number;
             numCost: number;
             totalTelnyxCost: number;
             netProfit: number;
             margin: number | null;
+            usageBill: number;
+            usageProfit: number;
+            usageMargin: number | null;
+            countryBreakdown: {
+                country: string;
+                countryName: string;
+                calls: number;
+                minutes: number;
+                telnyxCost: number;
+                sellCost: number;
+                profit: number;
+                telnyxRate: number;
+                sellRate: number;
+            }[];
         }[];
         rates: {
-            outboundPerMin: number;
+            usOutboundPerMin: number;
+            ukOutboundPerMin: number;
+            intlOutboundPerMin: number;
+            usInboundPerMin: number;
+            ukInboundPerMin: number;
+            tollfreeInboundPerMin: number;
+            recordPerMin: number;
+            smsOutbound: number;
+            smsInbound: number;
+            usNumberPerMonth: number;
+            ukNumberPerMonth: number;
+        };
+        sellRates: {
+            usOutboundPerMin: number;
+            ukOutboundPerMin: number;
+            intlOutboundPerMin: number;
             inboundPerMin: number;
             recordPerMin: number;
             smsOutbound: number;
-            numberPerMonth: number;
+            smsInbound: number;
+            usNumberPerMonth: number;
+            ukNumberPerMonth: number;
         };
     }>;
     getAnalytics(): Promise<{

@@ -57,6 +57,15 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], ApproveDto.prototype, "packageName", void 0);
+class AssignNumbersDto {
+    numberPool;
+}
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => NumberEntryDto),
+    __metadata("design:type", Array)
+], AssignNumbersDto.prototype, "numberPool", void 0);
 class RejectDto {
     reason;
 }
@@ -104,6 +113,18 @@ let SuperAdminController = class SuperAdminController {
     }
     getAvailableNumbers() {
         return this.superAdminService.getAvailableNumbers();
+    }
+    searchAvailableNumbers(country, areaCode, type) {
+        return this.superAdminService.searchAvailableNumbers({ country: country || 'US', areaCode, type });
+    }
+    orderNumber(body) {
+        return this.superAdminService.orderNumber(body.phoneNumber, body.features || ['voice']);
+    }
+    createMessagingProfile(name) {
+        return this.superAdminService.createMessagingProfile(name);
+    }
+    getMessagingProfile() {
+        return this.superAdminService.getMessagingProfile();
     }
     assignNumbers(id, dto) {
         return this.superAdminService.assignNumbers(id, dto.numberPool);
@@ -238,11 +259,40 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "getAvailableNumbers", null);
 __decorate([
+    (0, common_1.Get)('numbers/available'),
+    __param(0, (0, common_1.Query)('country')),
+    __param(1, (0, common_1.Query)('areaCode')),
+    __param(2, (0, common_1.Query)('type')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "searchAvailableNumbers", null);
+__decorate([
+    (0, common_1.Post)('numbers/order'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "orderNumber", null);
+__decorate([
+    (0, common_1.Post)('messaging/create-profile'),
+    __param(0, (0, common_1.Body)('name')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "createMessagingProfile", null);
+__decorate([
+    (0, common_1.Get)('messaging/profile'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getMessagingProfile", null);
+__decorate([
     (0, common_1.Post)('companies/:id/assign-numbers'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, ApproveDto]),
+    __metadata("design:paramtypes", [String, AssignNumbersDto]),
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "assignNumbers", null);
 __decorate([

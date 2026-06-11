@@ -139,12 +139,17 @@ let SuperAdminService = class SuperAdminService {
             .sort((a, b) => b.calls - a.calls)
             .slice(0, 8);
         const topCountries = this.buildTopCountries(callLogs);
+        const companyTrends = this.buildCompanyTrendSeries(topCompanies.map((company) => ({
+            accountId: company.accountId,
+            companyName: company.companyName,
+        })), byAccount);
         return {
             ...totals,
             connectionRate: totals.totalCalls > 0 ? Number(((totals.connectedCalls / totals.totalCalls) * 100).toFixed(1)) : 0,
             topCompanies,
             topStates,
             topCountries,
+            companyTrends,
         };
     }
     async getAllCompanies() {
@@ -687,6 +692,113 @@ let SuperAdminService = class SuperAdminService {
         }
         return `+${digits.slice(0, 1)}`;
     }
+    async searchAvailableNumbers(opts) {
+        const apiKey = this.configService.get('TELNYX_API_KEY');
+        if (!apiKey)
+            return [];
+        const params = new URLSearchParams();
+        params.set('filter[country_code]', (opts.country || 'US').toUpperCase());
+        if (opts.areaCode)
+            params.set('filter[national_destination_code]', opts.areaCode);
+        if (opts.type)
+            params.set('filter[phone_number_type]', opts.type);
+        params.set('filter[limit]', '20');
+        params.append('filter[features][]', 'voice');
+        try {
+            const res = await fetch(`https://api.telnyx.com/v2/available_phone_numbers?${params.toString()}`, {
+                headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            });
+            if (!res.ok)
+                return [];
+            const json = await res.json();
+            return (json.data || []).map((item) => ({
+                phoneNumber: item.phone_number,
+                regionName: item.region_information?.[0]?.region_name || '',
+                type: item.phone_number_type,
+                features: (item.features || []).map((f) => f.name),
+                monthlyCost: item.cost_information?.monthly_cost || '0.00',
+                upfrontCost: item.cost_information?.upfront_cost || '0.00',
+            }));
+        }
+        catch {
+            return [];
+        }
+    }
+    async orderNumber(phoneNumber, features = ['voice']) {
+        const apiKey = this.configService.get('TELNYX_API_KEY');
+        const connectionId = this.configService.get('TELNYX_SIP_CONNECTION_ID');
+        const messagingProfileId = this.configService.get('TELNYX_MESSAGING_PROFILE_ID');
+        if (!apiKey)
+            throw new common_1.BadRequestException('Telnyx API key not configured');
+        const wantsSms = features.some(f => ['sms', 'mms', 'messaging'].includes(f.toLowerCase()));
+        const body = { phone_numbers: [{ phone_number: phoneNumber }] };
+        if (connectionId)
+            body.connection_id = connectionId;
+        if (wantsSms && messagingProfileId)
+            body.messaging_profile_id = messagingProfileId;
+        const res = await fetch('https://api.telnyx.com/v2/number_orders', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+            throw new common_1.BadRequestException(json?.errors?.[0]?.detail || 'Failed to order number');
+        }
+        return {
+            success: true,
+            phoneNumber,
+            status: json.data?.status || 'submitted',
+            features,
+            messagingEnabled: wantsSms && !!messagingProfileId,
+        };
+    }
+    async createMessagingProfile(name) {
+        const apiKey = this.configService.get('TELNYX_API_KEY');
+        if (!apiKey)
+            throw new common_1.BadRequestException('Telnyx API key not configured');
+        const profileName = name || 'Voxiq Messaging Profile';
+        const res = await fetch('https://api.telnyx.com/v2/messaging_profiles', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: profileName }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+            throw new common_1.BadRequestException(json?.errors?.[0]?.detail || 'Failed to create messaging profile');
+        }
+        const profileId = json.data?.id;
+        return {
+            success: true,
+            profileId,
+            name: json.data?.name,
+            instructions: `Add this to your .env file:\nTELNYX_MESSAGING_PROFILE_ID=${profileId}`,
+        };
+    }
+    async getMessagingProfile() {
+        const apiKey = this.configService.get('TELNYX_API_KEY');
+        if (!apiKey)
+            throw new common_1.BadRequestException('Telnyx API key not configured');
+        const configuredId = this.configService.get('TELNYX_MESSAGING_PROFILE_ID');
+        const res = await fetch('https://api.telnyx.com/v2/messaging_profiles?page[size]=10', {
+            headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        const json = await res.json();
+        if (!res.ok) {
+            throw new common_1.BadRequestException(json?.errors?.[0]?.detail || 'Failed to fetch messaging profiles');
+        }
+        const profiles = (json.data || []).map((p) => ({
+            id: p.id,
+            name: p.name,
+            active: p.enabled,
+            isConfigured: p.id === configuredId,
+        }));
+        return {
+            profiles,
+            configuredId: configuredId || null,
+            hasConfigured: !!configuredId,
+        };
+    }
     async assignNumbers(accountId, numbers) {
         const account = await this.prisma.account.findUnique({
             where: { id: accountId },
@@ -716,10 +828,16 @@ let SuperAdminService = class SuperAdminService {
         if (updated.length === pool.length) {
             throw new common_1.NotFoundException('Number not found in this company pool');
         }
-        await this.prisma.account.update({
-            where: { id: accountId },
-            data: { numberPool: updated },
-        });
+        await this.prisma.$transaction([
+            this.prisma.account.update({
+                where: { id: accountId },
+                data: { numberPool: updated },
+            }),
+            this.prisma.user.updateMany({
+                where: { accountId, callerNumber: number },
+                data: { callerNumber: null },
+            }),
+        ]);
         return { message: 'Number unassigned', number };
     }
     async regenerateAccessCode(accountId) {
@@ -784,12 +902,99 @@ let SuperAdminService = class SuperAdminService {
         Pro: 179, Agency: 399, Enterprise: 899,
     };
     static RATES = {
-        outboundPerMin: 0.007,
-        inboundPerMin: 0.005,
+        usOutboundPerMin: 0.007,
+        ukOutboundPerMin: 0.012,
+        intlOutboundPerMin: 0.010,
+        usInboundPerMin: 0.005,
+        ukInboundPerMin: 0.006,
+        tollfreeInboundPerMin: 0.017,
         recordPerMin: 0.002,
         smsOutbound: 0.007,
-        numberPerMonth: 1.00,
+        smsInbound: 0.004,
+        usNumberPerMonth: 1.00,
+        ukNumberPerMonth: 1.50,
     };
+    static SELL_RATES = {
+        usOutboundPerMin: 0.015,
+        ukOutboundPerMin: 0.025,
+        intlOutboundPerMin: 0.020,
+        inboundPerMin: 0.010,
+        recordPerMin: 0.004,
+        smsOutbound: 0.015,
+        smsInbound: 0.008,
+        usNumberPerMonth: 2.00,
+        ukNumberPerMonth: 3.00,
+    };
+    detectDestCountry(phone) {
+        if (!phone || !phone.startsWith('+'))
+            return 'OTHER';
+        const digits = phone.slice(1);
+        if (digits.startsWith('1'))
+            return 'US';
+        if (digits.startsWith('44'))
+            return 'GB';
+        if (digits.startsWith('61'))
+            return 'AU';
+        if (digits.startsWith('49'))
+            return 'DE';
+        if (digits.startsWith('33'))
+            return 'FR';
+        if (digits.startsWith('34'))
+            return 'ES';
+        if (digits.startsWith('39'))
+            return 'IT';
+        if (digits.startsWith('31'))
+            return 'NL';
+        if (digits.startsWith('32'))
+            return 'BE';
+        if (digits.startsWith('46'))
+            return 'SE';
+        if (digits.startsWith('47'))
+            return 'NO';
+        if (digits.startsWith('45'))
+            return 'DK';
+        if (digits.startsWith('48'))
+            return 'PL';
+        if (digits.startsWith('41'))
+            return 'CH';
+        if (digits.startsWith('43'))
+            return 'AT';
+        if (digits.startsWith('55'))
+            return 'BR';
+        if (digits.startsWith('52'))
+            return 'MX';
+        if (digits.startsWith('91'))
+            return 'IN';
+        if (digits.startsWith('92'))
+            return 'PK';
+        if (digits.startsWith('971'))
+            return 'AE';
+        if (digits.startsWith('966'))
+            return 'SA';
+        if (digits.startsWith('972'))
+            return 'IL';
+        if (digits.startsWith('61'))
+            return 'AU';
+        if (digits.startsWith('64'))
+            return 'NZ';
+        if (digits.startsWith('65'))
+            return 'SG';
+        if (digits.startsWith('81'))
+            return 'JP';
+        if (digits.startsWith('82'))
+            return 'KR';
+        if (digits.startsWith('86'))
+            return 'CN';
+        return 'OTHER';
+    }
+    getOutboundRate(destCountry) {
+        const R = SuperAdminService_1.RATES;
+        if (destCountry === 'US' || destCountry === 'CA')
+            return R.usOutboundPerMin;
+        if (destCountry === 'GB')
+            return R.ukOutboundPerMin;
+        return R.intlOutboundPerMin;
+    }
     async getBillingSummary() {
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -805,14 +1010,16 @@ let SuperAdminService = class SuperAdminService {
             const [callLogs, smsCount] = await Promise.all([
                 this.prisma.callLog.findMany({
                     where: { agent: { accountId: acc.id }, startedAt: { gte: monthStart } },
-                    select: { durationSeconds: true, direction: true, startedAt: true, endedAt: true },
+                    select: { durationSeconds: true, direction: true, startedAt: true, endedAt: true, toNumber: true },
                 }),
                 this.prisma.smsMessage.count({
                     where: { accountId: acc.id, direction: 'outbound', createdAt: { gte: monthStart } },
                 }),
             ]);
             const R = SuperAdminService_1.RATES;
+            const countryMap = new Map();
             let callCost = 0;
+            let usageBill = 0;
             let totalCallSec = 0;
             for (const log of callLogs) {
                 const secs = log.durationSeconds != null
@@ -822,18 +1029,89 @@ let SuperAdminService = class SuperAdminService {
                         : 0;
                 totalCallSec += secs;
                 const mins = secs / 60;
-                const rate = (log.direction || 'outbound').toLowerCase() === 'inbound' ? R.inboundPerMin : R.outboundPerMin;
-                callCost += mins * rate;
-                if (acc.canRecord)
-                    callCost += mins * R.recordPerMin;
+                const isInbound = (log.direction || 'outbound').toLowerCase() === 'inbound';
+                const destCountry = isInbound ? 'INBOUND' : this.detectDestCountry(log.toNumber || '');
+                const telnyxRate = isInbound ? R.usInboundPerMin : this.getOutboundRate(destCountry);
+                const callTelnyxCost = mins * telnyxRate + (acc.canRecord ? mins * R.recordPerMin : 0);
+                callCost += callTelnyxCost;
+                const SR = SuperAdminService_1.SELL_RATES;
+                let sellRate;
+                if (isInbound) {
+                    sellRate = SR.inboundPerMin;
+                }
+                else if (destCountry === 'US' || destCountry === 'CA') {
+                    sellRate = SR.usOutboundPerMin;
+                }
+                else if (destCountry === 'GB') {
+                    sellRate = SR.ukOutboundPerMin;
+                }
+                else {
+                    sellRate = SR.intlOutboundPerMin;
+                }
+                const callSellCost = mins * sellRate + (acc.canRecord ? mins * SR.recordPerMin : 0);
+                usageBill += callSellCost;
+                const bucket = countryMap.get(destCountry) || {
+                    calls: 0, seconds: 0,
+                    telnyxCost: 0, telnyxRate,
+                    sellCost: 0, sellRate,
+                };
+                bucket.calls += 1;
+                bucket.seconds += secs;
+                bucket.telnyxCost += callTelnyxCost;
+                bucket.sellCost += callSellCost;
+                countryMap.set(destCountry, bucket);
             }
-            const numbers = Array.isArray(acc.numberPool) ? acc.numberPool.length : 0;
+            const numberPool = Array.isArray(acc.numberPool) ? acc.numberPool : [];
+            let numCost = 0;
+            let numSellCost = 0;
+            let usNumbers = 0;
+            let ukNumbers = 0;
+            const SR = SuperAdminService_1.SELL_RATES;
+            for (const n of numberPool) {
+                const num = n?.number || '';
+                if (num.startsWith('+44')) {
+                    ukNumbers++;
+                    numCost += R.ukNumberPerMonth;
+                    numSellCost += SR.ukNumberPerMonth;
+                }
+                else {
+                    usNumbers++;
+                    numCost += R.usNumberPerMonth;
+                    numSellCost += SR.usNumberPerMonth;
+                }
+            }
             const smsCost = smsCount * R.smsOutbound;
-            const numCost = numbers * R.numberPerMonth;
+            const smsSellCost = smsCount * SR.smsOutbound;
             const totalTelnyx = parseFloat((callCost + smsCost + numCost).toFixed(4));
+            usageBill += smsSellCost + numSellCost;
+            usageBill = parseFloat(usageBill.toFixed(4));
             const pkgPrice = SuperAdminService_1.PACKAGE_PRICES[acc.packageName || ''] ?? 0;
             const netProfit = parseFloat((pkgPrice - totalTelnyx).toFixed(2));
             const margin = pkgPrice > 0 ? parseFloat(((netProfit / pkgPrice) * 100).toFixed(1)) : null;
+            const usageProfit = parseFloat((usageBill - totalTelnyx).toFixed(2));
+            const usageMargin = usageBill > 0 ? parseFloat(((usageProfit / usageBill) * 100).toFixed(1)) : null;
+            const COUNTRY_NAMES_MAP = {
+                US: 'United States', GB: 'United Kingdom', AU: 'Australia', DE: 'Germany',
+                FR: 'France', IN: 'India', PK: 'Pakistan', AE: 'UAE', SA: 'Saudi Arabia',
+                CA: 'Canada', NL: 'Netherlands', SE: 'Sweden', NO: 'Norway', PL: 'Poland',
+                CH: 'Switzerland', AT: 'Austria', BR: 'Brazil', MX: 'Mexico', ES: 'Spain',
+                IT: 'Italy', BE: 'Belgium', DK: 'Denmark', IL: 'Israel', NZ: 'New Zealand',
+                SG: 'Singapore', JP: 'Japan', KR: 'South Korea', CN: 'China',
+                INBOUND: 'Inbound Calls', OTHER: 'Other International',
+            };
+            const countryBreakdown = [...countryMap.entries()]
+                .map(([country, data]) => ({
+                country,
+                countryName: COUNTRY_NAMES_MAP[country] || country,
+                calls: data.calls,
+                minutes: parseFloat((data.seconds / 60).toFixed(2)),
+                telnyxCost: parseFloat(data.telnyxCost.toFixed(4)),
+                sellCost: parseFloat(data.sellCost.toFixed(4)),
+                profit: parseFloat((data.sellCost - data.telnyxCost).toFixed(4)),
+                telnyxRate: data.telnyxRate,
+                sellRate: data.sellRate,
+            }))
+                .sort((a, b) => b.calls - a.calls);
             return {
                 id: acc.id,
                 name: acc.name,
@@ -844,20 +1122,28 @@ let SuperAdminService = class SuperAdminService {
                 callCost: parseFloat(callCost.toFixed(4)),
                 smsCount,
                 smsCost: parseFloat(smsCost.toFixed(4)),
-                numbers,
+                numbers: numberPool.length,
+                usNumbers,
+                ukNumbers,
                 numCost: parseFloat(numCost.toFixed(2)),
                 totalTelnyxCost: totalTelnyx,
                 netProfit,
                 margin,
+                usageBill,
+                usageProfit,
+                usageMargin,
+                countryBreakdown,
             };
         }));
         const totals = rows.reduce((acc, r) => ({
             totalRevenue: acc.totalRevenue + r.packagePrice,
             totalTelnyxCost: acc.totalTelnyxCost + r.totalTelnyxCost,
             totalNetProfit: acc.totalNetProfit + r.netProfit,
+            totalUsageBill: acc.totalUsageBill + r.usageBill,
+            totalUsageProfit: acc.totalUsageProfit + r.usageProfit,
             totalCalls: acc.totalCalls + r.totalCalls,
             totalSms: acc.totalSms + r.smsCount,
-        }), { totalRevenue: 0, totalTelnyxCost: 0, totalNetProfit: 0, totalCalls: 0, totalSms: 0 });
+        }), { totalRevenue: 0, totalTelnyxCost: 0, totalNetProfit: 0, totalUsageBill: 0, totalUsageProfit: 0, totalCalls: 0, totalSms: 0 });
         return {
             month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
             summary: {
@@ -866,11 +1152,16 @@ let SuperAdminService = class SuperAdminService {
                 totalNetProfit: parseFloat(totals.totalNetProfit.toFixed(2)),
                 overallMargin: totals.totalRevenue > 0
                     ? parseFloat(((totals.totalNetProfit / totals.totalRevenue) * 100).toFixed(1)) : 0,
+                totalUsageBill: parseFloat(totals.totalUsageBill.toFixed(2)),
+                totalUsageProfit: parseFloat(totals.totalUsageProfit.toFixed(2)),
+                usageMargin: totals.totalUsageBill > 0
+                    ? parseFloat(((totals.totalUsageProfit / totals.totalUsageBill) * 100).toFixed(1)) : 0,
                 totalCalls: totals.totalCalls,
                 totalSms: totals.totalSms,
             },
             companies: rows.sort((a, b) => b.netProfit - a.netProfit),
             rates: SuperAdminService_1.RATES,
+            sellRates: SuperAdminService_1.SELL_RATES,
         };
     }
     async updateAgentLimit(accountId, agentLimit) {
@@ -892,7 +1183,7 @@ let SuperAdminService = class SuperAdminService {
         return this.prisma.account.update({
             where: { id: accountId },
             data: features,
-            select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true },
+            select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true, canCallInternational: true },
         });
     }
     async getPackageUsage(accountId) {
@@ -1126,6 +1417,70 @@ let SuperAdminService = class SuperAdminService {
         return Object.values(bucket)
             .sort((a, b) => a.date.localeCompare(b.date))
             .slice(-14);
+    }
+    buildCompanyTrendSeries(companies, byAccount) {
+        const definitions = {
+            daily: { buckets: 14, key: 'day' },
+            weekly: { buckets: 8, key: 'week' },
+            monthly: { buckets: 6, key: 'month' },
+        };
+        return {
+            daily: this.buildTrendPoints(companies, byAccount, definitions.daily.buckets, definitions.daily.key),
+            weekly: this.buildTrendPoints(companies, byAccount, definitions.weekly.buckets, definitions.weekly.key),
+            monthly: this.buildTrendPoints(companies, byAccount, definitions.monthly.buckets, definitions.monthly.key),
+        };
+    }
+    buildTrendPoints(companies, byAccount, bucketCount, mode) {
+        const now = new Date();
+        const buckets = [];
+        for (let index = bucketCount - 1; index >= 0; index -= 1) {
+            const anchor = new Date(now);
+            let start = new Date(anchor);
+            let end = new Date(anchor);
+            let label = '';
+            let key = '';
+            if (mode === 'day') {
+                start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - index, 0, 0, 0, 0);
+                end = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - index, 23, 59, 59, 999);
+                label = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                key = start.toISOString().slice(0, 10);
+            }
+            else if (mode === 'week') {
+                const currentWeekStart = new Date(anchor);
+                currentWeekStart.setDate(anchor.getDate() - anchor.getDay());
+                currentWeekStart.setHours(0, 0, 0, 0);
+                start = new Date(currentWeekStart);
+                start.setDate(currentWeekStart.getDate() - (index * 7));
+                end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(23, 59, 59, 999);
+                label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                key = `${start.toISOString().slice(0, 10)}:week`;
+            }
+            else {
+                start = new Date(anchor.getFullYear(), anchor.getMonth() - index, 1, 0, 0, 0, 0);
+                end = new Date(anchor.getFullYear(), anchor.getMonth() - index + 1, 0, 23, 59, 59, 999);
+                label = start.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                key = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+            }
+            buckets.push({ key, label, start, end });
+        }
+        return buckets.map((bucket) => ({
+            label: bucket.label,
+            key: bucket.key,
+            companies: companies.map((company) => {
+                const logs = byAccount.get(company.accountId) || [];
+                const calls = logs.filter((log) => {
+                    const startedAt = log?.startedAt ? new Date(log.startedAt) : null;
+                    return startedAt && startedAt >= bucket.start && startedAt <= bucket.end;
+                }).length;
+                return {
+                    accountId: company.accountId,
+                    companyName: company.companyName,
+                    calls,
+                };
+            }),
+        }));
     }
     buildTopAgents(logs, users) {
         const byAgent = new Map();

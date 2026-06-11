@@ -26,6 +26,35 @@ export declare class SuperAdminService {
             id: string;
             calls: number;
         }[];
+        companyTrends: {
+            daily: {
+                label: string;
+                key: string;
+                companies: {
+                    accountId: string;
+                    companyName: string;
+                    calls: number;
+                }[];
+            }[];
+            weekly: {
+                label: string;
+                key: string;
+                companies: {
+                    accountId: string;
+                    companyName: string;
+                    calls: number;
+                }[];
+            }[];
+            monthly: {
+                label: string;
+                key: string;
+                companies: {
+                    accountId: string;
+                    companyName: string;
+                    calls: number;
+                }[];
+            }[];
+        };
         totalCompanies: number;
         activeCompanies: number;
         pendingCompanies: number;
@@ -208,9 +237,12 @@ export declare class SuperAdminService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     rejectCompany(accountId: string, reason: string): Promise<{
         id: string;
@@ -239,9 +271,12 @@ export declare class SuperAdminService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     deactivateCompany(accountId: string): Promise<{
         id: string;
@@ -270,9 +305,12 @@ export declare class SuperAdminService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     deleteCompany(accountId: string): Promise<{
         success: boolean;
@@ -305,9 +343,12 @@ export declare class SuperAdminService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     getAnalytics(): Promise<{
         accountId: string;
@@ -461,6 +502,29 @@ export declare class SuperAdminService {
     }[]>;
     private fetchTelnyxNumbers;
     private extractCountryCode;
+    searchAvailableNumbers(opts: {
+        country: string;
+        areaCode?: string;
+        type?: string;
+    }): Promise<any>;
+    orderNumber(phoneNumber: string, features?: string[]): Promise<{
+        success: boolean;
+        phoneNumber: string;
+        status: any;
+        features: string[];
+        messagingEnabled: boolean;
+    }>;
+    createMessagingProfile(name?: string): Promise<{
+        success: boolean;
+        profileId: any;
+        name: any;
+        instructions: string;
+    }>;
+    getMessagingProfile(): Promise<{
+        profiles: any;
+        configuredId: string | null;
+        hasConfigured: boolean;
+    }>;
     assignNumbers(accountId: string, numbers: Array<{
         number: string;
         callerName: string;
@@ -510,6 +574,19 @@ export declare class SuperAdminService {
     }>;
     static readonly PACKAGE_PRICES: Record<string, number>;
     private static readonly RATES;
+    static readonly SELL_RATES: {
+        usOutboundPerMin: number;
+        ukOutboundPerMin: number;
+        intlOutboundPerMin: number;
+        inboundPerMin: number;
+        recordPerMin: number;
+        smsOutbound: number;
+        smsInbound: number;
+        usNumberPerMonth: number;
+        ukNumberPerMonth: number;
+    };
+    private detectDestCountry;
+    private getOutboundRate;
     getBillingSummary(): Promise<{
         month: string;
         summary: {
@@ -517,6 +594,9 @@ export declare class SuperAdminService {
             totalTelnyxCost: number;
             totalNetProfit: number;
             overallMargin: number;
+            totalUsageBill: number;
+            totalUsageProfit: number;
+            usageMargin: number;
             totalCalls: number;
             totalSms: number;
         };
@@ -531,17 +611,50 @@ export declare class SuperAdminService {
             smsCount: number;
             smsCost: number;
             numbers: number;
+            usNumbers: number;
+            ukNumbers: number;
             numCost: number;
             totalTelnyxCost: number;
             netProfit: number;
             margin: number | null;
+            usageBill: number;
+            usageProfit: number;
+            usageMargin: number | null;
+            countryBreakdown: {
+                country: string;
+                countryName: string;
+                calls: number;
+                minutes: number;
+                telnyxCost: number;
+                sellCost: number;
+                profit: number;
+                telnyxRate: number;
+                sellRate: number;
+            }[];
         }[];
         rates: {
-            outboundPerMin: number;
+            usOutboundPerMin: number;
+            ukOutboundPerMin: number;
+            intlOutboundPerMin: number;
+            usInboundPerMin: number;
+            ukInboundPerMin: number;
+            tollfreeInboundPerMin: number;
+            recordPerMin: number;
+            smsOutbound: number;
+            smsInbound: number;
+            usNumberPerMonth: number;
+            ukNumberPerMonth: number;
+        };
+        sellRates: {
+            usOutboundPerMin: number;
+            ukOutboundPerMin: number;
+            intlOutboundPerMin: number;
             inboundPerMin: number;
             recordPerMin: number;
             smsOutbound: number;
-            numberPerMonth: number;
+            smsInbound: number;
+            usNumberPerMonth: number;
+            ukNumberPerMonth: number;
         };
     }>;
     updateAgentLimit(accountId: string, agentLimit: number): Promise<{
@@ -553,14 +666,18 @@ export declare class SuperAdminService {
         canOutboundCall?: boolean;
         canInboundCall?: boolean;
         canSendSms?: boolean;
+        canSendWhatsapp?: boolean;
         canRecord?: boolean;
+        canCallInternational?: boolean;
     }): Promise<{
         id: string;
         name: string;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
     }>;
     getPackageUsage(accountId: string): Promise<{
         usage: {
@@ -586,6 +703,8 @@ export declare class SuperAdminService {
     private buildTopStates;
     private buildTopCountries;
     private buildDailyActivity;
+    private buildCompanyTrendSeries;
+    private buildTrendPoints;
     private buildTopAgents;
     private detectServices;
     private generateAccessCode;

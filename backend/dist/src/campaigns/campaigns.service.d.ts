@@ -77,9 +77,12 @@ export declare class CampaignsService {
             canOutboundCall: boolean;
             canInboundCall: boolean;
             canSendSms: boolean;
+            canSendWhatsapp: boolean;
             canRecord: boolean;
+            canCallInternational: boolean;
             monthlyCallLimit: number | null;
             monthlySmsLimit: number | null;
+            monthlyWhatsappLimit: number | null;
         };
         lists: ({
             list: {

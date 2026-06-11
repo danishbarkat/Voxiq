@@ -246,9 +246,12 @@ export declare class LeadsService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }[]>;
     createAccount(name: string, requester?: any): Promise<{
         id: string;
@@ -277,9 +280,12 @@ export declare class LeadsService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     updateAccount(id: string, data: {
         name?: string;
@@ -311,9 +317,12 @@ export declare class LeadsService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     deleteAccount(id: string, requester?: any): Promise<{
         id: string;
@@ -342,9 +351,12 @@ export declare class LeadsService {
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
+        monthlyWhatsappLimit: number | null;
     }>;
     deleteList(id: string, requester?: any): Promise<{
         id: string;

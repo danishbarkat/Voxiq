@@ -14,17 +14,24 @@ export declare class SmsController {
         toNumber: string;
         body: string;
         telnyxMessageId: string | null;
+        channel: string;
     }>;
-    getConversations(req: any): Promise<any[]>;
-    getThread(number: string, req: any): Promise<{
+    getConversations(req: any, channel?: string): Promise<any[]>;
+    getThread(number: string, req: any, channel?: string): Promise<{
         id: string;
         direction: string;
         fromNumber: string;
         toNumber: string;
         body: string;
         status: string;
+        channel: string;
         createdAt: Date;
         agentId: string | null;
         agentName: any;
     }[]>;
+    deleteConversation(number: string, req: any, channel?: string): Promise<{
+        deleted: number;
+    } | {
+        error: string;
+    }>;
 }

@@ -63,6 +63,12 @@ let UsersService = class UsersService {
                 id: true,
                 name: true,
                 numberPool: true,
+                canSendSms: true,
+                canSendWhatsapp: true,
+                canOutboundCall: true,
+                canInboundCall: true,
+                canCallInternational: true,
+                canRecord: true,
             },
         },
         AgentList: {

@@ -67,6 +67,21 @@ let DialerController = class DialerController {
                 };
             }
         }
+        if (body.agentId) {
+            const agent = await this.prisma.user.findUnique({
+                where: { id: body.agentId },
+                select: { account: { select: { canCallInternational: true, canOutboundCall: true } } },
+            });
+            if (agent?.account && !agent.account.canOutboundCall) {
+                return { error: 'not_permitted', message: 'Outbound calling is not enabled for your account.' };
+            }
+            if (agent?.account && !agent.account.canCallInternational) {
+                const isUS = to.startsWith('+1') && to.replace(/\D/g, '').length === 11;
+                if (!isUS) {
+                    return { error: 'international_blocked', message: 'International calls are not permitted for your account. Only US/Canada numbers (+1) can be dialed.' };
+                }
+            }
+        }
         const result = await this.voipService.initiateCall({
             to,
             from,
@@ -224,6 +239,42 @@ let DialerController = class DialerController {
         console.log(`[DNC] Lead ${leadId} (${lead.phone}) added to DNC registry`);
         return { success: true, leadId, phone: lead.phone };
     }
+    async getScheduledCallbacks(req, agentId) {
+        const aid = agentId || req.user?.userId;
+        return this.prisma.scheduledCallback.findMany({
+            where: { agentId: aid, status: 'PENDING' },
+            orderBy: { scheduledAt: 'asc' },
+        });
+    }
+    async createScheduledCallback(req, body) {
+        const agentId = body.agentId || req.user?.userId;
+        const accountId = body.accountId || req.user?.accountId;
+        return this.prisma.scheduledCallback.create({
+            data: {
+                agentId,
+                accountId,
+                customerName: body.customerName,
+                customerPhone: body.customerPhone,
+                customerEmail: body.customerEmail,
+                scheduledAt: new Date(body.scheduledAt),
+                notes: body.notes,
+            },
+        });
+    }
+    async updateScheduledCallback(id, body) {
+        return this.prisma.scheduledCallback.update({
+            where: { id },
+            data: {
+                ...(body.status && { status: body.status }),
+                ...(body.notes !== undefined && { notes: body.notes }),
+                ...(body.scheduledAt && { scheduledAt: new Date(body.scheduledAt) }),
+            },
+        });
+    }
+    async deleteScheduledCallback(id) {
+        await this.prisma.scheduledCallback.delete({ where: { id } });
+        return { success: true };
+    }
     normalizeToE164(phone) {
         let d = (phone || '').trim();
         if (d.startsWith('+')) {
@@ -331,6 +382,37 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], DialerController.prototype, "addLeadToDnc", null);
+__decorate([
+    (0, common_1.Get)('scheduled-callbacks'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Query)('agentId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], DialerController.prototype, "getScheduledCallbacks", null);
+__decorate([
+    (0, common_1.Post)('scheduled-callbacks'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], DialerController.prototype, "createScheduledCallback", null);
+__decorate([
+    (0, common_1.Patch)('scheduled-callbacks/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], DialerController.prototype, "updateScheduledCallback", null);
+__decorate([
+    (0, common_1.Delete)('scheduled-callbacks/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], DialerController.prototype, "deleteScheduledCallback", null);
 exports.DialerController = DialerController = __decorate([
     (0, common_1.Controller)('dialer'),
     __metadata("design:paramtypes", [dialer_service_1.DialerService,
