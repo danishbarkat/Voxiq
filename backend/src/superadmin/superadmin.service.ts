@@ -1266,6 +1266,7 @@ export class SuperAdminService {
     canOutboundCall?: boolean;
     canInboundCall?: boolean;
     canSendSms?: boolean;
+    canSendWhatsapp?: boolean;
     canRecord?: boolean;
   }) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
@@ -1273,7 +1274,7 @@ export class SuperAdminService {
     return this.prisma.account.update({
       where: { id: accountId },
       data: features,
-      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true },
+      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true },
     });
   }
 

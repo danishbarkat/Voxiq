@@ -11,39 +11,63 @@ export class SmsService {
     private config: ConfigService,
   ) {}
 
-  async send(to: string, body: string, fromOverride: string | undefined, agentId: string, accountId: string) {
-    // Feature gate: check SMS permission + monthly limit
+  async send(
+    to: string,
+    body: string,
+    fromOverride: string | undefined,
+    agentId: string,
+    accountId: string,
+    channel: 'sms' | 'whatsapp' = 'sms',
+  ) {
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
-      select: { canSendSms: true, monthlySmsLimit: true, isTrial: true, trialEndsAt: true },
+      select: {
+        canSendSms: true, canSendWhatsapp: true,
+        monthlySmsLimit: true, monthlyWhatsappLimit: true,
+        isTrial: true, trialEndsAt: true,
+      },
     });
-    if (account && !account.canSendSms) {
-      throw new ForbiddenException('SMS sending is not enabled for your plan. Please upgrade.');
-    }
-    if (account?.isTrial && account.trialEndsAt && new Date(account.trialEndsAt) < new Date()) {
-      throw new ForbiddenException('Your free trial has expired. Please upgrade to continue.');
-    }
-    if (account?.monthlySmsLimit !== null && account?.monthlySmsLimit !== undefined) {
-      const monthStart = new Date();
-      monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-      const used = await this.prisma.smsMessage.count({
-        where: { accountId, direction: 'outbound', createdAt: { gte: monthStart } },
-      });
-      if (used >= account.monthlySmsLimit) {
-        throw new ForbiddenException(`Monthly SMS limit reached (${used}/${account.monthlySmsLimit}). Please upgrade your plan.`);
+
+    if (channel === 'whatsapp') {
+      if (account && !account.canSendWhatsapp) {
+        throw new ForbiddenException('WhatsApp is not enabled for your plan. Contact your administrator.');
+      }
+      if (account?.monthlyWhatsappLimit !== null && account?.monthlyWhatsappLimit !== undefined) {
+        const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+        const used = await this.prisma.smsMessage.count({
+          where: { accountId, direction: 'outbound', channel: 'whatsapp', createdAt: { gte: monthStart } },
+        });
+        if (used >= account.monthlyWhatsappLimit) {
+          throw new ForbiddenException(`Monthly WhatsApp limit reached (${used}/${account.monthlyWhatsappLimit}).`);
+        }
+      }
+    } else {
+      if (account && !account.canSendSms) {
+        throw new ForbiddenException('SMS sending is not enabled for your plan. Please upgrade.');
+      }
+      if (account?.isTrial && account.trialEndsAt && new Date(account.trialEndsAt) < new Date()) {
+        throw new ForbiddenException('Your free trial has expired. Please upgrade to continue.');
+      }
+      if (account?.monthlySmsLimit !== null && account?.monthlySmsLimit !== undefined) {
+        const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+        const used = await this.prisma.smsMessage.count({
+          where: { accountId, direction: 'outbound', channel: 'sms', createdAt: { gte: monthStart } },
+        });
+        if (used >= account.monthlySmsLimit) {
+          throw new ForbiddenException(`Monthly SMS limit reached (${used}/${account.monthlySmsLimit}). Please upgrade.`);
+        }
       }
     }
 
-    // Per-agent daily SMS limit (100/day)
-    const AGENT_DAILY_SMS_LIMIT = 100;
+    // Per-agent daily limit (100/day per channel)
+    const AGENT_DAILY_LIMIT = 100;
     if (agentId) {
-      const dayStart = new Date();
-      dayStart.setHours(0, 0, 0, 0);
+      const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
       const todayCount = await this.prisma.smsMessage.count({
-        where: { agentId, direction: 'outbound', createdAt: { gte: dayStart } },
+        where: { agentId, direction: 'outbound', channel, createdAt: { gte: dayStart } },
       });
-      if (todayCount >= AGENT_DAILY_SMS_LIMIT) {
-        throw new ForbiddenException(`Daily SMS limit reached (${todayCount}/${AGENT_DAILY_SMS_LIMIT}). Limit resets at midnight.`);
+      if (todayCount >= AGENT_DAILY_LIMIT) {
+        throw new ForbiddenException(`Daily ${channel.toUpperCase()} limit reached (${todayCount}/${AGENT_DAILY_LIMIT}). Resets at midnight.`);
       }
     }
 
@@ -58,61 +82,42 @@ export class SmsService {
     let status = 'sent';
 
     try {
+      const msgBody: any = { to: formattedTo, from: formattedFrom, text: body };
+      if (channel === 'whatsapp') msgBody.type = 'WhatsApp';
+
       const response = await fetch('https://api.telnyx.com/v2/messages', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ to: formattedTo, from: formattedFrom, text: body }),
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(msgBody),
       });
       const json = await response.json() as any;
       if (!response.ok) {
         const detail = json?.errors?.[0]?.detail || 'Send failed';
-        this.logger.error(`Telnyx SMS error: ${detail}`);
+        this.logger.error(`Telnyx ${channel} error: ${detail}`);
         status = 'failed';
       } else {
         telnyxMessageId = json?.data?.id || null;
       }
     } catch (err) {
-      this.logger.error(`SMS send exception: ${err.message}`);
+      this.logger.error(`${channel} send exception: ${err.message}`);
       status = 'failed';
     }
 
     return this.prisma.smsMessage.create({
-      data: {
-        accountId,
-        agentId,
-        direction: 'outbound',
-        fromNumber: formattedFrom,
-        toNumber: formattedTo,
-        body,
-        status,
-        telnyxMessageId,
-      },
+      data: { accountId, agentId, direction: 'outbound', fromNumber: formattedFrom, toNumber: formattedTo, body, status, telnyxMessageId, channel },
     });
   }
 
-  async saveInbound(from: string, to: string, body: string, telnyxMessageId: string | null, accountId: string) {
+  async saveInbound(from: string, to: string, body: string, telnyxMessageId: string | null, accountId: string, channel: 'sms' | 'whatsapp' = 'sms') {
     return this.prisma.smsMessage.create({
-      data: {
-        accountId,
-        agentId: null,
-        direction: 'inbound',
-        fromNumber: from,
-        toNumber: to,
-        body,
-        status: 'received',
-        telnyxMessageId,
-      },
+      data: { accountId, agentId: null, direction: 'inbound', fromNumber: from, toNumber: to, body, status: 'received', telnyxMessageId, channel },
     });
   }
 
-  async getConversations(accountId: string, agentId?: string) {
+  async getConversations(accountId: string, agentId?: string, channel?: string) {
     const where: any = { accountId };
-    if (agentId) {
-      where.OR = [{ agentId }, { direction: 'inbound' }];
-    }
+    if (channel) where.channel = channel;
+    if (agentId) where.OR = [{ agentId }, { direction: 'inbound' }];
 
     const messages = await this.prisma.smsMessage.findMany({
       where,
@@ -123,9 +128,11 @@ export class SmsService {
     const threads = new Map<string, any>();
     for (const msg of messages) {
       const contactNumber = msg.direction === 'outbound' ? msg.toNumber : msg.fromNumber;
-      if (!threads.has(contactNumber)) {
-        threads.set(contactNumber, {
+      const key = `${contactNumber}:${msg.channel}`;
+      if (!threads.has(key)) {
+        threads.set(key, {
           contactNumber,
+          channel: msg.channel,
           lastMessage: msg.body,
           lastMessageAt: msg.createdAt,
           direction: msg.direction,
@@ -140,16 +147,19 @@ export class SmsService {
     );
   }
 
-  async getThread(contactNumber: string, accountId: string) {
+  async getThread(contactNumber: string, accountId: string, channel?: string) {
     const formatted = contactNumber.startsWith('+')
       ? contactNumber
       : `+1${contactNumber.replace(/\D/g, '').slice(-10)}`;
 
+    const where: any = {
+      accountId,
+      OR: [{ toNumber: formatted }, { fromNumber: formatted }],
+    };
+    if (channel) where.channel = channel;
+
     const messages = await this.prisma.smsMessage.findMany({
-      where: {
-        accountId,
-        OR: [{ toNumber: formatted }, { fromNumber: formatted }],
-      },
+      where,
       orderBy: { createdAt: 'asc' },
       include: { agent: { select: { id: true, name: true } } },
     });
@@ -161,10 +171,26 @@ export class SmsService {
       toNumber: m.toNumber,
       body: m.body,
       status: m.status,
+      channel: m.channel,
       createdAt: m.createdAt,
       agentId: m.agentId,
       agentName: (m as any).agent?.name ?? null,
     }));
+  }
+
+  async deleteConversation(contactNumber: string, accountId: string, channel?: string) {
+    const formatted = contactNumber.startsWith('+')
+      ? contactNumber
+      : `+1${contactNumber.replace(/\D/g, '').slice(-10)}`;
+
+    const where: any = {
+      accountId,
+      OR: [{ toNumber: formatted }, { fromNumber: formatted }],
+    };
+    if (channel) where.channel = channel;
+
+    const result = await this.prisma.smsMessage.deleteMany({ where });
+    return { deleted: result.count };
   }
 
   async findAccountByNumber(toNumber: string): Promise<string | null> {

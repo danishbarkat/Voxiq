@@ -36,9 +36,11 @@ model Account {
   canOutboundCall     Boolean             @default(true)
   canInboundCall      Boolean             @default(true)
   canSendSms          Boolean             @default(false)
+  canSendWhatsapp     Boolean             @default(false)
   canRecord           Boolean             @default(false)
   monthlyCallLimit    Int?
   monthlySmsLimit     Int?
+  monthlyWhatsappLimit Int?
   campaigns           Campaign[]
   leads               Lead[]
   lists               List[]
@@ -248,6 +250,7 @@ model SmsMessage {
   body            String
   status          String   @default("sent")
   telnyxMessageId String?
+  channel         String   @default("sms")
   createdAt       DateTime @default(now())
 
   account Account @relation(fields: [accountId], references: [id])

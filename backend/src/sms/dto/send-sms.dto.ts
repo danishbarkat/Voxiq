@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class SendSmsDto {
   @IsString()
@@ -12,4 +12,9 @@ export class SendSmsDto {
   @IsString()
   @IsOptional()
   from?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['sms', 'whatsapp'])
+  channel?: 'sms' | 'whatsapp';
 }
