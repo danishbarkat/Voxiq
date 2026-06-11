@@ -85,6 +85,20 @@ export class SuperAdminController {
     return this.superAdminService.getAvailableNumbers();
   }
 
+  @Get('numbers/available')
+  searchAvailableNumbers(
+    @Query('country') country: string,
+    @Query('areaCode') areaCode?: string,
+    @Query('type') type?: string,
+  ) {
+    return this.superAdminService.searchAvailableNumbers({ country: country || 'US', areaCode, type });
+  }
+
+  @Post('numbers/order')
+  orderNumber(@Body('phoneNumber') phoneNumber: string) {
+    return this.superAdminService.orderNumber(phoneNumber);
+  }
+
   @Post('companies/:id/assign-numbers')
   assignNumbers(@Param('id') id: string, @Body() dto: ApproveDto) {
     return this.superAdminService.assignNumbers(id, dto.numberPool);

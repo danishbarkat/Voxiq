@@ -757,6 +757,57 @@ export class SuperAdminService {
     return `+${digits.slice(0, 1)}`;
   }
 
+  async searchAvailableNumbers(opts: { country: string; areaCode?: string; type?: string }) {
+    const apiKey = this.configService.get<string>('TELNYX_API_KEY');
+    if (!apiKey) return [];
+
+    const params = new URLSearchParams();
+    params.set('filter[country_code]', (opts.country || 'US').toUpperCase());
+    if (opts.areaCode) params.set('filter[national_destination_code]', opts.areaCode);
+    if (opts.type) params.set('filter[phone_number_type]', opts.type);
+    params.set('filter[limit]', '20');
+    params.append('filter[features][]', 'voice');
+
+    try {
+      const res = await fetch(`https://api.telnyx.com/v2/available_phone_numbers?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data || []).map((item: any) => ({
+        phoneNumber: item.phone_number,
+        regionName: item.region_information?.[0]?.region_name || '',
+        type: item.phone_number_type,
+        features: (item.features || []).map((f: any) => f.name),
+        monthlyCost: item.cost_information?.monthly_cost || '0.00',
+        upfrontCost: item.cost_information?.upfront_cost || '0.00',
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async orderNumber(phoneNumber: string) {
+    const apiKey = this.configService.get<string>('TELNYX_API_KEY');
+    const connectionId = this.configService.get<string>('TELNYX_SIP_CONNECTION_ID');
+    if (!apiKey) throw new BadRequestException('Telnyx API key not configured');
+
+    const body: any = { phone_numbers: [{ phone_number: phoneNumber }] };
+    if (connectionId) body.connection_id = connectionId;
+
+    const res = await fetch('https://api.telnyx.com/v2/number_orders', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new BadRequestException(json?.errors?.[0]?.detail || 'Failed to order number');
+    }
+    return { success: true, phoneNumber, status: json.data?.status || 'submitted' };
+  }
+
   async assignNumbers(
     accountId: string,
     numbers: Array<{ number: string; callerName: string; areaCode: string }>,

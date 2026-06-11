@@ -1460,6 +1460,173 @@ function AssignNumberModal({ number, companies, onClose, onAssigned }) {
   );
 }
 
+const SEARCH_COUNTRIES = [
+  { code: 'US', name: 'United States' }, { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' }, { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' },
+  { code: 'NL', name: 'Netherlands' }, { code: 'SE', name: 'Sweden' },
+  { code: 'NO', name: 'Norway' }, { code: 'DK', name: 'Denmark' },
+  { code: 'ES', name: 'Spain' }, { code: 'IT', name: 'Italy' },
+  { code: 'PL', name: 'Poland' }, { code: 'AT', name: 'Austria' },
+  { code: 'CH', name: 'Switzerland' }, { code: 'BE', name: 'Belgium' },
+  { code: 'PT', name: 'Portugal' }, { code: 'RO', name: 'Romania' },
+  { code: 'CZ', name: 'Czech Republic' }, { code: 'HU', name: 'Hungary' },
+  { code: 'MX', name: 'Mexico' }, { code: 'BR', name: 'Brazil' },
+  { code: 'AR', name: 'Argentina' }, { code: 'CO', name: 'Colombia' },
+  { code: 'CL', name: 'Chile' }, { code: 'PE', name: 'Peru' },
+  { code: 'IL', name: 'Israel' }, { code: 'ZA', name: 'South Africa' },
+  { code: 'NG', name: 'Nigeria' }, { code: 'KE', name: 'Kenya' },
+  { code: 'PH', name: 'Philippines' }, { code: 'SG', name: 'Singapore' },
+  { code: 'HK', name: 'Hong Kong' }, { code: 'TW', name: 'Taiwan' },
+  { code: 'MY', name: 'Malaysia' }, { code: 'TH', name: 'Thailand' },
+  { code: 'ID', name: 'Indonesia' }, { code: 'VN', name: 'Vietnam' },
+];
+
+function SearchBuyNumbers({ onPurchased }) {
+  const [country, setCountry] = useState('US');
+  const [areaCode, setAreaCode] = useState('');
+  const [numType, setNumType] = useState('local');
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState(null);
+  const [buying, setBuying] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, ok = true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleSearch = async () => {
+    setSearching(true);
+    setResults(null);
+    try {
+      const params = new URLSearchParams({ country });
+      if (areaCode.trim()) params.set('areaCode', areaCode.trim());
+      if (numType) params.set('type', numType);
+      const data = await fetchJson(`${API_URL}/superadmin/numbers/available?${params}`);
+      setResults(Array.isArray(data) ? data : []);
+    } catch (err) {
+      showToast(err.message || 'Search failed', false);
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleBuy = async (phoneNumber) => {
+    if (!window.confirm(`Buy ${phoneNumber}?\n\nThis will charge your Telnyx account.`)) return;
+    setBuying(phoneNumber);
+    try {
+      const res = await fetchJson(`${API_URL}/superadmin/numbers/order`, {
+        method: 'POST',
+        body: JSON.stringify({ phoneNumber }),
+      });
+      showToast(`✓ ${phoneNumber} ordered! Status: ${res.status}`, true);
+      setResults(prev => prev ? prev.filter(r => r.phoneNumber !== phoneNumber) : prev);
+      onPurchased();
+    } catch (err) {
+      showToast(err.message || 'Order failed', false);
+    } finally {
+      setBuying(null);
+    }
+  };
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #6366f1', overflow: 'hidden' }}>
+      <div style={{ padding: '14px 20px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 20 }}>🛒</span>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#fff' }}>Search & Buy Numbers</div>
+          <div style={{ fontSize: 12, color: '#c7d2fe', marginTop: 2 }}>Search available numbers on Telnyx and purchase directly</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 20px' }}>
+        {toast && (
+          <div style={{ background: toast.ok ? '#d1fae5' : '#fee2e2', color: toast.ok ? '#065f46' : '#991b1b', borderRadius: 9, padding: '10px 14px', marginBottom: 14, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {toast.msg}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 160px', minWidth: 140 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Country</div>
+            <select value={country} onChange={e => setCountry(e.target.value)} style={{ ...inputStyle, marginBottom: 0 }}>
+              {SEARCH_COUNTRIES.map(c => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: '1 1 120px', minWidth: 100 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Area Code</div>
+            <input
+              type="text" placeholder="e.g. 442" value={areaCode} onChange={e => setAreaCode(e.target.value.replace(/\D/g, ''))}
+              style={{ ...inputStyle, marginBottom: 0 }} maxLength={6}
+            />
+          </div>
+          <div style={{ flex: '1 1 120px', minWidth: 110 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</div>
+            <select value={numType} onChange={e => setNumType(e.target.value)} style={{ ...inputStyle, marginBottom: 0 }}>
+              <option value="local">Local</option>
+              <option value="toll_free">Toll Free</option>
+              <option value="mobile">Mobile</option>
+            </select>
+          </div>
+          <button onClick={handleSearch} disabled={searching}
+            style={{ padding: '10px 22px', borderRadius: 9, border: 'none', background: '#6366f1', color: '#fff', cursor: searching ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: 13, opacity: searching ? 0.7 : 1, whiteSpace: 'nowrap', height: 40 }}>
+            {searching ? 'Searching…' : '🔍 Search'}
+          </button>
+        </div>
+
+        {results !== null && (
+          <div style={{ marginTop: 14 }}>
+            {results.length === 0 ? (
+              <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                No available numbers found. Try a different area code or type.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
+                  {results.length} number{results.length !== 1 ? 's' : ''} available
+                </div>
+                {results.map(r => (
+                  <div key={r.phoneNumber} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 15, color: '#0f172a', flex: '1 1 160px' }}>
+                      {r.phoneNumber}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flex: '1 1 200px', flexWrap: 'wrap' }}>
+                      {r.regionName && (
+                        <span style={{ background: '#ede9fe', color: '#5b21b6', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                          {r.regionName}
+                        </span>
+                      )}
+                      <span style={{ background: '#f0fdf4', color: '#166534', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                        {r.type}
+                      </span>
+                      {(r.features || []).map(f => (
+                        <span key={f} style={{ background: '#f1f5f9', color: '#475569', borderRadius: 6, padding: '2px 7px', fontSize: 10, fontWeight: 600 }}>{f}</span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap' }}>
+                      ${r.monthlyCost}/mo
+                    </div>
+                    <button
+                      onClick={() => handleBuy(r.phoneNumber)}
+                      disabled={buying === r.phoneNumber}
+                      style={{ background: buying === r.phoneNumber ? '#9ca3af' : '#10b981', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', cursor: buying === r.phoneNumber ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap' }}>
+                      {buying === r.phoneNumber ? 'Ordering…' : '🛒 Buy'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NumbersTab() {
   const [numbers, setNumbers] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -1500,9 +1667,11 @@ function NumbersTab() {
         />
       )}
 
+      <SearchBuyNumbers onPurchased={() => setTimeout(() => load(true), 3000)} />
+
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 18 }}>ℹ️</span>
-        Numbers are pulled directly from your <strong>Telnyx account</strong>. Purchase numbers on Telnyx and they'll appear here automatically.
+        <span style={{ fontSize: 18 }}>📞</span>
+        Your purchased Telnyx numbers — assign them to companies below.
         <button onClick={() => load(true)} disabled={refreshing}
           style={{ marginLeft: 'auto', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
           {refreshing ? 'Refreshing…' : '↻ Refresh'}
