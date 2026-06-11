@@ -115,9 +115,10 @@ model User {
   teamId       String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  callerNumber String?
-  sipUri       String?
-  sipPassword  String?
+  callerNumber    String?
+  sipUri          String?
+  sipPassword     String?
+  lastSessionId   String?
   AgentList    AgentList[]
   callLogs           CallLog[]            @relation("AgentCalls")
   smsMessages        SmsMessage[]         @relation("AgentSmsMessages")

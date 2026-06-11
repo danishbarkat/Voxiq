@@ -693,6 +693,7 @@ export default function Agent() {
 
     const outcome = callOutcome; // 'invalid' | 'no_answer' | 'answered' | null
     if (!outcome) return; // callOutcome resets to null at start of each call — if null, call hasn't ended yet
+    if (outcome === 'answered') return; // Agent manually ended an answered call — never auto-advance
 
     // Snapshot the current call sequence so we can cancel if a new call starts mid-countdown
     // IMPORTANT: Only increment ONCE per outcome, not on re-renders
@@ -1177,7 +1178,7 @@ export default function Agent() {
           <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Caller ID</div>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace' }}>
-              {profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259'}
+              {profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '---'}
             </div>
           </div>
           <div style={{

@@ -283,12 +283,19 @@ export class AuthService {
   }
 
   async login(user: any) {
+    const sessionId = randomBytes(16).toString('hex');
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastSessionId: sessionId },
+    });
+
     const payload = {
       sub: user.id,
       role: user.role?.name,
       accountId: user.accountId,
       teamId: user.teamId,
       accountStatus: user.accountStatus ?? null,
+      sessionId,
     };
 
     return {

@@ -10,6 +10,7 @@ export interface JwtPayload {
   accountId?: string;
   teamId?: string | null;
   accountStatus?: string | null;
+  sessionId?: string;
 }
 
 @Injectable()
@@ -32,6 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       select: {
         id: true,
         status: true,
+        lastSessionId: true,
         account: { select: { id: true, status: true } },
         role: { select: { name: true } },
       },
@@ -40,6 +42,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // User deleted or account deleted
     if (!user || !user.account) {
       throw new UnauthorizedException('Account no longer exists');
+    }
+
+    // Single-session enforcement: reject tokens from superseded sessions
+    if (payload.sessionId && user.lastSessionId && payload.sessionId !== user.lastSessionId) {
+      throw new UnauthorizedException('Session expired — logged in from another browser');
     }
 
     // User deactivated

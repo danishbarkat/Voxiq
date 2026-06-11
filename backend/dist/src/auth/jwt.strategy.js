@@ -31,12 +31,16 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
             select: {
                 id: true,
                 status: true,
+                lastSessionId: true,
                 account: { select: { id: true, status: true } },
                 role: { select: { name: true } },
             },
         });
         if (!user || !user.account) {
             throw new common_1.UnauthorizedException('Account no longer exists');
+        }
+        if (payload.sessionId && user.lastSessionId && payload.sessionId !== user.lastSessionId) {
+            throw new common_1.UnauthorizedException('Session expired — logged in from another browser');
         }
         if (user.status === 'INACTIVE') {
             throw new common_1.UnauthorizedException('Your account has been deactivated');

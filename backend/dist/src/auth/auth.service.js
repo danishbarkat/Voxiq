@@ -256,12 +256,18 @@ let AuthService = class AuthService {
         };
     }
     async login(user) {
+        const sessionId = (0, crypto_1.randomBytes)(16).toString('hex');
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: { lastSessionId: sessionId },
+        });
         const payload = {
             sub: user.id,
             role: user.role?.name,
             accountId: user.accountId,
             teamId: user.teamId,
             accountStatus: user.accountStatus ?? null,
+            sessionId,
         };
         return {
             access_token: this.jwtService.sign(payload),
