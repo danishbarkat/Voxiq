@@ -33,11 +33,12 @@ model Account {
   isTrial             Boolean             @default(false)
   trialEndsAt         DateTime?
   requestedPackage    String?
-  canOutboundCall     Boolean             @default(true)
-  canInboundCall      Boolean             @default(true)
-  canSendSms          Boolean             @default(false)
-  canSendWhatsapp     Boolean             @default(false)
-  canRecord           Boolean             @default(false)
+  canOutboundCall        Boolean             @default(true)
+  canInboundCall         Boolean             @default(true)
+  canSendSms             Boolean             @default(false)
+  canSendWhatsapp        Boolean             @default(false)
+  canRecord              Boolean             @default(false)
+  canCallInternational   Boolean             @default(true)
   monthlyCallLimit    Int?
   monthlySmsLimit     Int?
   monthlyWhatsappLimit Int?

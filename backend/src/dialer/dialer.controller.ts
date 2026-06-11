@@ -78,6 +78,24 @@ export class DialerController {
         }
         // ─────────────────────────────────────────────────────────────────────
 
+        // ── INTERNATIONAL CALL RESTRICTION ───────────────────────────────────
+        if (body.agentId) {
+            const agent = await this.prisma.user.findUnique({
+                where: { id: body.agentId },
+                select: { account: { select: { canCallInternational: true, canOutboundCall: true } } },
+            });
+            if (agent?.account && !agent.account.canOutboundCall) {
+                return { error: 'not_permitted', message: 'Outbound calling is not enabled for your account.' };
+            }
+            if (agent?.account && !(agent.account as any).canCallInternational) {
+                const isUS = to.startsWith('+1') && to.replace(/\D/g,'').length === 11;
+                if (!isUS) {
+                    return { error: 'international_blocked', message: 'International calls are not permitted for your account. Only US/Canada numbers (+1) can be dialed.' };
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         const result = await this.voipService.initiateCall({
             to,
             from,

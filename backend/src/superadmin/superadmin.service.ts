@@ -1268,13 +1268,14 @@ export class SuperAdminService {
     canSendSms?: boolean;
     canSendWhatsapp?: boolean;
     canRecord?: boolean;
+    canCallInternational?: boolean;
   }) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) throw new NotFoundException('Company not found');
     return this.prisma.account.update({
       where: { id: accountId },
       data: features,
-      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true },
+      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true, canCallInternational: true },
     });
   }
 

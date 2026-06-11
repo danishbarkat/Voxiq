@@ -136,6 +136,7 @@ export class SuperAdminController {
     canSendSms?: boolean;
     canSendWhatsapp?: boolean;
     canRecord?: boolean;
+    canCallInternational?: boolean;
   }) {
     return this.superAdminService.updateFeatures(id, body);
   }
