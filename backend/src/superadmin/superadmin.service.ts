@@ -925,24 +925,32 @@ export class SuperAdminService {
     Pro: 179, Agency: 399, Enterprise: 899,
   };
 
-  // Telnyx rates from pricing sheet (June 2026)
+  // Telnyx rates from pricing sheet (June 2026) — what YOU PAY Telnyx
   private static readonly RATES = {
-    // Outbound by destination
-    usOutboundPerMin:    0.007,  // US/CA destination (+1)
-    ukOutboundPerMin:    0.012,  // UK destination (+44)
-    intlOutboundPerMin:  0.010,  // Other international (conservative estimate)
-    // Inbound by number type
-    usInboundPerMin:     0.005,  // US inbound
-    ukInboundPerMin:     0.006,  // UK inbound
-    tollfreeInboundPerMin: 0.017,// Toll-free inbound
-    // Add-ons
-    recordPerMin:        0.002,
-    // SMS
-    smsOutbound:         0.007,
-    smsInbound:          0.004,
-    // Numbers monthly
-    usNumberPerMonth:    1.00,
-    ukNumberPerMonth:    1.50,
+    usOutboundPerMin:      0.007,
+    ukOutboundPerMin:      0.012,
+    intlOutboundPerMin:    0.010,
+    usInboundPerMin:       0.005,
+    ukInboundPerMin:       0.006,
+    tollfreeInboundPerMin: 0.017,
+    recordPerMin:          0.002,
+    smsOutbound:           0.007,
+    smsInbound:            0.004,
+    usNumberPerMonth:      1.00,
+    ukNumberPerMonth:      1.50,
+  };
+
+  // What YOU CHARGE companies (~50% margin on Telnyx rates)
+  static readonly SELL_RATES = {
+    usOutboundPerMin:      0.015,  // US→US: $0.007 cost → $0.015 sell
+    ukOutboundPerMin:      0.025,  // US→UK: $0.012 cost → $0.025 sell
+    intlOutboundPerMin:    0.020,  // Other: $0.010 cost → $0.020 sell
+    inboundPerMin:         0.010,  // Inbound: $0.005 cost → $0.010 sell
+    recordPerMin:          0.004,  // Recording: $0.002 cost → $0.004 sell
+    smsOutbound:           0.015,  // SMS out: $0.007 cost → $0.015 sell
+    smsInbound:            0.008,  // SMS in: $0.004 cost → $0.008 sell
+    usNumberPerMonth:      2.00,   // US number: $1 cost → $2 sell
+    ukNumberPerMonth:      3.00,   // UK number: $1.5 cost → $3 sell
   };
 
   private detectDestCountry(phone: string): string {
@@ -1013,9 +1021,14 @@ export class SuperAdminService {
       const R = SuperAdminService.RATES;
 
       // Country-wise breakdown
-      const countryMap = new Map<string, { calls: number; seconds: number; cost: number; rate: number }>();
+      const countryMap = new Map<string, {
+        calls: number; seconds: number;
+        telnyxCost: number; telnyxRate: number;
+        sellCost: number; sellRate: number;
+      }>();
 
       let callCost = 0;
+      let usageBill = 0;
       let totalCallSec = 0;
 
       for (const log of callLogs) {
@@ -1029,36 +1042,70 @@ export class SuperAdminService {
 
         const isInbound = (log.direction || 'outbound').toLowerCase() === 'inbound';
         const destCountry = isInbound ? 'INBOUND' : this.detectDestCountry(log.toNumber || '');
-        const rate = isInbound ? R.usInboundPerMin : this.getOutboundRate(destCountry);
-        const callMinCost = mins * rate + (acc.canRecord ? mins * R.recordPerMin : 0);
 
-        callCost += callMinCost;
+        // Telnyx cost rate
+        const telnyxRate = isInbound ? R.usInboundPerMin : this.getOutboundRate(destCountry);
+        const callTelnyxCost = mins * telnyxRate + (acc.canRecord ? mins * R.recordPerMin : 0);
+        callCost += callTelnyxCost;
 
-        const bucket = countryMap.get(destCountry) || { calls: 0, seconds: 0, cost: 0, rate };
+        // Sell rate (what we charge company)
+        const SR = SuperAdminService.SELL_RATES;
+        let sellRate: number;
+        if (isInbound) {
+          sellRate = SR.inboundPerMin;
+        } else if (destCountry === 'US' || destCountry === 'CA') {
+          sellRate = SR.usOutboundPerMin;
+        } else if (destCountry === 'GB') {
+          sellRate = SR.ukOutboundPerMin;
+        } else {
+          sellRate = SR.intlOutboundPerMin;
+        }
+        const callSellCost = mins * sellRate + (acc.canRecord ? mins * SR.recordPerMin : 0);
+        usageBill += callSellCost;
+
+        const bucket = countryMap.get(destCountry) || {
+          calls: 0, seconds: 0,
+          telnyxCost: 0, telnyxRate,
+          sellCost: 0, sellRate,
+        };
         bucket.calls += 1;
         bucket.seconds += secs;
-        bucket.cost += callMinCost;
+        bucket.telnyxCost += callTelnyxCost;
+        bucket.sellCost += callSellCost;
         countryMap.set(destCountry, bucket);
       }
 
       // Number cost — detect UK vs US numbers
       const numberPool = Array.isArray(acc.numberPool) ? (acc.numberPool as any[]) : [];
       let numCost = 0;
+      let numSellCost = 0;
       let usNumbers = 0;
       let ukNumbers = 0;
+      const SR = SuperAdminService.SELL_RATES;
       for (const n of numberPool) {
         const num: string = n?.number || '';
-        if (num.startsWith('+44')) { ukNumbers++; numCost += R.ukNumberPerMonth; }
-        else { usNumbers++; numCost += R.usNumberPerMonth; }
+        if (num.startsWith('+44')) {
+          ukNumbers++; numCost += R.ukNumberPerMonth; numSellCost += SR.ukNumberPerMonth;
+        } else {
+          usNumbers++; numCost += R.usNumberPerMonth; numSellCost += SR.usNumberPerMonth;
+        }
       }
 
       const smsCost     = smsCount * R.smsOutbound;
+      const smsSellCost = smsCount * SR.smsOutbound;
       const totalTelnyx = parseFloat((callCost + smsCost + numCost).toFixed(4));
+      usageBill += smsSellCost + numSellCost;
+      usageBill = parseFloat(usageBill.toFixed(4));
+
       const pkgPrice    = SuperAdminService.PACKAGE_PRICES[acc.packageName || ''] ?? 0;
       const netProfit   = parseFloat((pkgPrice - totalTelnyx).toFixed(2));
       const margin      = pkgPrice > 0 ? parseFloat(((netProfit / pkgPrice) * 100).toFixed(1)) : null;
 
-      const COUNTRY_NAMES: Record<string, string> = {
+      // Usage-based profit (if charged per-minute instead of flat package)
+      const usageProfit  = parseFloat((usageBill - totalTelnyx).toFixed(2));
+      const usageMargin  = usageBill > 0 ? parseFloat(((usageProfit / usageBill) * 100).toFixed(1)) : null;
+
+      const COUNTRY_NAMES_MAP: Record<string, string> = {
         US: 'United States', GB: 'United Kingdom', AU: 'Australia', DE: 'Germany',
         FR: 'France', IN: 'India', PK: 'Pakistan', AE: 'UAE', SA: 'Saudi Arabia',
         CA: 'Canada', NL: 'Netherlands', SE: 'Sweden', NO: 'Norway', PL: 'Poland',
@@ -1071,11 +1118,14 @@ export class SuperAdminService {
       const countryBreakdown = [...countryMap.entries()]
         .map(([country, data]) => ({
           country,
-          countryName: COUNTRY_NAMES[country] || country,
+          countryName: COUNTRY_NAMES_MAP[country] || country,
           calls: data.calls,
           minutes: parseFloat((data.seconds / 60).toFixed(2)),
-          cost: parseFloat(data.cost.toFixed(4)),
-          rate: data.rate,
+          telnyxCost: parseFloat(data.telnyxCost.toFixed(4)),
+          sellCost: parseFloat(data.sellCost.toFixed(4)),
+          profit: parseFloat((data.sellCost - data.telnyxCost).toFixed(4)),
+          telnyxRate: data.telnyxRate,
+          sellRate: data.sellRate,
         }))
         .sort((a, b) => b.calls - a.calls);
 
@@ -1094,8 +1144,13 @@ export class SuperAdminService {
         ukNumbers,
         numCost: parseFloat(numCost.toFixed(2)),
         totalTelnyxCost: totalTelnyx,
+        // Flat package
         netProfit,
         margin,
+        // Per-minute usage billing
+        usageBill,
+        usageProfit,
+        usageMargin,
         countryBreakdown,
       };
     }));
@@ -1104,23 +1159,30 @@ export class SuperAdminService {
       totalRevenue:     acc.totalRevenue     + r.packagePrice,
       totalTelnyxCost:  acc.totalTelnyxCost  + r.totalTelnyxCost,
       totalNetProfit:   acc.totalNetProfit   + r.netProfit,
+      totalUsageBill:   acc.totalUsageBill   + r.usageBill,
+      totalUsageProfit: acc.totalUsageProfit + r.usageProfit,
       totalCalls:       acc.totalCalls       + r.totalCalls,
       totalSms:         acc.totalSms         + r.smsCount,
-    }), { totalRevenue: 0, totalTelnyxCost: 0, totalNetProfit: 0, totalCalls: 0, totalSms: 0 });
+    }), { totalRevenue: 0, totalTelnyxCost: 0, totalNetProfit: 0, totalUsageBill: 0, totalUsageProfit: 0, totalCalls: 0, totalSms: 0 });
 
     return {
       month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
       summary: {
-        totalRevenue:    parseFloat(totals.totalRevenue.toFixed(2)),
-        totalTelnyxCost: parseFloat(totals.totalTelnyxCost.toFixed(2)),
-        totalNetProfit:  parseFloat(totals.totalNetProfit.toFixed(2)),
-        overallMargin:   totals.totalRevenue > 0
+        totalRevenue:      parseFloat(totals.totalRevenue.toFixed(2)),
+        totalTelnyxCost:   parseFloat(totals.totalTelnyxCost.toFixed(2)),
+        totalNetProfit:    parseFloat(totals.totalNetProfit.toFixed(2)),
+        overallMargin:     totals.totalRevenue > 0
           ? parseFloat(((totals.totalNetProfit / totals.totalRevenue) * 100).toFixed(1)) : 0,
+        totalUsageBill:    parseFloat(totals.totalUsageBill.toFixed(2)),
+        totalUsageProfit:  parseFloat(totals.totalUsageProfit.toFixed(2)),
+        usageMargin:       totals.totalUsageBill > 0
+          ? parseFloat(((totals.totalUsageProfit / totals.totalUsageBill) * 100).toFixed(1)) : 0,
         totalCalls: totals.totalCalls,
         totalSms:   totals.totalSms,
       },
       companies: rows.sort((a, b) => b.netProfit - a.netProfit),
       rates: SuperAdminService.RATES,
+      sellRates: SuperAdminService.SELL_RATES,
     };
   }
 

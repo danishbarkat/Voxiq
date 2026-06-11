@@ -2127,25 +2127,46 @@ const COUNTRY_FLAGS = {
 function CountryBreakdown({ breakdown }) {
   if (!breakdown?.length) return <div style={{ padding: '10px 18px', color: '#9ca3af', fontSize: 12 }}>No call data</div>;
   return (
-    <div style={{ padding: '10px 18px 14px', background: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+    <div style={{ padding: '12px 18px 16px', background: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
         Country-wise Call Breakdown
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
-        {breakdown.map(b => (
-          <div key={b.country} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18 }}>{COUNTRY_FLAGS[b.country] || '🌐'}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 12, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {b.countryName}
-              </div>
-              <div style={{ fontSize: 10, color: '#6b7280' }}>
-                {b.calls} calls · {b.minutes} min · <span style={{ color: '#dc2626', fontWeight: 700 }}>${b.cost.toFixed(4)}</span>
-              </div>
-            </div>
-            <span style={{ fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap' }}>${b.rate}/min</span>
-          </div>
-        ))}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9' }}>
+              {['Country', 'Calls', 'Minutes', 'Telnyx Rate', 'Telnyx Cost', 'Your Rate', 'You Charge', 'Profit', 'Margin'].map(h => (
+                <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {breakdown.map((b, i) => {
+              const margin = b.sellCost > 0 ? ((b.profit / b.sellCost) * 100).toFixed(0) : null;
+              const marginColor = margin >= 45 ? '#059669' : margin >= 30 ? '#d97706' : '#dc2626';
+              return (
+                <tr key={b.country} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: 16, marginRight: 6 }}>{COUNTRY_FLAGS[b.country] || '🌐'}</span>
+                    <span style={{ fontWeight: 600 }}>{b.countryName}</span>
+                  </td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#374151' }}>{b.calls}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#374151' }}>{b.minutes}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#6b7280', fontFamily: 'monospace' }}>${b.telnyxRate}/min</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#dc2626', fontWeight: 700 }}>${b.telnyxCost?.toFixed(4)}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#059669', fontFamily: 'monospace', fontWeight: 700 }}>${b.sellRate}/min</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#059669', fontWeight: 800 }}>${b.sellCost?.toFixed(4)}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: b.profit >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>${b.profit?.toFixed(4)}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
+                    {margin !== null
+                      ? <span style={{ background: margin >= 45 ? '#d1fae5' : margin >= 30 ? '#fef3c7' : '#fee2e2', color: marginColor, borderRadius: 20, padding: '2px 7px', fontWeight: 700, fontSize: 11 }}>{margin}%</span>
+                      : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -2167,7 +2188,7 @@ function BillingTab() {
   if (loading) return <Placeholder>Loading billing data…</Placeholder>;
   if (!data) return <Placeholder>Failed to load billing data.</Placeholder>;
 
-  const { summary, companies, month, rates } = data;
+  const { summary, companies, month, rates, sellRates } = data;
   const pkgColors = { Trial:'#6366f1', Starter:'#10b981', Basic:'#3b82f6', Growth:'#8b5cf6', Pro:'#f59e0b', Agency:'#ef4444', Enterprise:'#1f2937' };
 
   const SummaryCard = ({ label, value, sub, color = '#111827', bg = '#f9fafb' }) => (
@@ -2192,18 +2213,39 @@ function BillingTab() {
         <button onClick={load} style={{ ...btnSecondary, padding: '8px 16px', fontSize: 12 }}>↻ Refresh</button>
       </div>
 
-      {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        <SummaryCard label="Total Revenue" value={`$${summary.totalRevenue.toLocaleString()}`}
-          sub={`${companies.length} active companies`} color="#059669" bg="#f0fdf4" />
-        <SummaryCard label="Telnyx Cost" value={`$${summary.totalTelnyxCost.toFixed(2)}`}
-          sub={`${summary.totalCalls} calls · ${summary.totalSms} SMS`} color="#dc2626" bg="#fef2f2" />
-        <SummaryCard label="Net Profit" value={`$${summary.totalNetProfit.toFixed(2)}`}
-          sub="Revenue − Telnyx cost" color={summary.totalNetProfit >= 0 ? '#059669' : '#dc2626'}
-          bg={summary.totalNetProfit >= 0 ? '#f0fdf4' : '#fef2f2'} />
-        <SummaryCard label="Overall Margin" value={`${summary.overallMargin}%`}
-          sub="Net profit / Revenue" color={summary.overallMargin >= 50 ? '#059669' : summary.overallMargin >= 30 ? '#d97706' : '#dc2626'}
-          bg={summary.overallMargin >= 50 ? '#f0fdf4' : summary.overallMargin >= 30 ? '#fffbeb' : '#fef2f2'} />
+      {/* Summary cards — two rows */}
+      <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          📦 Flat Package Revenue
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          <SummaryCard label="Package Revenue" value={`$${summary.totalRevenue.toLocaleString()}`}
+            sub={`${companies.length} active companies`} color="#059669" bg="#f0fdf4" />
+          <SummaryCard label="Telnyx Cost" value={`$${summary.totalTelnyxCost.toFixed(2)}`}
+            sub={`${summary.totalCalls} calls · ${summary.totalSms} SMS`} color="#dc2626" bg="#fef2f2" />
+          <SummaryCard label="Pkg Net Profit" value={`$${summary.totalNetProfit.toFixed(2)}`}
+            sub="Package − Telnyx cost" color={summary.totalNetProfit >= 0 ? '#059669' : '#dc2626'}
+            bg={summary.totalNetProfit >= 0 ? '#f0fdf4' : '#fef2f2'} />
+          <SummaryCard label="Pkg Margin" value={`${summary.overallMargin}%`}
+            sub="Flat package margin" color={summary.overallMargin >= 50 ? '#059669' : summary.overallMargin >= 30 ? '#d97706' : '#dc2626'}
+            bg={summary.overallMargin >= 50 ? '#f0fdf4' : summary.overallMargin >= 30 ? '#fffbeb' : '#fef2f2'} />
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>
+          ⏱ Per-Minute Usage Billing (if charged per-use)
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          <SummaryCard label="Usage Bill Total" value={`$${summary.totalUsageBill?.toFixed(2) || '0.00'}`}
+            sub="Sum of per-minute charges" color="#2563eb" bg="#eff6ff" />
+          <SummaryCard label="Telnyx Cost" value={`$${summary.totalTelnyxCost.toFixed(2)}`}
+            sub="Same Telnyx cost" color="#dc2626" bg="#fef2f2" />
+          <SummaryCard label="Usage Profit" value={`$${summary.totalUsageProfit?.toFixed(2) || '0.00'}`}
+            sub="Usage bill − Telnyx" color={(summary.totalUsageProfit || 0) >= 0 ? '#059669' : '#dc2626'}
+            bg={(summary.totalUsageProfit || 0) >= 0 ? '#f0fdf4' : '#fef2f2'} />
+          <SummaryCard label="Usage Margin" value={`${summary.usageMargin || 0}%`}
+            sub="Per-minute margin" color={(summary.usageMargin || 0) >= 45 ? '#059669' : (summary.usageMargin || 0) >= 30 ? '#d97706' : '#dc2626'}
+            bg={(summary.usageMargin || 0) >= 45 ? '#f0fdf4' : (summary.usageMargin || 0) >= 30 ? '#fffbeb' : '#fef2f2'} />
+        </div>
       </div>
 
       {/* Per-company table */}
@@ -2215,7 +2257,7 @@ function BillingTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['','Company','Package','Pkg Price','Calls','Call Cost','SMS','SMS Cost','Numbers','Num Cost','Total Telnyx','Net Profit','Margin'].map(h => (
+                {['','Company','Package','Pkg Price','Usage Bill','Calls','Call Cost','SMS','SMS Cost','Numbers','Num Cost','Telnyx Total','Pkg Profit','Pkg %','Usage Profit','Usage %'].map(h => (
                   <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -2244,6 +2286,10 @@ function BillingTab() {
                           : <span style={{ color: '#d1d5db' }}>—</span>}
                       </td>
                       <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 700, color: '#059669' }}>${c.packagePrice}</td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 800, color: '#2563eb' }}>
+                        ${(c.usageBill || 0).toFixed(3)}
+                        <div style={{ fontSize: 9, color: '#93c5fd' }}>per-min total</div>
+                      </td>
                       <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
                         {c.totalCalls}
                         <div style={{ fontSize: 10, color: '#9ca3af' }}>{c.totalCallMinutes} min</div>
@@ -2261,6 +2307,14 @@ function BillingTab() {
                       <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
                         {c.margin !== null
                           ? <span style={{ background: c.margin >= 50 ? '#d1fae5' : c.margin >= 30 ? '#fef3c7' : '#fee2e2', color: marginClr, borderRadius: 20, padding: '2px 8px', fontWeight: 700, fontSize: 11 }}>{c.margin}%</span>
+                          : <span style={{ color: '#d1d5db' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', fontWeight: 800, color: (c.usageProfit || 0) >= 0 ? '#059669' : '#dc2626' }}>
+                        ${(c.usageProfit || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
+                        {c.usageMargin !== null
+                          ? <span style={{ background: c.usageMargin >= 45 ? '#d1fae5' : c.usageMargin >= 30 ? '#fef3c7' : '#fee2e2', color: c.usageMargin >= 45 ? '#065f46' : c.usageMargin >= 30 ? '#92400e' : '#991b1b', borderRadius: 20, padding: '2px 8px', fontWeight: 700, fontSize: 11 }}>{c.usageMargin}%</span>
                           : <span style={{ color: '#d1d5db' }}>—</span>}
                       </td>
                     </tr>
@@ -2293,28 +2347,44 @@ function BillingTab() {
         </div>
       </div>
 
-      {/* Rates reference */}
+      {/* Rates reference — two columns: cost vs sell */}
       <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 18px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 10, textTransform: 'uppercase' }}>Telnyx Rates Used for Calculation</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, fontSize: 12 }}>
-          {[
-            ['🇺🇸 US→US Outbound',  `$${rates.usOutboundPerMin}/min`],
-            ['🇬🇧 US→UK Outbound',  `$${rates.ukOutboundPerMin}/min`],
-            ['🌐 Intl Outbound',    `$${rates.intlOutboundPerMin}/min`],
-            ['📥 US Inbound',       `$${rates.usInboundPerMin}/min`],
-            ['📥 UK Inbound',       `$${rates.ukInboundPerMin}/min`],
-            ['🔴 Toll-Free In',     `$${rates.tollfreeInboundPerMin}/min`],
-            ['🎙 Recording',        `+$${rates.recordPerMin}/min`],
-            ['💬 SMS Out',          `$${rates.smsOutbound}/msg`],
-            ['💬 SMS In',           `$${rates.smsInbound}/msg`],
-            ['🇺🇸 US Number',       `$${rates.usNumberPerMonth}/mo`],
-            ['🇬🇧 UK Number',       `$${rates.ukNumberPerMonth}/mo`],
-          ].map(([k, v]) => (
-            <div key={k} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '7px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#374151' }}>{k}</span>
-              <strong style={{ color: '#dc2626' }}>{v}</strong>
-            </div>
-          ))}
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 10, textTransform: 'uppercase' }}>Rate Card</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#f1f5f9' }}>
+                {['Call Type', 'Telnyx Cost (you pay)', 'Your Sell Price', 'Margin'].map(h => (
+                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rates && sellRates && [
+                ['🇺🇸 US→US Outbound',  rates.usOutboundPerMin,      sellRates.usOutboundPerMin,    'min'],
+                ['🇬🇧 US→UK Outbound',  rates.ukOutboundPerMin,      sellRates.ukOutboundPerMin,    'min'],
+                ['🌐 Intl Outbound',     rates.intlOutboundPerMin,    sellRates.intlOutboundPerMin,  'min'],
+                ['📥 Inbound',           rates.usInboundPerMin,       sellRates.inboundPerMin,       'min'],
+                ['🎙 Recording add-on',  rates.recordPerMin,          sellRates.recordPerMin,        'min'],
+                ['💬 SMS Outbound',      rates.smsOutbound,           sellRates.smsOutbound,         'msg'],
+                ['💬 SMS Inbound',       rates.smsInbound,            sellRates.smsInbound,          'msg'],
+                ['🇺🇸 US Number',        rates.usNumberPerMonth,      sellRates.usNumberPerMonth,    'mo'],
+                ['🇬🇧 UK Number',        rates.ukNumberPerMonth,      sellRates.ukNumberPerMonth,    'mo'],
+              ].map(([label, cost, sell, unit], i) => {
+                const margin = sell > 0 ? Math.round(((sell - cost) / sell) * 100) : 0;
+                return (
+                  <tr key={label} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{label}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9', color: '#dc2626', fontFamily: 'monospace', fontWeight: 700 }}>${cost}/{unit}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9', color: '#059669', fontFamily: 'monospace', fontWeight: 800 }}>${sell}/{unit}</td>
+                    <td style={{ padding: '9px 12px', borderBottom: '1px solid #f1f5f9' }}>
+                      <span style={{ background: margin >= 45 ? '#d1fae5' : margin >= 30 ? '#fef3c7' : '#fee2e2', color: margin >= 45 ? '#065f46' : margin >= 30 ? '#92400e' : '#991b1b', borderRadius: 20, padding: '2px 8px', fontWeight: 700, fontSize: 11 }}>{margin}%</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
