@@ -107,6 +107,7 @@ export default function Agent() {
 
   // SMS Messaging tab
   const [smsTab, setSmsTab] = useState(false);
+  const [activeChannel, setActiveChannel] = useState('sms'); // 'sms' | 'whatsapp'
   const [smsConversations, setSmsConversations] = useState([]);
   const [smsActiveThread, setSmsActiveThread] = useState(null);
   const [smsMessages, setSmsMessages] = useState([]);
@@ -820,23 +821,25 @@ export default function Agent() {
     finally { setSmsSending(false); }
   };
 
-  const fetchSmsConversations = async () => {
+  const fetchSmsConversations = async (ch) => {
+    const channel = ch || activeChannel;
     try {
       const token = localStorage.getItem('winfi_token');
-      const data = await fetch(`${API_URL}/sms/conversations`, {
+      const data = await fetch(`${API_URL}/sms/conversations?channel=${channel}`, {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json());
       setSmsConversations(Array.isArray(data) ? data : []);
     } catch (e) { console.error('fetchSmsConversations:', e); }
   };
 
-  const fetchSmsThread = async (contactNumber) => {
+  const fetchSmsThread = async (contactNumber, ch) => {
+    const channel = ch || activeChannel;
     try {
       const token = localStorage.getItem('winfi_token');
       const encoded = encodeURIComponent(contactNumber);
-      const data = await fetch(`${API_URL}/sms/conversations/${encoded}`, {
+      const data = await fetch(`${API_URL}/sms/conversations/${encoded}?channel=${channel}`, {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json());
+      }).then(r => r.ok ? r.json() : []);
       setSmsMessages(Array.isArray(data) ? data : []);
     } catch (e) { console.error('fetchSmsThread:', e); }
   };
@@ -849,13 +852,13 @@ export default function Agent() {
       const res = await fetch(`${API_URL}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ to: smsActiveThread, body: smsInput.trim() }),
+        body: JSON.stringify({ to: smsActiveThread, body: smsInput.trim(), channel: activeChannel }),
       });
       if (!res.ok) throw new Error(await res.text());
       setSmsInput('');
-      await fetchSmsThread(smsActiveThread);
+      await fetchSmsThread(smsActiveThread, activeChannel);
       await fetchHistory();
-    } catch (e) { alert('SMS failed: ' + e.message); }
+    } catch (e) { alert(`${activeChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'} send failed: ` + e.message); }
     finally { setSmsSendingMsg(false); }
   };
 
@@ -1265,28 +1268,77 @@ export default function Agent() {
         )}
 
         {/* Tab Bar */}
-        <div style={{ display: 'flex', gap: 8, borderBottom: '2px solid #e5e7eb', paddingBottom: 0, marginBottom: -8 }}>
-          <button
-            onClick={() => setSmsTab(false)}
-            style={{ padding: '8px 18px', background: 'none', border: 'none', borderBottom: !smsTab ? '2px solid #6366f1' : '2px solid transparent', color: !smsTab ? '#6366f1' : '#64748b', fontWeight: !smsTab ? 700 : 500, cursor: 'pointer', fontSize: '0.9rem', marginBottom: -2, fontFamily: 'inherit' }}
-          >
-            Dialer
-          </button>
-          <button
-            onClick={() => { setSmsTab(true); fetchSmsConversations(); }}
-            style={{ padding: '8px 18px', background: 'none', border: 'none', borderBottom: smsTab ? '2px solid #6366f1' : '2px solid transparent', color: smsTab ? '#6366f1' : '#64748b', fontWeight: smsTab ? 700 : 500, cursor: 'pointer', fontSize: '0.9rem', marginBottom: -2, fontFamily: 'inherit' }}
-          >
-            Messages
-          </button>
-        </div>
+        {(() => {
+          const canSms = profile?.account?.canSendSms ?? false;
+          const canWa = profile?.account?.canSendWhatsapp ?? false;
+          return (
+            <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e5e7eb', paddingBottom: 0, marginBottom: -8, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setSmsTab(false)}
+                style={{ padding: '8px 18px', background: 'none', border: 'none', borderBottom: !smsTab ? '2px solid #6366f1' : '2px solid transparent', color: !smsTab ? '#6366f1' : '#64748b', fontWeight: !smsTab ? 700 : 500, cursor: 'pointer', fontSize: '0.9rem', marginBottom: -2, fontFamily: 'inherit' }}
+              >
+                Dialer
+              </button>
 
-        {/* ── SMS MESSAGES PANEL ── */}
+              {/* SMS Tab */}
+              <button
+                onClick={() => {
+                  if (!canSms) return;
+                  setSmsTab(true);
+                  setActiveChannel('sms');
+                  setSmsActiveThread(null);
+                  setSmsMessages([]);
+                  fetchSmsConversations('sms');
+                }}
+                title={canSms ? 'SMS Conversations' : 'SMS not enabled for this account'}
+                style={{
+                  padding: '8px 16px', background: 'none', border: 'none', marginBottom: -2, fontFamily: 'inherit',
+                  borderBottom: smsTab && activeChannel === 'sms' ? '2px solid #6366f1' : '2px solid transparent',
+                  color: !canSms ? '#d1d5db' : (smsTab && activeChannel === 'sms') ? '#6366f1' : '#64748b',
+                  fontWeight: (smsTab && activeChannel === 'sms') ? 700 : 500,
+                  cursor: canSms ? 'pointer' : 'not-allowed',
+                  fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 5,
+                }}
+              >
+                💬 SMS {!canSms && <span style={{ fontSize: 10, color: '#d1d5db' }}>🔒</span>}
+              </button>
+
+              {/* WhatsApp Tab */}
+              <button
+                onClick={() => {
+                  if (!canWa) return;
+                  setSmsTab(true);
+                  setActiveChannel('whatsapp');
+                  setSmsActiveThread(null);
+                  setSmsMessages([]);
+                  fetchSmsConversations('whatsapp');
+                }}
+                title={canWa ? 'WhatsApp Conversations' : 'WhatsApp not enabled for this account'}
+                style={{
+                  padding: '8px 16px', background: 'none', border: 'none', marginBottom: -2, fontFamily: 'inherit',
+                  borderBottom: smsTab && activeChannel === 'whatsapp' ? '2px solid #25d366' : '2px solid transparent',
+                  color: !canWa ? '#d1d5db' : (smsTab && activeChannel === 'whatsapp') ? '#25d366' : '#64748b',
+                  fontWeight: (smsTab && activeChannel === 'whatsapp') ? 700 : 500,
+                  cursor: canWa ? 'pointer' : 'not-allowed',
+                  fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 5,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                WhatsApp {!canWa && <span style={{ fontSize: 10, color: '#d1d5db' }}>🔒</span>}
+              </button>
+            </div>
+          );
+        })()}
+
+        {/* ── MESSAGES PANEL (SMS or WhatsApp) ── */}
         {smsTab && (
-          <div style={{ display: 'flex', height: '65vh', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff', marginTop: 12 }}>
+          <div style={{ display: 'flex', height: '65vh', border: `1px solid ${activeChannel === 'whatsapp' ? '#25d36633' : '#e5e7eb'}`, borderRadius: 12, overflow: 'hidden', background: '#fff', marginTop: 12 }}>
             {/* Left: conversation list */}
-            <div style={{ width: 270, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', background: '#f9fafb', flexShrink: 0 }}>
-              <div style={{ padding: '10px 14px', fontWeight: 700, borderBottom: '1px solid #e5e7eb', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Conversations</span>
+            <div style={{ width: 270, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', background: activeChannel === 'whatsapp' ? '#f0fdf4' : '#f9fafb', flexShrink: 0 }}>
+              <div style={{ padding: '10px 14px', fontWeight: 700, borderBottom: '1px solid #e5e7eb', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeChannel === 'whatsapp' ? '#dcfce7' : undefined }}>
+                <span style={{ color: activeChannel === 'whatsapp' ? '#15803d' : '#111827' }}>
+                  {activeChannel === 'whatsapp' ? '📱 WhatsApp' : '💬 SMS'}
+                </span>
                 <button
                   onClick={() => { setSmsNewMode(m => !m); setSmsNewNumber(''); }}
                   style={{ background: smsNewMode ? '#6366f1' : '#eff6ff', color: smsNewMode ? '#fff' : '#4338ca', border: 'none', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
@@ -1379,13 +1431,14 @@ export default function Agent() {
                       <div key={m.id} style={{ display: 'flex', justifyContent: m.direction === 'outbound' ? 'flex-end' : 'flex-start' }}>
                         <div style={{
                           maxWidth: '72%', padding: '7px 11px', borderRadius: 12,
-                          background: m.direction === 'outbound' ? '#2563eb' : '#f3f4f6',
+                          background: m.direction === 'outbound' ? (activeChannel === 'whatsapp' ? '#25d366' : '#2563eb') : '#f3f4f6',
                           color: m.direction === 'outbound' ? '#fff' : '#111827',
                           fontSize: 13,
                         }}>
                           {m.body}
                           <div style={{ fontSize: 10, opacity: 0.65, marginTop: 3 }}>
                             {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {m.agentName && <span style={{ marginLeft: 5 }}>· {m.agentName}</span>}
                           </div>
                         </div>
                       </div>
@@ -1396,13 +1449,13 @@ export default function Agent() {
                       value={smsInput}
                       onChange={e => setSmsInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendSmsMessage(); } }}
-                      placeholder="Type a message..."
-                      style={{ flex: 1, padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, outline: 'none' }}
+                      placeholder={`Type ${activeChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'} message...`}
+                      style={{ flex: 1, padding: '7px 10px', border: `1px solid ${activeChannel === 'whatsapp' ? '#86efac' : '#d1d5db'}`, borderRadius: 8, fontSize: 13, outline: 'none' }}
                     />
                     <button
                       onClick={sendSmsMessage}
                       disabled={smsSendingMsg || !smsInput.trim()}
-                      style={{ padding: '7px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                      style={{ padding: '7px 14px', background: activeChannel === 'whatsapp' ? '#25d366' : '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
                     >
                       {smsSendingMsg ? '...' : 'Send'}
                     </button>

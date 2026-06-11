@@ -1060,10 +1060,12 @@ function PackageSection({ detail, onRefresh }) {
           <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
             Feature Access
           </div>
-          <FeatureToggle flag="canOutboundCall" on={usage.canOutboundCall} label="Outbound Calls" />
-          <FeatureToggle flag="canInboundCall"  on={usage.canInboundCall}  label="Inbound Calls"  />
-          <FeatureToggle flag="canSendSms"      on={usage.canSendSms}      label="SMS Sending"    />
-          <FeatureToggle flag="canRecord"       on={usage.canRecord}       label="Call Recording" />
+          <FeatureToggle flag="canOutboundCall"      on={usage.canOutboundCall}      label="Outbound Calls" />
+          <FeatureToggle flag="canInboundCall"       on={usage.canInboundCall}       label="Inbound Calls"  />
+          <FeatureToggle flag="canCallInternational" on={usage.canCallInternational ?? true} label="International Calls" />
+          <FeatureToggle flag="canSendSms"           on={usage.canSendSms}           label="SMS Messaging"  />
+          <FeatureToggle flag="canSendWhatsapp"      on={usage.canSendWhatsapp}      label="WhatsApp Messaging" />
+          <FeatureToggle flag="canRecord"            on={usage.canRecord}            label="Call Recording" />
           <div style={{ marginTop: 10 }}>
             <UsageBar used={usage.usage?.callsThisMonth} limit={usage.monthlyCallLimit} label="Calls this month" color="#6366f1" />
             {usage.canSendSms && <UsageBar used={usage.usage?.smsThisMonth} limit={usage.monthlySmsLimit} label="SMS this month" color="#10b981" />}
@@ -1218,6 +1220,34 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
             </div>
           </div>
           <StatusBadge status={detail.status} />
+        </div>
+
+        {/* NTN + Contact info row */}
+        <div style={{ display: 'grid', gridTemplateColumns: detail.ntn ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 2 }}>
+          {detail.ntn && (
+            <div style={{ background: detail.ntn ? '#eff6ff' : '#fef3c7', border: `1.5px solid ${detail.ntn ? '#bfdbfe' : '#fcd34d'}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>NTN (Tax Number)</div>
+                <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 15, color: '#1d4ed8', letterSpacing: '0.08em' }}>{detail.ntn}</div>
+              </div>
+              <a href="https://e.fbr.gov.pk/esbn/Verification" target="_blank" rel="noopener noreferrer"
+                style={{ background: '#2563eb', color: '#fff', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                Verify FBR ↗
+              </a>
+            </div>
+          )}
+          {!detail.ntn && (
+            <div style={{ background: '#fef3c7', border: '1.5px solid #fcd34d', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e' }}>⚠ No NTN Provided — verify company identity before approval</div>
+            </div>
+          )}
+          <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 14px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Contact</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{detail.adminName || '—'}</div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>{detail.adminEmail}</div>
+            {detail.adminPhone && <div style={{ fontSize: 12, color: '#374151', fontFamily: 'monospace' }}>{detail.adminPhone}</div>}
+            {detail.website && <a href={detail.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#2563eb' }}>{detail.website}</a>}
+          </div>
         </div>
 
         <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px' }}>
