@@ -112,6 +112,14 @@ export default function Agent() {
   const [smsMessages, setSmsMessages] = useState([]);
   const [smsInput, setSmsInput] = useState('');
   const [smsSendingMsg, setSmsSendingMsg] = useState(false);
+  const [smsNewMode, setSmsNewMode] = useState(false);
+  const [smsNewNumber, setSmsNewNumber] = useState('');
+
+  // Dialer quick-SMS panel
+  const [dialerSmsMessages, setDialerSmsMessages] = useState([]);
+  const [dialerSmsInput, setDialerSmsInput] = useState('');
+  const [dialerSmsSending, setDialerSmsSending] = useState(false);
+  const [dialerSmsPhone, setDialerSmsPhone] = useState('');
   const [callbackTime, setCallbackTime] = useState('');
   const [dealValue, setDealValue] = useState('');
 
@@ -373,6 +381,15 @@ export default function Agent() {
         .catch(err => console.error('Full lead fetch error:', err));
     }
   }, [currentLead?.id]);
+
+  // Auto-load dialer SMS thread when current lead / dial number changes
+  useEffect(() => {
+    const phone = currentLead?.phone || dialNumber;
+    if (phone) {
+      setDialerSmsPhone(phone);
+      fetchDialerSmsThread(phone);
+    }
+  }, [currentLead?.phone, dialNumber]);
 
   const handleStartDialing = () => {
     setStatus('Waiting for Lead...');
@@ -842,6 +859,36 @@ export default function Agent() {
     finally { setSmsSendingMsg(false); }
   };
 
+  const fetchDialerSmsThread = async (phone) => {
+    if (!phone) return;
+    try {
+      const token = localStorage.getItem('winfi_token');
+      const encoded = encodeURIComponent(phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g,'').slice(-10)}`);
+      const data = await fetch(`${API_URL}/sms/conversations/${encoded}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.ok ? r.json() : []);
+      setDialerSmsMessages(Array.isArray(data) ? data : []);
+    } catch { setDialerSmsMessages([]); }
+  };
+
+  const sendDialerSms = async () => {
+    const phone = dialerSmsPhone || currentLead?.phone || dialNumber;
+    if (!dialerSmsInput.trim() || !phone) return;
+    setDialerSmsSending(true);
+    try {
+      const token = localStorage.getItem('winfi_token');
+      const res = await fetch(`${API_URL}/sms/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ to: phone, body: dialerSmsInput.trim() }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setDialerSmsInput('');
+      await fetchDialerSmsThread(phone);
+    } catch (e) { alert('SMS failed: ' + e.message); }
+    finally { setDialerSmsSending(false); }
+  };
+
   // End call - force resets everything regardless of SIP state
   const handleHangup = useCallback(() => {
     hangup();
@@ -1237,41 +1284,95 @@ export default function Agent() {
         {smsTab && (
           <div style={{ display: 'flex', height: '65vh', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff', marginTop: 12 }}>
             {/* Left: conversation list */}
-            <div style={{ width: 260, borderRight: '1px solid #e5e7eb', overflowY: 'auto', background: '#f9fafb', flexShrink: 0 }}>
-              <div style={{ padding: '10px 14px', fontWeight: 700, borderBottom: '1px solid #e5e7eb', fontSize: 13 }}>Conversations</div>
-              {smsConversations.length === 0 && (
-                <div style={{ padding: 20, color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>No messages yet</div>
-              )}
-              {smsConversations.map(c => (
-                <div
-                  key={c.contactNumber}
-                  onClick={() => { setSmsActiveThread(c.contactNumber); fetchSmsThread(c.contactNumber); }}
-                  style={{
-                    padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
-                    background: smsActiveThread === c.contactNumber ? '#eff6ff' : 'transparent',
-                  }}
+            <div style={{ width: 270, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', background: '#f9fafb', flexShrink: 0 }}>
+              <div style={{ padding: '10px 14px', fontWeight: 700, borderBottom: '1px solid #e5e7eb', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Conversations</span>
+                <button
+                  onClick={() => { setSmsNewMode(m => !m); setSmsNewNumber(''); }}
+                  style={{ background: smsNewMode ? '#6366f1' : '#eff6ff', color: smsNewMode ? '#fff' : '#4338ca', border: 'none', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 12 }}>{c.contactNumber}</div>
-                  <div style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {c.direction === 'outbound' ? 'You: ' : '← '}{c.lastMessage}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
-                    {new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  {smsNewMode ? '✕ Cancel' : '+ New'}
+                </button>
+              </div>
+
+              {/* New conversation input */}
+              {smsNewMode && (
+                <div style={{ padding: '10px 12px', borderBottom: '1px solid #e5e7eb', background: '#fff' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 5 }}>To (phone number):</div>
+                  <input
+                    autoFocus
+                    value={smsNewNumber}
+                    onChange={e => setSmsNewNumber(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && smsNewNumber.trim()) {
+                        const num = smsNewNumber.trim();
+                        setSmsActiveThread(num);
+                        fetchSmsThread(num);
+                        setSmsNewMode(false);
+                        setSmsNewNumber('');
+                      }
+                    }}
+                    placeholder="+14422039259"
+                    style={{ width: '100%', padding: '6px 9px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 12, outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (!smsNewNumber.trim()) return;
+                      const num = smsNewNumber.trim();
+                      setSmsActiveThread(num);
+                      fetchSmsThread(num);
+                      setSmsNewMode(false);
+                      setSmsNewNumber('');
+                    }}
+                    style={{ marginTop: 6, width: '100%', padding: '6px 0', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
+                  >
+                    Open Chat
+                  </button>
                 </div>
-              ))}
+              )}
+
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {smsConversations.length === 0 && !smsNewMode && (
+                  <div style={{ padding: 20, color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>
+                    No messages yet.<br />Click <b>+ New</b> to start a conversation.
+                  </div>
+                )}
+                {smsConversations.map(c => (
+                  <div
+                    key={c.contactNumber}
+                    onClick={() => { setSmsActiveThread(c.contactNumber); fetchSmsThread(c.contactNumber); setSmsNewMode(false); }}
+                    style={{
+                      padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                      background: smsActiveThread === c.contactNumber ? '#eff6ff' : 'transparent',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 12, color: '#0f172a' }}>{c.contactNumber}</div>
+                    {c.agentName && <div style={{ fontSize: 10, color: '#6366f1', marginTop: 1 }}>{c.agentName}</div>}
+                    <div style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
+                      {c.direction === 'outbound' ? 'You: ' : '← '}{c.lastMessage}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                      {new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Right: thread view */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               {!smsActiveThread ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
-                  Select a conversation
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: 10 }}>
+                  <div style={{ fontSize: 32, opacity: 0.3 }}>💬</div>
+                  <div style={{ fontSize: 13 }}>Select a conversation or click <b>+ New</b></div>
                 </div>
               ) : (
                 <>
-                  <div style={{ padding: '10px 14px', borderBottom: '1px solid #e5e7eb', fontWeight: 600, fontSize: 13 }}>
-                    {smsActiveThread}
+                  <div style={{ padding: '10px 14px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13, fontFamily: 'monospace' }}>{smsActiveThread}</div>
+                    </div>
+                    <button onClick={() => fetchSmsThread(smsActiveThread)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', color: '#64748b' }}>↻ Refresh</button>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {smsMessages.map(m => (
@@ -1359,69 +1460,156 @@ export default function Agent() {
 
         {/* ── LEFT COLUMN ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Lead Profile Card */}
-          <section className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>👤</span> Lead Profile
-              </h2>
-              {currentLead && <span className="pill-status pill-success" style={{ fontSize: '0.65rem' }}>{currentLead.status}</span>}
-            </div>
 
-            {callState === 'failed' && lastError && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#dc2626', fontWeight: 600, fontSize: '0.9rem' }}>
-                {errorLabel(lastError)} — auto-clearing in 2.5s...
+          {/* Lead Profile + Quick SMS — side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
+
+            {/* Compact Lead Profile Card */}
+            <section className="card" style={{ minHeight: 240 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h2 className="font-head" style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span>👤</span> Lead Profile
+                </h2>
+                {currentLead && <span className="pill-status pill-success" style={{ fontSize: '0.6rem' }}>{currentLead.status}</span>}
               </div>
-            )}
 
-            {currentLead ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                <div>
-                  <span className="stat-label">Contact Name</span>
-                  <p style={{ fontWeight: 700, fontSize: '1.05rem', marginTop: '0.3rem', color: '#0f172a' }}>{currentLead.firstName} {currentLead.lastName}</p>
+              {callState === 'failed' && lastError && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '0.5rem 0.75rem', marginBottom: '0.75rem', color: '#dc2626', fontWeight: 600, fontSize: '0.82rem' }}>
+                  {errorLabel(lastError)}
                 </div>
-                <div>
-                  <span className="stat-label">Phone</span>
-                  <p style={{ fontWeight: 700, fontSize: '1.05rem', fontFamily: 'monospace', marginTop: '0.3rem', color: '#0f172a' }}>{currentLead.phone}</p>
-                </div>
-                <div>
-                  <span className="stat-label">Source List</span>
-                  <p style={{ fontWeight: 700, fontSize: '1.05rem', color: '#6366f1', marginTop: '0.3rem' }}>{currentLead.list?.name || 'Manual Assignment'}</p>
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <span className="stat-label">Address</span>
-                  <p style={{ color: '#94a3b8', marginTop: '0.3rem' }}>{currentLead.address || 'Not provided'}</p>
-                </div>
-                {currentLead.metadata && Object.keys(currentLead.metadata).length > 0 && (
-                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
-                    <span className="stat-label">Custom Fields</span>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.4rem' }}>
-                      {Object.entries(currentLead.metadata).map(([k, v]) => (
-                        <span key={k} style={{ background: '#eff6ff', borderRadius: 6, padding: '2px 8px', fontSize: '0.75rem', color: '#3730a3' }}>
-                          <b>{k}:</b> {v}
-                        </span>
-                      ))}
-                    </div>
+              )}
+
+              {currentLead ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div>
+                    <span className="stat-label" style={{ fontSize: '0.65rem' }}>Contact Name</span>
+                    <p style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '0.2rem', color: '#0f172a' }}>{currentLead.firstName} {currentLead.lastName}</p>
                   </div>
+                  <div>
+                    <span className="stat-label" style={{ fontSize: '0.65rem' }}>Phone</span>
+                    <p style={{ fontWeight: 700, fontSize: '0.95rem', fontFamily: 'monospace', marginTop: '0.2rem', color: '#0f172a' }}>{currentLead.phone}</p>
+                  </div>
+                  <div>
+                    <span className="stat-label" style={{ fontSize: '0.65rem' }}>Source List</span>
+                    <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#6366f1', marginTop: '0.2rem' }}>{currentLead.list?.name || 'Manual'}</p>
+                  </div>
+                  {currentLead.address && (
+                    <div>
+                      <span className="stat-label" style={{ fontSize: '0.65rem' }}>Address</span>
+                      <p style={{ color: '#94a3b8', marginTop: '0.2rem', fontSize: '0.82rem' }}>{currentLead.address}</p>
+                    </div>
+                  )}
+                  {currentLead.metadata && Object.keys(currentLead.metadata).length > 0 && (
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {Object.entries(currentLead.metadata).map(([k, v]) => (
+                          <span key={k} style={{ background: '#eff6ff', borderRadius: 5, padding: '1px 6px', fontSize: '0.72rem', color: '#3730a3' }}>
+                            <b>{k}:</b> {v}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.3 }}>👤</div>
+                  <p style={{ fontWeight: 600, color: '#64748b', fontSize: '0.88rem' }}>No lead selected</p>
+                  <p style={{ fontSize: '0.78rem', marginTop: '0.2rem' }}>Select from queue or start auto-dial</p>
+                </div>
+              )}
+
+              <div style={{ marginTop: '0.75rem', padding: '0.625rem 0.75rem', background: '#f8fafc', borderRadius: 8, border: '1px dashed #e2e8f0' }}>
+                <span className="stat-label" style={{ fontSize: '0.65rem' }}>Live Script</span>
+                <p style={{ marginTop: '0.3rem', color: '#64748b', fontStyle: 'italic', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                  {currentLead
+                    ? `"Hi ${currentLead.firstName}, calling from Voxiq. Hope you're having a great day..."`
+                    : 'Script will appear here when a call is active.'}
+                </p>
+              </div>
+            </section>
+
+            {/* Quick SMS Panel */}
+            <section className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: 240, padding: '0.875rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <h2 className="font-head" style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span>💬</span> Quick SMS
+                </h2>
+                {(currentLead?.phone || dialNumber) && (
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6366f1', fontWeight: 700 }}>
+                    {currentLead?.phone || dialNumber}
+                  </span>
                 )}
               </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', opacity: 0.3 }}>👤</div>
-                <p style={{ fontWeight: 600, color: '#64748b', fontSize: '0.95rem' }}>No lead selected</p>
-                <p style={{ fontSize: '0.82rem', marginTop: '0.25rem' }}>Select from the queue below or start auto-dial</p>
-              </div>
-            )}
 
-            <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: '#f8fafc', borderRadius: 10, border: '1px dashed #e2e8f0' }}>
-              <span className="stat-label">Live Script</span>
-              <p style={{ marginTop: '0.4rem', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem', lineHeight: 1.55 }}>
-                {currentLead
-                  ? `"Hi ${currentLead.firstName}, calling from Voxiq. Hope you're having a great day..."`
-                  : 'Script will appear here when a call is active.'}
-              </p>
-            </div>
-          </section>
+              {/* Number input when no lead */}
+              {!currentLead?.phone && !dialNumber && (
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <input
+                    value={dialerSmsPhone}
+                    onChange={e => {
+                      setDialerSmsPhone(e.target.value);
+                      if (e.target.value.length >= 10) fetchDialerSmsThread(e.target.value);
+                    }}
+                    placeholder="Enter number e.g. +14422039259"
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 7, fontSize: '0.82rem', outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
+
+              {/* Message thread */}
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5, marginBottom: '0.5rem', maxHeight: 130, minHeight: 60 }}>
+                {dialerSmsMessages.length === 0 ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.78rem', fontStyle: 'italic' }}>
+                    {(currentLead?.phone || dialNumber || dialerSmsPhone) ? 'No messages yet — send first SMS below' : 'Enter a number to start'}
+                  </div>
+                ) : (
+                  dialerSmsMessages.slice(-8).map(m => (
+                    <div key={m.id} style={{ display: 'flex', justifyContent: m.direction === 'outbound' ? 'flex-end' : 'flex-start' }}>
+                      <div style={{
+                        maxWidth: '80%', padding: '5px 9px', borderRadius: 10,
+                        background: m.direction === 'outbound' ? '#2563eb' : '#f3f4f6',
+                        color: m.direction === 'outbound' ? '#fff' : '#111827',
+                        fontSize: '0.78rem',
+                      }}>
+                        {m.body}
+                        <div style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: 2 }}>
+                          {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Send bar */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  value={dialerSmsInput}
+                  onChange={e => setDialerSmsInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDialerSms(); } }}
+                  placeholder="Type message..."
+                  disabled={!currentLead?.phone && !dialNumber && !dialerSmsPhone}
+                  style={{ flex: 1, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 7, fontSize: '0.82rem', outline: 'none' }}
+                />
+                <button
+                  onClick={sendDialerSms}
+                  disabled={dialerSmsSending || !dialerSmsInput.trim() || (!currentLead?.phone && !dialNumber && !dialerSmsPhone)}
+                  style={{ padding: '6px 13px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {dialerSmsSending ? '...' : 'Send'}
+                </button>
+              </div>
+              <div style={{ marginTop: 6, textAlign: 'right' }}>
+                <button
+                  onClick={() => { setSmsTab(true); if (currentLead?.phone || dialNumber) { const p = currentLead?.phone || dialNumber; setSmsActiveThread(p); fetchSmsThread(p); } fetchSmsConversations(); }}
+                  style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                >
+                  Open full conversation →
+                </button>
+              </div>
+            </section>
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(320px, 0.95fr)', gap: '1.25rem', alignItems: 'stretch' }}>
           {/* Disposition Card */}
