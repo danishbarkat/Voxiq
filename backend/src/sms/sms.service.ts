@@ -34,6 +34,19 @@ export class SmsService {
       }
     }
 
+    // Per-agent daily SMS limit (100/day)
+    const AGENT_DAILY_SMS_LIMIT = 100;
+    if (agentId) {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      const todayCount = await this.prisma.smsMessage.count({
+        where: { agentId, direction: 'outbound', createdAt: { gte: dayStart } },
+      });
+      if (todayCount >= AGENT_DAILY_SMS_LIMIT) {
+        throw new ForbiddenException(`Daily SMS limit reached (${todayCount}/${AGENT_DAILY_SMS_LIMIT}). Limit resets at midnight.`);
+      }
+    }
+
     const apiKey = this.config.get<string>('TELNYX_API_KEY');
     const defaultFrom = this.config.get<string>('DEFAULT_OUTBOUND_NUMBER') || '+14422039259';
     const from = fromOverride || defaultFrom;
