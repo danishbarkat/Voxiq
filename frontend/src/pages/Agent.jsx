@@ -656,13 +656,14 @@ export default function Agent() {
             : outcome === 'invalid' ? 'UNREACHABLE'
               : 'CONTACTED';
 
-    fetchJson(`${API_URL}/leads/${lead.id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: backendStatus }),
-    }).then(() => {
-      // Force refresh the specific lead in the list from backend state
-      console.log(`[Outcome] Lead ${lead.id} persisted as ${backendStatus}`);
-    }).catch(e => console.warn('Lead status update failed:', e));
+    if (lead.id) {
+      fetchJson(`${API_URL}/leads/${lead.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: backendStatus }),
+      }).then(() => {
+        console.log(`[Outcome] Lead ${lead.id} persisted as ${backendStatus}`);
+      }).catch(e => console.warn('Lead status update failed:', e));
+    }
 
     // Reorder the live leads list
     setLeads(prev => {
