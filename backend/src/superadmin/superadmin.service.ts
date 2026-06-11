@@ -787,13 +787,17 @@ export class SuperAdminService {
     }
   }
 
-  async orderNumber(phoneNumber: string) {
+  async orderNumber(phoneNumber: string, features: string[] = ['voice']) {
     const apiKey = this.configService.get<string>('TELNYX_API_KEY');
     const connectionId = this.configService.get<string>('TELNYX_SIP_CONNECTION_ID');
+    const messagingProfileId = this.configService.get<string>('TELNYX_MESSAGING_PROFILE_ID');
     if (!apiKey) throw new BadRequestException('Telnyx API key not configured');
+
+    const wantsSms = features.some(f => ['sms', 'mms', 'messaging'].includes(f.toLowerCase()));
 
     const body: any = { phone_numbers: [{ phone_number: phoneNumber }] };
     if (connectionId) body.connection_id = connectionId;
+    if (wantsSms && messagingProfileId) body.messaging_profile_id = messagingProfileId;
 
     const res = await fetch('https://api.telnyx.com/v2/number_orders', {
       method: 'POST',
@@ -805,7 +809,68 @@ export class SuperAdminService {
     if (!res.ok) {
       throw new BadRequestException(json?.errors?.[0]?.detail || 'Failed to order number');
     }
-    return { success: true, phoneNumber, status: json.data?.status || 'submitted' };
+    return {
+      success: true,
+      phoneNumber,
+      status: json.data?.status || 'submitted',
+      features,
+      messagingEnabled: wantsSms && !!messagingProfileId,
+    };
+  }
+
+  async createMessagingProfile(name?: string) {
+    const apiKey = this.configService.get<string>('TELNYX_API_KEY');
+    if (!apiKey) throw new BadRequestException('Telnyx API key not configured');
+
+    const profileName = name || 'Voxiq Messaging Profile';
+
+    const res = await fetch('https://api.telnyx.com/v2/messaging_profiles', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: profileName }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new BadRequestException(json?.errors?.[0]?.detail || 'Failed to create messaging profile');
+    }
+
+    const profileId = json.data?.id;
+    return {
+      success: true,
+      profileId,
+      name: json.data?.name,
+      instructions: `Add this to your .env file:\nTELNYX_MESSAGING_PROFILE_ID=${profileId}`,
+    };
+  }
+
+  async getMessagingProfile() {
+    const apiKey = this.configService.get<string>('TELNYX_API_KEY');
+    if (!apiKey) throw new BadRequestException('Telnyx API key not configured');
+
+    const configuredId = this.configService.get<string>('TELNYX_MESSAGING_PROFILE_ID');
+
+    const res = await fetch('https://api.telnyx.com/v2/messaging_profiles?page[size]=10', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new BadRequestException(json?.errors?.[0]?.detail || 'Failed to fetch messaging profiles');
+    }
+
+    const profiles = (json.data || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      active: p.enabled,
+      isConfigured: p.id === configuredId,
+    }));
+
+    return {
+      profiles,
+      configuredId: configuredId || null,
+      hasConfigured: !!configuredId,
+    };
   }
 
   async assignNumbers(

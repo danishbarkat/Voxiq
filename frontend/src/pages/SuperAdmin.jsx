@@ -1482,7 +1482,82 @@ const SEARCH_COUNTRIES = [
   { code: 'ID', name: 'Indonesia' }, { code: 'VN', name: 'Vietnam' },
 ];
 
-function SearchBuyNumbers({ onPurchased }) {
+function MessagingSetup() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 5000); };
+
+  const load = useCallback(async () => {
+    try {
+      const data = await fetchJson(`${API_URL}/superadmin/messaging/profile`);
+      setProfile(data);
+    } catch { setProfile(null); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const res = await fetchJson(`${API_URL}/superadmin/messaging/create-profile`, { method: 'POST', body: JSON.stringify({}) });
+      showToast(`Profile created! ID: ${res.profileId}. Add TELNYX_MESSAGING_PROFILE_ID=${res.profileId} to .env`, true);
+      load();
+    } catch (err) {
+      showToast(err.message || 'Failed to create profile', false);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const configured = profile?.hasConfigured;
+  const bg = configured ? 'linear-gradient(135deg,#d1fae5 0%,#a7f3d0 100%)' : 'linear-gradient(135deg,#fef3c7 0%,#fde68a 100%)';
+  const borderColor = configured ? '#10b981' : '#f59e0b';
+  const iconBg = configured ? '#10b981' : '#f59e0b';
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 14, border: `1.5px solid ${borderColor}`, overflow: 'hidden' }}>
+      <div style={{ padding: '12px 18px', background: bg, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+          {configured ? '✅' : '⚠️'}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: '#1e293b' }}>SMS / Messaging Setup</div>
+          <div style={{ fontSize: 12, color: '#475569', marginTop: 1 }}>
+            {loading ? 'Checking profile…' : configured ? `Messaging profile configured — SMS/MMS ready` : 'No messaging profile configured — SMS/MMS disabled'}
+          </div>
+        </div>
+        {!loading && !configured && (
+          <button onClick={handleCreate} disabled={creating}
+            style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 16px', cursor: creating ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: 12, opacity: creating ? 0.7 : 1, whiteSpace: 'nowrap' }}>
+            {creating ? 'Creating…' : '+ Create Profile'}
+          </button>
+        )}
+      </div>
+      {toast && (
+        <div style={{ padding: '10px 18px', background: toast.ok ? '#d1fae5' : '#fee2e2', color: toast.ok ? '#065f46' : '#991b1b', fontSize: 12, fontWeight: 600 }}>
+          {toast.msg}
+        </div>
+      )}
+      {!loading && profile?.profiles?.length > 0 && (
+        <div style={{ padding: '10px 18px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {profile.profiles.map(p => (
+            <div key={p.id} style={{ background: p.isConfigured ? '#ede9fe' : '#f1f5f9', border: `1px solid ${p.isConfigured ? '#6366f1' : '#e2e8f0'}`, borderRadius: 8, padding: '6px 12px', fontSize: 12 }}>
+              <span style={{ fontWeight: 700, color: p.isConfigured ? '#4f46e5' : '#374151' }}>{p.name}</span>
+              <span style={{ color: '#6b7280', marginLeft: 6, fontFamily: 'monospace', fontSize: 11 }}>{p.id.slice(0, 8)}…</span>
+              {p.isConfigured && <span style={{ marginLeft: 6, background: '#6366f1', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>ACTIVE</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchBuyNumbers({ onPurchased, messagingReady }) {
   const [country, setCountry] = useState('US');
   const [areaCode, setAreaCode] = useState('');
   const [numType, setNumType] = useState('local');
@@ -1490,15 +1565,26 @@ function SearchBuyNumbers({ onPurchased }) {
   const [results, setResults] = useState(null);
   const [buying, setBuying] = useState(null);
   const [toast, setToast] = useState(null);
+  const [selectedFeatures, setSelectedFeatures] = useState({});
 
   const showToast = (msg, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 4000);
   };
 
+  const toggleFeature = (phoneNumber, feature) => {
+    setSelectedFeatures(prev => {
+      const curr = prev[phoneNumber] || { voice: true, sms: false, mms: false };
+      return { ...prev, [phoneNumber]: { ...curr, [feature]: !curr[feature] } };
+    });
+  };
+
+  const getFeatures = (phoneNumber) => selectedFeatures[phoneNumber] || { voice: true, sms: false, mms: false };
+
   const handleSearch = async () => {
     setSearching(true);
     setResults(null);
+    setSelectedFeatures({});
     try {
       const params = new URLSearchParams({ country });
       if (areaCode.trim()) params.set('areaCode', areaCode.trim());
@@ -1514,14 +1600,21 @@ function SearchBuyNumbers({ onPurchased }) {
   };
 
   const handleBuy = async (phoneNumber) => {
-    if (!window.confirm(`Buy ${phoneNumber}?\n\nThis will charge your Telnyx account.`)) return;
+    const feats = getFeatures(phoneNumber);
+    const featureList = Object.entries(feats).filter(([, v]) => v).map(([k]) => k);
+    const wantsSms = feats.sms || feats.mms;
+    if (wantsSms && !messagingReady) {
+      if (!window.confirm(`SMS/MMS selected but no messaging profile configured — order will proceed for voice only.\n\nContinue?`)) return;
+    }
+    if (!window.confirm(`Buy ${phoneNumber}?\nFeatures: ${featureList.join(', ')}\n\nThis will charge your Telnyx account.`)) return;
     setBuying(phoneNumber);
     try {
       const res = await fetchJson(`${API_URL}/superadmin/numbers/order`, {
         method: 'POST',
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ phoneNumber, features: featureList }),
       });
-      showToast(`✓ ${phoneNumber} ordered! Status: ${res.status}`, true);
+      const smsDone = res.messagingEnabled ? ' + SMS enabled' : '';
+      showToast(`✓ ${phoneNumber} ordered! Status: ${res.status}${smsDone}`, true);
       setResults(prev => prev ? prev.filter(r => r.phoneNumber !== phoneNumber) : prev);
       onPurchased();
     } catch (err) {
@@ -1537,13 +1630,13 @@ function SearchBuyNumbers({ onPurchased }) {
         <span style={{ fontSize: 20 }}>🛒</span>
         <div>
           <div style={{ fontWeight: 800, fontSize: 15, color: '#fff' }}>Search & Buy Numbers</div>
-          <div style={{ fontSize: 12, color: '#c7d2fe', marginTop: 2 }}>Search available numbers on Telnyx and purchase directly</div>
+          <div style={{ fontSize: 12, color: '#c7d2fe', marginTop: 2 }}>Search available Telnyx numbers and purchase with feature selection</div>
         </div>
       </div>
 
       <div style={{ padding: '16px 20px' }}>
         {toast && (
-          <div style={{ background: toast.ok ? '#d1fae5' : '#fee2e2', color: toast.ok ? '#065f46' : '#991b1b', borderRadius: 9, padding: '10px 14px', marginBottom: 14, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: toast.ok ? '#d1fae5' : '#fee2e2', color: toast.ok ? '#065f46' : '#991b1b', borderRadius: 9, padding: '10px 14px', marginBottom: 14, fontSize: 13, fontWeight: 600 }}>
             {toast.msg}
           </div>
         )}
@@ -1587,37 +1680,58 @@ function SearchBuyNumbers({ onPurchased }) {
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
-                  {results.length} number{results.length !== 1 ? 's' : ''} available
+                  {results.length} number{results.length !== 1 ? 's' : ''} available — select features before buying
                 </div>
-                {results.map(r => (
-                  <div key={r.phoneNumber} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-                    <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 15, color: '#0f172a', flex: '1 1 160px' }}>
-                      {r.phoneNumber}
+                {results.map(r => {
+                  const feats = getFeatures(r.phoneNumber);
+                  const smsCost = (feats.sms || feats.mms) ? 0.10 : 0;
+                  const totalCost = (Number(r.monthlyCost) || 1.00) + smsCost;
+                  return (
+                    <div key={r.phoneNumber} style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 15, color: '#0f172a', flex: '1 1 160px' }}>
+                          {r.phoneNumber}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flex: '1 1 160px', flexWrap: 'wrap' }}>
+                          {r.regionName && (
+                            <span style={{ background: '#ede9fe', color: '#5b21b6', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>{r.regionName}</span>
+                          )}
+                          <span style={{ background: '#f0fdf4', color: '#166534', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>{r.type}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#0f172a', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          ${totalCost.toFixed(2)}/mo
+                          {smsCost > 0 && <span style={{ color: '#6b7280', fontWeight: 400 }}> (incl. SMS)</span>}
+                        </div>
+                        <button
+                          onClick={() => handleBuy(r.phoneNumber)}
+                          disabled={buying === r.phoneNumber}
+                          style={{ background: buying === r.phoneNumber ? '#9ca3af' : '#10b981', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', cursor: buying === r.phoneNumber ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap' }}>
+                          {buying === r.phoneNumber ? 'Ordering…' : '🛒 Buy'}
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                        {[
+                          { key: 'voice', label: '📞 Voice', locked: true },
+                          { key: 'sms', label: '💬 SMS', locked: false },
+                          { key: 'mms', label: '🖼 MMS', locked: false },
+                        ].map(({ key, label, locked }) => (
+                          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: locked ? 'default' : 'pointer', background: feats[key] ? '#ede9fe' : '#f1f5f9', border: `1px solid ${feats[key] ? '#6366f1' : '#e2e8f0'}`, borderRadius: 7, padding: '5px 11px', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={feats[key]}
+                              disabled={locked}
+                              onChange={() => !locked && toggleFeature(r.phoneNumber, key)}
+                              style={{ accentColor: '#6366f1', cursor: locked ? 'default' : 'pointer' }}
+                            />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: feats[key] ? '#4f46e5' : '#6b7280' }}>{label}</span>
+                            {locked && <span style={{ fontSize: 10, color: '#9ca3af' }}>(always)</span>}
+                            {!locked && !messagingReady && <span style={{ fontSize: 10, color: '#f59e0b' }}>⚠</span>}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 6, flex: '1 1 200px', flexWrap: 'wrap' }}>
-                      {r.regionName && (
-                        <span style={{ background: '#ede9fe', color: '#5b21b6', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
-                          {r.regionName}
-                        </span>
-                      )}
-                      <span style={{ background: '#f0fdf4', color: '#166534', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
-                        {r.type}
-                      </span>
-                      {(r.features || []).map(f => (
-                        <span key={f} style={{ background: '#f1f5f9', color: '#475569', borderRadius: 6, padding: '2px 7px', fontSize: 10, fontWeight: 600 }}>{f}</span>
-                      ))}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap' }}>
-                      ${r.monthlyCost}/mo
-                    </div>
-                    <button
-                      onClick={() => handleBuy(r.phoneNumber)}
-                      disabled={buying === r.phoneNumber}
-                      style={{ background: buying === r.phoneNumber ? '#9ca3af' : '#10b981', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', cursor: buying === r.phoneNumber ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: 12, whiteSpace: 'nowrap' }}>
-                      {buying === r.phoneNumber ? 'Ordering…' : '🛒 Buy'}
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1633,18 +1747,22 @@ function NumbersTab() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [assignTarget, setAssignTarget] = useState(null);
+  const [messagingReady, setMessagingReady] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const [numsResult, compsResult] = await Promise.allSettled([
+      const [numsResult, compsResult, msgResult] = await Promise.allSettled([
         fetchJson(`${API_URL}/superadmin/numbers`),
         fetchJson(`${API_URL}/superadmin/companies`),
+        fetchJson(`${API_URL}/superadmin/messaging/profile`),
       ]);
       const nums = numsResult.status === 'fulfilled' ? numsResult.value : [];
       const comps = compsResult.status === 'fulfilled' ? compsResult.value : [];
+      const msg = msgResult.status === 'fulfilled' ? msgResult.value : null;
       setNumbers(Array.isArray(nums) ? nums : []);
       setCompanies(Array.isArray(comps) ? comps : []);
+      setMessagingReady(!!msg?.hasConfigured);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1667,7 +1785,8 @@ function NumbersTab() {
         />
       )}
 
-      <SearchBuyNumbers onPurchased={() => setTimeout(() => load(true), 3000)} />
+      <MessagingSetup />
+      <SearchBuyNumbers onPurchased={() => setTimeout(() => load(true), 3000)} messagingReady={messagingReady} />
 
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 18 }}>📞</span>

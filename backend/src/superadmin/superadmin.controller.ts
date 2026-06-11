@@ -95,8 +95,18 @@ export class SuperAdminController {
   }
 
   @Post('numbers/order')
-  orderNumber(@Body('phoneNumber') phoneNumber: string) {
-    return this.superAdminService.orderNumber(phoneNumber);
+  orderNumber(@Body() body: { phoneNumber: string; features?: string[] }) {
+    return this.superAdminService.orderNumber(body.phoneNumber, body.features || ['voice']);
+  }
+
+  @Post('messaging/create-profile')
+  createMessagingProfile(@Body('name') name?: string) {
+    return this.superAdminService.createMessagingProfile(name);
+  }
+
+  @Get('messaging/profile')
+  getMessagingProfile() {
+    return this.superAdminService.getMessagingProfile();
   }
 
   @Post('companies/:id/assign-numbers')
