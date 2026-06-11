@@ -1454,7 +1454,7 @@ function AssignNumberModal({ number, companies, onClose, onAssigned }) {
       await fetchJson(`${API_URL}/superadmin/companies/${selectedCompanyId}/assign-numbers`, {
         method: 'POST',
         body: JSON.stringify({
-          numbers: [{ number: number.number, callerName: company?.name || '', areaCode: number.countryCode || '' }],
+          numberPool: [{ number: number.number, callerName: company?.name || '', areaCode: number.countryCode || '' }],
         }),
       });
       onAssigned();

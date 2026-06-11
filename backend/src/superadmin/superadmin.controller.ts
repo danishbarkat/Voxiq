@@ -16,6 +16,10 @@ class ApproveDto {
   @IsString() @IsOptional() packageName?: string;
 }
 
+class AssignNumbersDto {
+  @IsArray() @ValidateNested({ each: true }) @Type(() => NumberEntryDto) numberPool: NumberEntryDto[];
+}
+
 class RejectDto {
   @IsString() reason: string;
 }
@@ -110,7 +114,7 @@ export class SuperAdminController {
   }
 
   @Post('companies/:id/assign-numbers')
-  assignNumbers(@Param('id') id: string, @Body() dto: ApproveDto) {
+  assignNumbers(@Param('id') id: string, @Body() dto: AssignNumbersDto) {
     return this.superAdminService.assignNumbers(id, dto.numberPool);
   }
 
