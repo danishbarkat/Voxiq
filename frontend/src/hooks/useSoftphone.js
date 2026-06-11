@@ -3,8 +3,9 @@
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TelnyxRTC } from '@telnyx/webrtc';
+import { API_URL } from '../config/env';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://dialer.rmessagesllc.com';
+const API_BASE = API_URL.replace(/\/api$/, '');
 const AUDIO_ELEMENT_ID = 'telnyx-remote-audio';
 
 // ── AudioContext unlock ───────────────────────────────────────────────────────
