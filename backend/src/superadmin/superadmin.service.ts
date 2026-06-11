@@ -911,10 +911,16 @@ export class SuperAdminService {
       throw new NotFoundException('Number not found in this company pool');
     }
 
-    await this.prisma.account.update({
-      where: { id: accountId },
-      data: { numberPool: updated },
-    });
+    await this.prisma.$transaction([
+      this.prisma.account.update({
+        where: { id: accountId },
+        data: { numberPool: updated },
+      }),
+      this.prisma.user.updateMany({
+        where: { accountId, callerNumber: number },
+        data: { callerNumber: null },
+      }),
+    ]);
 
     return { message: 'Number unassigned', number };
   }
