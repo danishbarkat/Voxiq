@@ -39,7 +39,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (!user || !user.account) {
             throw new common_1.UnauthorizedException('Account no longer exists');
         }
-        if (payload.sessionId && user.lastSessionId && payload.sessionId !== user.lastSessionId) {
+        if (user.lastSessionId && payload.sessionId !== user.lastSessionId) {
             throw new common_1.UnauthorizedException('Session expired — logged in from another browser');
         }
         if (user.status === 'INACTIVE') {

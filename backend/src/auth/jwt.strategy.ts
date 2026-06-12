@@ -44,8 +44,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Account no longer exists');
     }
 
-    // Single-session enforcement: reject tokens from superseded sessions
-    if (payload.sessionId && user.lastSessionId && payload.sessionId !== user.lastSessionId) {
+    // Single-session enforcement: if DB has a sessionId, only the matching token is valid
+    // Also rejects old tokens (no sessionId) once a new login has set lastSessionId
+    if (user.lastSessionId && payload.sessionId !== user.lastSessionId) {
       throw new UnauthorizedException('Session expired — logged in from another browser');
     }
 
