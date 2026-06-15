@@ -86,6 +86,12 @@ export class AnalyticsController {
     }
 
     @Roles('Admin', 'Manager')
+    @Get('dialer-health')
+    getDialerHealth(@Req() req?: any) {
+        return this.analyticsService.getDialerHealth(req?.user);
+    }
+
+    @Roles('Admin', 'Manager')
     @Get('heatmap')
     getHeatmap(@Req() req?: any) {
         return this.analyticsService.getStateHeatmap(req?.user);

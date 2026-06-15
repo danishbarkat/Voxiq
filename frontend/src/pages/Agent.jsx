@@ -54,6 +54,7 @@ export default function Agent() {
   const [currentLead, setCurrentLead] = useState(null);
   const currentLeadRef = useRef(null); // Ref mirrors currentLead so auto-advance always has access even after hangup clears state
   const [callLogId, setCallLogId] = useState(null);
+  const callLogIdRef = useRef(null);
   const [callControlIdState, setCallControlIdState] = useState(null); // Track callControlId for VM drop
   const [notes, setNotes] = useState('');
   const [recentCalls, setRecentCalls] = useState([]);
@@ -93,9 +94,11 @@ export default function Agent() {
   const autoDialLeadsRef = useRef([]); // snapshot of queue when auto-dial started
   const hasDialedRef = useRef(false);  // prevent triggering on first mount
   const dialedIdsRef = useRef(new Set()); // Track already-dialed lead IDs to prevent duplicates
+  const finalizedCallLogsRef = useRef(new Set());
 
   useEffect(() => { autoDialRef.current = autoDial; }, [autoDial]);
   useEffect(() => { autoDialIndexRef.current = autoDialIndex; }, [autoDialIndex]);
+  useEffect(() => { callLogIdRef.current = callLogId; }, [callLogId]);
 
   // SMS & Voicemail
   const [vmTemplates, setVmTemplates] = useState([]);
@@ -286,10 +289,18 @@ export default function Agent() {
       }
     });
 
-    // Load voicemail and SMS templates
-    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('winfi_token') || ''}` };
-    fetch(`${API_URL}/voicemail/templates`, { headers: authHeaders }).then(r => r.ok ? r.json() : []).then(d => setVmTemplates(Array.isArray(d) ? d : []));
-    fetch(`${API_URL}/integrations/sms-templates`, { headers: authHeaders }).then(r => r.ok ? r.json() : []).then(d => setSmsTemplates(Array.isArray(d) ? d : []));
+    const token = getToken();
+    const authHeaders = token
+      ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+      : { 'Content-Type': 'application/json' };
+    fetch(`${API_URL}/voicemail/templates`, { headers: authHeaders })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setVmTemplates(Array.isArray(d) ? d : []))
+      .catch(() => setVmTemplates([]));
+    fetch(`${API_URL}/integrations/sms-templates`, { headers: authHeaders })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setSmsTemplates(Array.isArray(d) ? d : []))
+      .catch(() => setSmsTemplates([]));
   }, [fetchLeads, fetchHistory, fetchAppointments]);
 
   // Call timer
@@ -470,8 +481,12 @@ export default function Agent() {
     setLastDialedNumber(originalNumber);
     try { localStorage.setItem('voxiq_last_dialed', originalNumber); } catch { /* ignore */ }
 
-    // If a lead is currently selected, use it.
-    if (currentLead) {
+    const shouldUseSelectedLead =
+      !!currentLead?.id &&
+      (!rawNumber || rawNumber.trim() === '' || rawNumber.replace(/\D/g, '') === (currentLead.phone || '').replace(/\D/g, ''));
+
+    // Only use the selected lead when the agent did not intentionally type a different number.
+    if (shouldUseSelectedLead) {
       await handleDialLead(currentLead);
       setDialNumber('');
     } else {
@@ -630,10 +645,40 @@ export default function Agent() {
     setLeadStatuses(prev => ({ ...prev, [leadId]: status }));
   }, []);
 
+  const finalizeCallLog = useCallback((outcome, explicitCallLogId) => {
+    const targetCallLogId = explicitCallLogId || callLogIdRef.current;
+    if (!targetCallLogId || finalizedCallLogsRef.current.has(targetCallLogId)) return;
+
+    finalizedCallLogsRef.current.add(targetCallLogId);
+
+    const callStatus = outcome === 'answered' ? 'COMPLETED' : 'FAILED';
+    const disposition =
+      outcome === 'no_answer' ? 'No Answer'
+        : outcome === 'voicemail' ? 'Voicemail'
+          : outcome === 'callback' ? 'Callback'
+            : outcome === 'invalid' ? 'Unreachable'
+              : outcome === 'answered' ? 'Contacted'
+                : undefined;
+
+    fetchJson(`${API_URL}/dialer/call/log/${targetCallLogId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        callStatus,
+        disposition,
+        endedAt: new Date().toISOString(),
+      }),
+    }).catch((error) => {
+      finalizedCallLogsRef.current.delete(targetCallLogId);
+      console.warn('Call log finalize failed:', error);
+    });
+  }, []);
+
   // ── Smart lead reordering on call outcome ──────────────────────────────
   // outcome: 'answered' | 'no_answer' | 'voicemail' | 'invalid'
   const handleCallOutcome = useCallback((lead, outcome) => {
     if (!lead) return;
+
+    finalizeCallLog(outcome);
 
     // Update visual status badge
     updateLeadStatus(lead.id, outcome);
@@ -677,7 +722,7 @@ export default function Agent() {
     // NOTE: Do NOT reorder autoDialLeadsRef.current here.
     // Reordering breaks index-based auto-advance (index increments from old position
     // into a reordered array, skipping leads). dialedIdsRef already prevents re-dialing.
-  }, [updateLeadStatus]);
+  }, [finalizeCallLog, updateLeadStatus]);
 
   // ── Auto-advance: outcome-driven ──────────────────────────────────────────
   // RULES:
@@ -778,7 +823,12 @@ export default function Agent() {
     // Always reset the status back to Idle after a manual call ends,
     // even when there was no lead (pure typed-in number dial).
     setLocalCallActive(false);
+    setCallLogId(null);
     setStatus('Idle');
+    if (leadForOutcome?.id == null) {
+      setCurrentLead(null);
+      currentLeadRef.current = null;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callState, callOutcome, autoDial]);
 
@@ -802,11 +852,12 @@ export default function Agent() {
     if (!currentLead?.phone || !smsMsg) return;
     setSmsSending(true);
     try {
+      const token = getToken();
       const res = await fetch(`${API_URL}/integrations/sms/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+          'Authorization': `Bearer ${token || ''}`,
         },
         body: JSON.stringify({ to: currentLead.phone, message: smsMsg }),
       });
@@ -896,6 +947,9 @@ export default function Agent() {
 
   // End call - force resets everything regardless of SIP state
   const handleHangup = useCallback(() => {
+    if (callState !== 'disconnected' && callState !== 'failed') {
+      finalizeCallLog(callState === 'connected' ? 'answered' : 'invalid');
+    }
     hangup();
     setLocalCallActive(false);
     // NOTE: Do NOT clear currentLeadRef here — the auto-advance useEffect needs it
@@ -911,7 +965,7 @@ export default function Agent() {
     setShowVmDrop(false);
     setShowSmsPanel(false);
     if (socket && agentId) socket.emit('agent:status', { agentId, status: 'available' });
-  }, [hangup, agentId, socket]);
+  }, [callState, finalizeCallLog, hangup, agentId, socket]);
 
   const handleLogout = () => {
     clearToken();
@@ -1007,6 +1061,7 @@ export default function Agent() {
           ...(dealValue && !isNaN(parseFloat(dealValue)) ? { dealValue: parseFloat(dealValue) } : {})
         }),
       });
+      finalizedCallLogsRef.current.add(effectiveCallLogId);
 
       setRecentCalls(prev => [{
         lead: currentLead ? `${currentLead.firstName} ${currentLead.lastName}` : 'Unknown',

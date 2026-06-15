@@ -50,6 +50,7 @@ exports.DialerService = void 0;
 const common_1 = require("@nestjs/common");
 const bull_1 = require("@nestjs/bull");
 const Bull = __importStar(require("bull"));
+const schedule_1 = require("@nestjs/schedule");
 const prisma_service_1 = require("../prisma/prisma.service");
 const voip_service_1 = require("../voip/voip.service");
 const websocket_gateway_1 = require("../websocket/websocket.gateway");
@@ -63,12 +64,101 @@ let DialerService = DialerService_1 = class DialerService {
     configService;
     logger = new common_1.Logger(DialerService_1.name);
     activeCampaigns = new Map();
+    ringingLockWindowMs = 90 * 1000;
+    connectedLockWindowMs = 2 * 60 * 60 * 1000;
     constructor(dialerQueue, prisma, voipService, websocketGateway, configService) {
         this.dialerQueue = dialerQueue;
         this.prisma = prisma;
         this.voipService = voipService;
         this.websocketGateway = websocketGateway;
         this.configService = configService;
+    }
+    async cleanupStaleRingingCalls() {
+        const cutoff = new Date(Date.now() - this.ringingLockWindowMs);
+        const staleCalls = await this.prisma.callLog.findMany({
+            where: {
+                callStatus: client_1.CallStatus.RINGING,
+                startedAt: { lt: cutoff },
+                endedAt: null,
+            },
+            select: { id: true },
+            take: 500,
+        });
+        if (staleCalls.length === 0) {
+            return;
+        }
+        const staleIds = staleCalls.map((call) => call.id);
+        await this.prisma.callLog.updateMany({
+            where: { id: { in: staleIds } },
+            data: {
+                callStatus: client_1.CallStatus.FAILED,
+                endedAt: new Date(),
+            },
+        });
+        for (const id of staleIds) {
+            this.websocketGateway.broadcastCallUpdate(id, { status: 'hangup' });
+        }
+        this.logger.warn(`Cleaned up ${staleIds.length} stale ringing call logs older than ${this.ringingLockWindowMs / 1000}s`);
+    }
+    async reconcileRecentActiveCalls() {
+        const recentCutoff = new Date(Date.now() - this.connectedLockWindowMs);
+        const activeCalls = await this.prisma.callLog.findMany({
+            where: {
+                callControlId: { not: null },
+                endedAt: null,
+                startedAt: { gte: recentCutoff },
+                callStatus: { in: [client_1.CallStatus.RINGING, client_1.CallStatus.CONNECTED] },
+            },
+            select: {
+                id: true,
+                callControlId: true,
+                callStatus: true,
+                startedAt: true,
+            },
+            take: 100,
+            orderBy: { startedAt: 'asc' },
+        });
+        for (const call of activeCalls) {
+            if (!call.callControlId)
+                continue;
+            try {
+                const remote = await this.voipService.getCallStatus(call.callControlId);
+                const remoteState = String(remote?.status || '').toLowerCase();
+                if (!remoteState)
+                    continue;
+                if (['active', 'bridged', 'answered', 'answering'].includes(remoteState) && call.callStatus !== client_1.CallStatus.CONNECTED) {
+                    await this.prisma.callLog.update({
+                        where: { id: call.id },
+                        data: { callStatus: client_1.CallStatus.CONNECTED },
+                    });
+                    this.websocketGateway.broadcastCallUpdate(call.id, { status: 'connected', callControlId: call.callControlId });
+                    continue;
+                }
+                if (['hangup', 'ended', 'completed', 'finished'].includes(remoteState)) {
+                    await this.prisma.callLog.update({
+                        where: { id: call.id },
+                        data: {
+                            callStatus: call.callStatus === client_1.CallStatus.CONNECTED ? client_1.CallStatus.COMPLETED : client_1.CallStatus.FAILED,
+                            endedAt: new Date(),
+                        },
+                    });
+                    this.websocketGateway.broadcastCallUpdate(call.id, { status: 'hangup', callControlId: call.callControlId });
+                }
+            }
+            catch (error) {
+                const message = String(error?.message || '');
+                if (message.toLowerCase().includes('not found')) {
+                    await this.prisma.callLog.update({
+                        where: { id: call.id },
+                        data: {
+                            callStatus: call.callStatus === client_1.CallStatus.CONNECTED ? client_1.CallStatus.COMPLETED : client_1.CallStatus.FAILED,
+                            endedAt: new Date(),
+                        },
+                    });
+                    this.websocketGateway.broadcastCallUpdate(call.id, { status: 'hangup', callControlId: call.callControlId });
+                }
+            }
+        }
     }
     async startCampaign(campaignId) {
         const campaign = await this.prisma.campaign.findUnique({
@@ -392,11 +482,18 @@ let DialerService = DialerService_1 = class DialerService {
         const assignedListIds = campaign?.lists?.map((cl) => cl.listId).filter(Boolean) || [];
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
         const activeCallLogs = await this.prisma.callLog.findMany({
             where: {
-                callStatus: { in: [client_1.CallStatus.RINGING, client_1.CallStatus.CONNECTED] },
-                startedAt: { gte: tenMinutesAgo },
+                OR: [
+                    {
+                        callStatus: client_1.CallStatus.RINGING,
+                        startedAt: { gte: new Date(Date.now() - this.ringingLockWindowMs) },
+                    },
+                    {
+                        callStatus: client_1.CallStatus.CONNECTED,
+                        startedAt: { gte: new Date(Date.now() - this.connectedLockWindowMs) },
+                    },
+                ],
             },
             select: { leadId: true },
         });
@@ -730,6 +827,18 @@ let DialerService = DialerService_1 = class DialerService {
     }
 };
 exports.DialerService = DialerService;
+__decorate([
+    (0, schedule_1.Cron)('*/1 * * * *'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], DialerService.prototype, "cleanupStaleRingingCalls", null);
+__decorate([
+    (0, schedule_1.Cron)('*/2 * * * *'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], DialerService.prototype, "reconcileRecentActiveCalls", null);
 exports.DialerService = DialerService = DialerService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, bull_1.InjectQueue)('dialer')),

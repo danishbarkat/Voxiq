@@ -478,6 +478,75 @@ export class AnalyticsService {
         return { stats, items };
     }
 
+    async getDialerHealth(requester?: any) {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const where = {
+            ...this.buildCallLogWhereForRequester(requester),
+            startedAt: { gte: since },
+        } as any;
+
+        const [logs, staleRinging] = await Promise.all([
+            this.prisma.callLog.findMany({
+                where,
+                select: {
+                    id: true,
+                    startedAt: true,
+                    endedAt: true,
+                    callStatus: true,
+                    callControlId: true,
+                    disposition: true,
+                    durationSeconds: true,
+                },
+            }),
+            this.prisma.callLog.count({
+                where: {
+                    ...this.buildCallLogWhereForRequester(requester),
+                    endedAt: null,
+                    callStatus: CallStatus.RINGING,
+                    startedAt: { lt: new Date(Date.now() - 90 * 1000) },
+                },
+            }),
+        ]);
+
+        const attempts = logs.length;
+        const connected = logs.filter((log) => log.callStatus === CallStatus.CONNECTED || log.callStatus === CallStatus.COMPLETED).length;
+        const completed = logs.filter((log) => log.callStatus === CallStatus.COMPLETED).length;
+        const failed = logs.filter((log) => log.callStatus === CallStatus.FAILED).length;
+        const missed = logs.filter((log) => log.callStatus === CallStatus.MISSED).length;
+        const rejected = logs.filter((log) => log.callStatus === CallStatus.REJECTED).length;
+        const active = logs.filter((log) => (log.callStatus === CallStatus.RINGING || log.callStatus === CallStatus.CONNECTED) && !log.endedAt).length;
+        const webhookLinked = logs.filter((log) => !!log.callControlId).length;
+        const answered = logs.filter((log) => log.disposition && !['No Answer', 'Voicemail', 'Unreachable'].includes(log.disposition)).length;
+        const avgDurationSeconds = logs
+            .map((log) => log.durationSeconds ?? (log.endedAt ? Math.max(0, Math.round((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000)) : null))
+            .filter((value): value is number => value !== null);
+
+        return {
+            windowHours: 24,
+            attempts,
+            connected,
+            completed,
+            failed,
+            missed,
+            rejected,
+            active,
+            staleRinging,
+            webhookLinked,
+            answerRate: attempts > 0 ? Number(((connected / attempts) * 100).toFixed(2)) : 0,
+            completionRate: attempts > 0 ? Number(((completed / attempts) * 100).toFixed(2)) : 0,
+            avgDurationSeconds: avgDurationSeconds.length > 0
+                ? Math.round(avgDurationSeconds.reduce((sum, value) => sum + value, 0) / avgDurationSeconds.length)
+                : 0,
+            dispositions: this.groupBy(
+                logs.filter((log) => !!log.disposition).map((log) => ({ disposition: log.disposition })),
+                'disposition',
+            ),
+            since: since.toISOString(),
+            now: new Date().toISOString(),
+            answered,
+        };
+    }
+
     /** Returns call counts for Today / Yesterday / This Week / Last Week / This Month / This Year */
     async getMyPeriodStats(requester?: any, tzOffsetMinutes = 0) {
         const agentId = requester?.userId;

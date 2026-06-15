@@ -22,6 +22,9 @@ import { ConfigService } from '@nestjs/config';
 // @UseGuards(JwtAuthGuard)
 @Controller('dialer')
 export class DialerController {
+    private readonly ringingLockWindowMs = 90 * 1000;
+    private readonly connectedLockWindowMs = 2 * 60 * 60 * 1000;
+
     constructor(
         private dialerService: DialerService,
         private voipService: VoipService,
@@ -53,7 +56,6 @@ export class DialerController {
         // ── DUPLICATE CALL GUARD ──────────────────────────────────────────────
         // Before placing the call, check if this phone number is already being called right now.
         // This prevents double-dialing the same customer (e.g. two agents on same list, or race conditions).
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         const activeLead = await this.prisma.lead.findFirst({
             where: { phone: { in: [to, body.to?.trim()] } },
             select: { id: true },
@@ -62,8 +64,16 @@ export class DialerController {
             const activeCallLog = await this.prisma.callLog.findFirst({
                 where: {
                     leadId: activeLead.id,
-                    callStatus: { in: [CallStatus.RINGING, CallStatus.CONNECTED] },
-                    startedAt: { gte: fiveMinutesAgo },
+                    OR: [
+                        {
+                            callStatus: CallStatus.RINGING,
+                            startedAt: { gte: new Date(Date.now() - this.ringingLockWindowMs) },
+                        },
+                        {
+                            callStatus: CallStatus.CONNECTED,
+                            startedAt: { gte: new Date(Date.now() - this.connectedLockWindowMs) },
+                        },
+                    ],
                 },
                 select: { id: true, callStatus: true },
             });
@@ -183,11 +193,15 @@ export class DialerController {
     @Patch('call/log/:id')
     async updateCallLog(
         @Param('id') id: string,
-        @Body() body: { callControlId?: string; disposition?: string; notes?: string }
+        @Body() body: { callControlId?: string; disposition?: string; notes?: string; callStatus?: CallStatus; endedAt?: string | Date | null }
     ) {
+        const data: any = { ...body };
+        if (body.endedAt) {
+            data.endedAt = new Date(body.endedAt);
+        }
         return this.prisma.callLog.update({
             where: { id },
-            data: body as any,
+            data,
         });
     }
 
@@ -226,16 +240,27 @@ export class DialerController {
             return { locked: false, reason: 'invalid_phone' };
         }
 
-        // Window: treat any RINGING/CONNECTED callLog created in the last 5 min as an active lock
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
         const existing = await this.prisma.callLog.findFirst({
             where: {
-                callStatus: { in: [CallStatus.RINGING, CallStatus.CONNECTED] },
-                startedAt: { gte: fiveMinutesAgo },
-                OR: [
-                    { toNumber: { endsWith: targetPhone } },
-                    { lead: { is: { phone: { endsWith: targetPhone } } } },
+                AND: [
+                    {
+                        OR: [
+                            {
+                                callStatus: CallStatus.RINGING,
+                                startedAt: { gte: new Date(Date.now() - this.ringingLockWindowMs) },
+                            },
+                            {
+                                callStatus: CallStatus.CONNECTED,
+                                startedAt: { gte: new Date(Date.now() - this.connectedLockWindowMs) },
+                            },
+                        ],
+                    },
+                    {
+                        OR: [
+                            { toNumber: { endsWith: targetPhone } },
+                            { lead: { is: { phone: { endsWith: targetPhone } } } },
+                        ],
+                    },
                 ],
             },
             select: { id: true, agentId: true },

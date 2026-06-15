@@ -18,12 +18,14 @@ export interface CallResult {
 export declare class VoipService {
     private configService;
     private readonly logger;
+    private readonly maxDialAttemptsPerConnection;
     private telnyx;
     private connectionId;
     private callControlAppId;
     private defaultWebhookUrl;
     constructor(configService: ConfigService);
     initiateCall(options: CallOptions): Promise<CallResult>;
+    private isTransientDialError;
     sendSms(to: string, from: string, text: string): Promise<any>;
     terminateCall(callId: string): Promise<void>;
     transferCall(callId: string, sipUri: string): Promise<void>;

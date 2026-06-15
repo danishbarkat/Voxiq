@@ -53,6 +53,9 @@ let AnalyticsController = class AnalyticsController {
             limit: limit ? parseInt(limit) : 150,
         }, req?.user);
     }
+    getDialerHealth(req) {
+        return this.analyticsService.getDialerHealth(req?.user);
+    }
     getHeatmap(req) {
         return this.analyticsService.getStateHeatmap(req?.user);
     }
@@ -137,6 +140,14 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getHistory", null);
+__decorate([
+    (0, roles_decorator_1.Roles)('Admin', 'Manager'),
+    (0, common_1.Get)('dialer-health'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AnalyticsController.prototype, "getDialerHealth", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager'),
     (0, common_1.Get)('heatmap'),

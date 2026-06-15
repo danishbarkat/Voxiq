@@ -16,7 +16,11 @@ export declare class DialerService {
     private configService;
     private readonly logger;
     private activeCampaigns;
+    private readonly ringingLockWindowMs;
+    private readonly connectedLockWindowMs;
     constructor(dialerQueue: Bull.Queue, prisma: PrismaService, voipService: VoipService, websocketGateway: WebsocketGateway, configService: ConfigService);
+    cleanupStaleRingingCalls(): Promise<void>;
+    reconcileRecentActiveCalls(): Promise<void>;
     startCampaign(campaignId: string): Promise<void>;
     private resolveAgentId;
     pauseCampaign(campaignId: string): Promise<void>;

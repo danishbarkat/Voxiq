@@ -2,12 +2,15 @@ import { Request } from 'express';
 import { DialerService } from './dialer.service';
 import { VoipService } from '../voip/voip.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CallStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 export declare class DialerController {
     private dialerService;
     private voipService;
     private prisma;
     private config;
+    private readonly ringingLockWindowMs;
+    private readonly connectedLockWindowMs;
     constructor(dialerService: DialerService, voipService: VoipService, prisma: PrismaService, config: ConfigService);
     private getDefaultCallerName;
     private normalizeComparablePhone;
@@ -63,6 +66,8 @@ export declare class DialerController {
         callControlId?: string;
         disposition?: string;
         notes?: string;
+        callStatus?: CallStatus;
+        endedAt?: string | Date | null;
     }): Promise<{
         id: string;
         createdAt: Date;

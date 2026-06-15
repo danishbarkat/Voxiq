@@ -20,6 +20,7 @@ const telnyx_1 = __importDefault(require("telnyx"));
 let VoipService = VoipService_1 = class VoipService {
     configService;
     logger = new common_1.Logger(VoipService_1.name);
+    maxDialAttemptsPerConnection = 2;
     telnyx;
     connectionId;
     callControlAppId;
@@ -46,44 +47,70 @@ let VoipService = VoipService_1 = class VoipService {
         const connectionIds = [primaryId, fallbackId].filter(Boolean);
         let lastError = null;
         for (const connectionId of connectionIds) {
-            try {
-                this.logger.log(`Initiating call to ${options.to} from ${options.from} via ${connectionId}`);
-                const body = { to: options.to, from: options.from, connection_id: connectionId };
-                if (options.callerName?.trim())
-                    body.from_display_name = options.callerName.trim();
-                if (options.webhookUrl)
-                    body.webhook_url = options.webhookUrl;
-                if (options.answeringMachineDetection && options.answeringMachineDetection !== 'disabled') {
-                    body.answering_machine_detection = options.answeringMachineDetection;
+            for (let attempt = 1; attempt <= this.maxDialAttemptsPerConnection; attempt++) {
+                try {
+                    this.logger.log(`Initiating call to ${options.to} from ${options.from} via ${connectionId} (attempt ${attempt}/${this.maxDialAttemptsPerConnection})`);
+                    const body = { to: options.to, from: options.from, connection_id: connectionId };
+                    if (options.callerName?.trim())
+                        body.from_display_name = options.callerName.trim();
+                    if (options.webhookUrl)
+                        body.webhook_url = options.webhookUrl;
+                    if (options.answeringMachineDetection && options.answeringMachineDetection !== 'disabled') {
+                        body.answering_machine_detection = options.answeringMachineDetection;
+                    }
+                    if (options.record && options.record !== 'none') {
+                        body.record = options.record;
+                        body.recording_channels = options.recordingChannels || 'single';
+                    }
+                    const response = await fetch('https://api.telnyx.com/v2/calls', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    const json = await response.json();
+                    if (!response.ok) {
+                        const detail = json?.errors?.[0]?.detail || JSON.stringify(json);
+                        throw new Error(`Telnyx ${response.status}: ${detail}`);
+                    }
+                    const data = json.data;
+                    this.logger.log(`Call initiated: ${data.call_control_id}`);
+                    return { callId: data.call_control_id, status: data.is_alive ? 'active' : 'initiating', direction: 'outbound' };
                 }
-                if (options.record && options.record !== 'none') {
-                    body.record = options.record;
-                    body.recording_channels = options.recordingChannels || 'single';
+                catch (error) {
+                    lastError = error;
+                    const transient = this.isTransientDialError(error);
+                    this.logger.warn(`Call attempt failed (${connectionId}, attempt ${attempt}): ${error.message}`);
+                    if (!transient || attempt >= this.maxDialAttemptsPerConnection) {
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 750 * attempt));
                 }
-                const response = await fetch('https://api.telnyx.com/v2/calls', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                });
-                const json = await response.json();
-                if (!response.ok) {
-                    const detail = json?.errors?.[0]?.detail || JSON.stringify(json);
-                    throw new Error(`Telnyx ${response.status}: ${detail}`);
-                }
-                const data = json.data;
-                this.logger.log(`Call initiated: ${data.call_control_id}`);
-                return { callId: data.call_control_id, status: data.is_alive ? 'active' : 'initiating', direction: 'outbound' };
             }
-            catch (error) {
-                lastError = error;
-                this.logger.warn(`Call attempt failed (${connectionId}): ${error.message}`);
-                if (connectionIds.indexOf(connectionId) < connectionIds.length - 1) {
-                    await new Promise(r => setTimeout(r, 1000));
-                }
+            if (connectionIds.indexOf(connectionId) < connectionIds.length - 1) {
+                await new Promise(r => setTimeout(r, 1000));
             }
         }
         this.logger.error(`All call attempts failed: ${lastError?.message}`);
         throw lastError;
+    }
+    isTransientDialError(error) {
+        const message = String(error?.message || '').toLowerCase();
+        return (message.includes('timeout') ||
+            message.includes('temporar') ||
+            message.includes('rate limit') ||
+            message.includes('too many requests') ||
+            message.includes('bad gateway') ||
+            message.includes('gateway timeout') ||
+            message.includes('service unavailable') ||
+            message.includes('network') ||
+            message.includes('fetch failed') ||
+            message.includes('econnreset') ||
+            message.includes('socket hang up') ||
+            message.includes('telnyx 429') ||
+            message.includes('telnyx 500') ||
+            message.includes('telnyx 502') ||
+            message.includes('telnyx 503') ||
+            message.includes('telnyx 504'));
     }
     async sendSms(to, from, text) {
         try {

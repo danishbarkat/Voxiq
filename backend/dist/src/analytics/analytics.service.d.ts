@@ -147,6 +147,25 @@ export declare class AnalyticsService {
             agent: any;
         })[];
     }>;
+    getDialerHealth(requester?: any): Promise<{
+        windowHours: number;
+        attempts: number;
+        connected: number;
+        completed: number;
+        failed: number;
+        missed: number;
+        rejected: number;
+        active: number;
+        staleRinging: number;
+        webhookLinked: number;
+        answerRate: number;
+        completionRate: number;
+        avgDurationSeconds: number;
+        dispositions: any;
+        since: string;
+        now: string;
+        answered: number;
+    }>;
     getMyPeriodStats(requester?: any, tzOffsetMinutes?: number): Promise<{
         today: number;
         yesterday: number;

@@ -125,6 +125,25 @@ export declare class AnalyticsController {
             agent: any;
         })[];
     }>;
+    getDialerHealth(req?: any): Promise<{
+        windowHours: number;
+        attempts: number;
+        connected: number;
+        completed: number;
+        failed: number;
+        missed: number;
+        rejected: number;
+        active: number;
+        staleRinging: number;
+        webhookLinked: number;
+        answerRate: number;
+        completionRate: number;
+        avgDurationSeconds: number;
+        dispositions: any;
+        since: string;
+        now: string;
+        answered: number;
+    }>;
     getHeatmap(req?: any): Promise<{
         id: string;
         value: number;

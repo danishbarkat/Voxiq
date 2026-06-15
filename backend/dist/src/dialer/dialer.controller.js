@@ -25,6 +25,8 @@ let DialerController = class DialerController {
     voipService;
     prisma;
     config;
+    ringingLockWindowMs = 90 * 1000;
+    connectedLockWindowMs = 2 * 60 * 60 * 1000;
     constructor(dialerService, voipService, prisma, config) {
         this.dialerService = dialerService;
         this.voipService = voipService;
@@ -44,7 +46,6 @@ let DialerController = class DialerController {
         const to = this.normalizeToE164(body.to);
         const from = this.normalizeToE164(body.from || this.config.get('DEFAULT_OUTBOUND_NUMBER') || '+12623990007');
         const callerName = body.callerName?.trim() || this.getDefaultCallerName();
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         const activeLead = await this.prisma.lead.findFirst({
             where: { phone: { in: [to, body.to?.trim()] } },
             select: { id: true },
@@ -53,8 +54,16 @@ let DialerController = class DialerController {
             const activeCallLog = await this.prisma.callLog.findFirst({
                 where: {
                     leadId: activeLead.id,
-                    callStatus: { in: [client_1.CallStatus.RINGING, client_1.CallStatus.CONNECTED] },
-                    startedAt: { gte: fiveMinutesAgo },
+                    OR: [
+                        {
+                            callStatus: client_1.CallStatus.RINGING,
+                            startedAt: { gte: new Date(Date.now() - this.ringingLockWindowMs) },
+                        },
+                        {
+                            callStatus: client_1.CallStatus.CONNECTED,
+                            startedAt: { gte: new Date(Date.now() - this.connectedLockWindowMs) },
+                        },
+                    ],
                 },
                 select: { id: true, callStatus: true },
             });
@@ -134,9 +143,13 @@ let DialerController = class DialerController {
         return { message: 'Disposition recorded successfully' };
     }
     async updateCallLog(id, body) {
+        const data = { ...body };
+        if (body.endedAt) {
+            data.endedAt = new Date(body.endedAt);
+        }
         return this.prisma.callLog.update({
             where: { id },
-            data: body,
+            data,
         });
     }
     async logCall(body) {
@@ -157,14 +170,27 @@ let DialerController = class DialerController {
         if (!targetPhone) {
             return { locked: false, reason: 'invalid_phone' };
         }
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         const existing = await this.prisma.callLog.findFirst({
             where: {
-                callStatus: { in: [client_1.CallStatus.RINGING, client_1.CallStatus.CONNECTED] },
-                startedAt: { gte: fiveMinutesAgo },
-                OR: [
-                    { toNumber: { endsWith: targetPhone } },
-                    { lead: { is: { phone: { endsWith: targetPhone } } } },
+                AND: [
+                    {
+                        OR: [
+                            {
+                                callStatus: client_1.CallStatus.RINGING,
+                                startedAt: { gte: new Date(Date.now() - this.ringingLockWindowMs) },
+                            },
+                            {
+                                callStatus: client_1.CallStatus.CONNECTED,
+                                startedAt: { gte: new Date(Date.now() - this.connectedLockWindowMs) },
+                            },
+                        ],
+                    },
+                    {
+                        OR: [
+                            { toNumber: { endsWith: targetPhone } },
+                            { lead: { is: { phone: { endsWith: targetPhone } } } },
+                        ],
+                    },
                 ],
             },
             select: { id: true, agentId: true },
