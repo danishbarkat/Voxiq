@@ -868,7 +868,7 @@ export class SuperAdminService {
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await this.prisma.signupVerification.update({
       where: { email },
-      data: { otpCode: newOtp, expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+      data: { otpCode: newOtp, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
     });
     return { otpCode: newOtp, message: 'OTP refreshed — share with user' };
   }
