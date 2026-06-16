@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { SuperAdminService } from './superadmin.service';
 
@@ -22,6 +22,13 @@ class AssignNumbersDto {
 
 class RejectDto {
   @IsString() reason: string;
+}
+
+class TranscribeRecordingDto {
+  @IsString()
+  @IsOptional()
+  @IsIn(['recording', 'voicemail'])
+  source?: 'recording' | 'voicemail';
 }
 
 @Controller('superadmin')
@@ -202,5 +209,10 @@ export class SuperAdminController {
       to,
       limit: limit ? Number(limit) : undefined,
     });
+  }
+
+  @Post('recordings/:id/transcribe')
+  transcribeRecording(@Param('id') id: string, @Body() dto: TranscribeRecordingDto) {
+    return this.superAdminService.transcribeRecording(id, dto.source || 'recording');
   }
 }

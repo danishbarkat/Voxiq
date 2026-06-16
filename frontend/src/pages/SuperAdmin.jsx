@@ -2023,6 +2023,9 @@ function RecordingsTab() {
   const [data, setData] = useState({ items: [], companies: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ accountId: '', search: '', from: '', to: '' });
+  const [transcripts, setTranscripts] = useState({});
+  const [transcriptLoading, setTranscriptLoading] = useState({});
+  const [transcriptErrors, setTranscriptErrors] = useState({});
 
   const loadRecordings = useCallback(async () => {
     setLoading(true);
@@ -2066,6 +2069,26 @@ function RecordingsTab() {
     });
   }, [visibleDownloads]);
 
+  const handleTranscribe = useCallback(async (item, source = 'recording') => {
+    const key = `${item.id}:${source}`;
+    if (transcriptLoading[key] || transcripts[key]) return;
+
+    setTranscriptLoading((prev) => ({ ...prev, [key]: true }));
+    setTranscriptErrors((prev) => ({ ...prev, [key]: '' }));
+
+    try {
+      const response = await fetchJson(`${API_URL}/superadmin/recordings/${item.id}/transcribe`, {
+        method: 'POST',
+        body: JSON.stringify({ source }),
+      });
+      setTranscripts((prev) => ({ ...prev, [key]: response?.text || '' }));
+    } catch (error) {
+      setTranscriptErrors((prev) => ({ ...prev, [key]: error.message || 'Transcription failed.' }));
+    } finally {
+      setTranscriptLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  }, [transcriptLoading, transcripts]);
+
   // group items by company for the "All" view
   const groupedByCompany = useMemo(() => {
     if (filters.accountId) return null; // single company selected — no grouping needed
@@ -2081,6 +2104,14 @@ function RecordingsTab() {
   const RecordingCard = ({ item }) => {
     const fullUrl = toAbsoluteMediaUrl(item.recordingUrl);
     const vmUrl   = toAbsoluteMediaUrl(item.vmRecordingUrl);
+    const recordingKey = `${item.id}:recording`;
+    const vmKey = `${item.id}:voicemail`;
+    const recordingTranscript = transcripts[recordingKey];
+    const voicemailTranscript = transcripts[vmKey];
+    const recordingError = transcriptErrors[recordingKey];
+    const voicemailError = transcriptErrors[vmKey];
+    const recordingBusy = !!transcriptLoading[recordingKey];
+    const voicemailBusy = !!transcriptLoading[vmKey];
     return (
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 16, marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -2108,16 +2139,41 @@ function RecordingsTab() {
             </div>
             {fullUrl ? (
               <>
-                <audio controls preload="metadata" src={fullUrl} style={{ width: '100%', height: 36 }} />
+                <audio
+                  controls
+                  preload="metadata"
+                  src={fullUrl}
+                  onPlay={() => handleTranscribe(item, 'recording')}
+                  style={{ width: '100%', height: 36 }}
+                />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 8 }}>
                   <span style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>
                     {item.fromNumber || '?'} → {item.toNumber || '?'}
                   </span>
-                  <button onClick={() => triggerDownload(fullUrl, `${item.companyName}-${item.id}-recording.mp3`)}
-                    style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11 }}>
-                    ⬇ Download
-                  </button>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleTranscribe(item, 'recording')}
+                      disabled={recordingBusy}
+                      style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11, opacity: recordingBusy ? 0.7 : 1 }}
+                    >
+                      {recordingBusy ? 'Transcribing…' : recordingTranscript ? 'Transcript Ready' : 'Transcribe'}
+                    </button>
+                    <button onClick={() => triggerDownload(fullUrl, `${item.companyName}-${item.id}-recording.mp3`)}
+                      style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11 }}>
+                      ⬇ Download
+                    </button>
+                  </div>
                 </div>
+                {(recordingTranscript || recordingError) && (
+                  <div style={{ marginTop: 10, background: '#ffffff', border: '1px solid #dbe4f0', borderRadius: 10, padding: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: 11, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                      Transcript
+                    </div>
+                    <div style={{ fontSize: 13, lineHeight: 1.6, color: recordingError ? '#b91c1c' : '#0f172a', whiteSpace: 'pre-wrap' }}>
+                      {recordingError || recordingTranscript}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ fontSize: 12, color: '#94a3b8' }}>No call recording saved.</div>
@@ -2130,13 +2186,36 @@ function RecordingsTab() {
               <div style={{ fontWeight: 700, fontSize: 11, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                 Voicemail Drop
               </div>
-              <audio controls preload="metadata" src={vmUrl} style={{ width: '100%', height: 36 }} />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <audio
+                controls
+                preload="metadata"
+                src={vmUrl}
+                onPlay={() => handleTranscribe(item, 'voicemail')}
+                style={{ width: '100%', height: 36 }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => handleTranscribe(item, 'voicemail')}
+                  disabled={vmBusy}
+                  style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11, opacity: vmBusy ? 0.7 : 1 }}
+                >
+                  {vmBusy ? 'Transcribing…' : voicemailTranscript ? 'Transcript Ready' : 'Transcribe Voicemail'}
+                </button>
                 <button onClick={() => triggerDownload(vmUrl, `${item.companyName}-${item.id}-voicemail.mp3`)}
                   style={{ ...btnSecondary, padding: '6px 12px', fontSize: 11 }}>
                   ⬇ Download Voicemail
                 </button>
               </div>
+              {(voicemailTranscript || voicemailError) && (
+                <div style={{ marginTop: 10, background: '#ffffff', border: '1px solid #ead7ff', borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 11, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                    Voicemail Transcript
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: voicemailError ? '#b91c1c' : '#0f172a', whiteSpace: 'pre-wrap' }}>
+                    {voicemailError || voicemailTranscript}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

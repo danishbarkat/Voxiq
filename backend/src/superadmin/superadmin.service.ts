@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccountStatus, CallStatus } from '@prisma/client';
+import { readFile, unlink, writeFile } from 'fs/promises';
+import { spawn } from 'child_process';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import { PrismaService } from '../prisma/prisma.service';
 import { getStateFromE164 } from '../utils/areaCodes';
 
@@ -62,6 +66,195 @@ export class SuperAdminService {
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {}
+
+  private resolveMediaUrl(url: string) {
+    if (/^https?:\/\//i.test(url)) return url;
+
+    const publicBaseUrl =
+      this.configService.get<string>('PUBLIC_BASE_URL') ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      '';
+
+    if (url.startsWith('/') && publicBaseUrl) {
+      return `${publicBaseUrl.replace(/\/$/, '')}${url}`;
+    }
+
+    return url;
+  }
+
+  private inferAudioMimeType(filename: string, fallback?: string | null) {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'wav') return 'audio/wav';
+    if (ext === 'webm') return 'audio/webm';
+    if (ext === 'm4a') return 'audio/mp4';
+    if (ext === 'mp4') return 'audio/mp4';
+    if (ext === 'mpeg' || ext === 'mpga' || ext === 'mp3') return 'audio/mpeg';
+    return fallback || 'application/octet-stream';
+  }
+
+  private inferAudioExtension(filename: string, contentType?: string | null) {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext) return ext;
+    if (contentType?.includes('wav')) return 'wav';
+    if (contentType?.includes('webm')) return 'webm';
+    if (contentType?.includes('mp4')) return 'm4a';
+    if (contentType?.includes('mpeg') || contentType?.includes('mp3')) return 'mp3';
+    return 'mp3';
+  }
+
+  private async loadRecordingBinary(url: string) {
+    if (url.startsWith('/uploads/')) {
+      const absolutePath = join(process.cwd(), url.replace(/^\//, ''));
+      const buffer = await readFile(absolutePath);
+      return {
+        buffer,
+        contentType: this.inferAudioMimeType(url),
+        filename: url.split('/').pop() || 'recording.mp3',
+      };
+    }
+
+    const mediaUrl = this.resolveMediaUrl(url);
+    if (!/^https?:\/\//i.test(mediaUrl)) {
+      throw new BadRequestException('Recording URL is not reachable from the server.');
+    }
+
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+      throw new BadRequestException(`Failed to fetch recording (${response.status}).`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type');
+    const filenameFromUrl = (() => {
+      try {
+        return new URL(mediaUrl).pathname.split('/').pop() || 'recording.mp3';
+      } catch {
+        return 'recording.mp3';
+      }
+    })();
+
+    return {
+      buffer,
+      contentType: this.inferAudioMimeType(filenameFromUrl, contentType),
+      filename: filenameFromUrl,
+    };
+  }
+
+  private async runWhisperTranscription(params: {
+    filePath: string;
+    model: string;
+    device: string;
+    computeType: string;
+    language?: string;
+  }) {
+    const configuredPython = this.configService.get<string>('WHISPER_PYTHON_BIN') || '';
+    const pythonBin = configuredPython || (process.platform === 'win32' ? 'python' : 'python3');
+
+    const scriptPath = join(process.cwd(), 'scripts', 'transcribe_audio.py');
+    const args = [
+      scriptPath,
+      '--file',
+      params.filePath,
+      '--model',
+      params.model,
+      '--device',
+      params.device,
+      '--compute-type',
+      params.computeType,
+    ];
+
+    if (params.language) {
+      args.push('--language', params.language);
+    }
+
+    return new Promise<{ text?: string; language?: string; duration?: number; duration_after_vad?: number }>((resolve, reject) => {
+      const child = spawn(pythonBin, args, { cwd: process.cwd() });
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (chunk) => {
+        stdout += chunk.toString();
+      });
+
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      child.on('error', (error) => {
+        reject(new BadRequestException(`Failed to start whisper transcription: ${error.message}`));
+      });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          reject(new BadRequestException(`Whisper transcription failed: ${(stderr || stdout || `exit ${code}`).trim()}`));
+          return;
+        }
+
+        try {
+          resolve(JSON.parse(stdout || '{}'));
+        } catch (error) {
+          reject(new BadRequestException(`Invalid whisper response: ${(error as Error).message}`));
+        }
+      });
+    });
+  }
+
+  async transcribeRecording(callLogId: string, source: 'recording' | 'voicemail' = 'recording') {
+    const log = await this.prisma.callLog.findUnique({
+      where: { id: callLogId },
+      select: {
+        id: true,
+        recordingUrl: true,
+        vmRecordingUrl: true,
+        agent: { select: { name: true } },
+        lead: { select: { firstName: true, lastName: true, phone: true } },
+      },
+    });
+
+    if (!log) {
+      throw new NotFoundException('Recording not found.');
+    }
+
+    const selectedUrl = source === 'voicemail' ? log.vmRecordingUrl : log.recordingUrl;
+    if (!selectedUrl) {
+      throw new NotFoundException(source === 'voicemail' ? 'Voicemail recording not found.' : 'Call recording not found.');
+    }
+
+    const { buffer, contentType, filename } = await this.loadRecordingBinary(selectedUrl);
+    const maxBytes = 25 * 1024 * 1024;
+    if (buffer.byteLength > maxBytes) {
+      throw new BadRequestException('Recording exceeds the 25 MB transcription limit.');
+    }
+
+    const model = this.configService.get<string>('WHISPER_MODEL') || 'small';
+    const device = this.configService.get<string>('WHISPER_DEVICE') || 'auto';
+    const computeType = this.configService.get<string>('WHISPER_COMPUTE_TYPE') || 'int8';
+    const language = this.configService.get<string>('WHISPER_LANGUAGE') || '';
+    const extension = this.inferAudioExtension(filename, contentType);
+    const tempPath = join(tmpdir(), `voxiq-transcribe-${log.id}-${source}.${extension}`);
+
+    try {
+      await writeFile(tempPath, buffer);
+      const payload = await this.runWhisperTranscription({
+        filePath: tempPath,
+        model,
+        device,
+        computeType,
+        language,
+      });
+
+      return {
+        id: log.id,
+        source,
+        model,
+        text: payload?.text || '',
+        language: payload?.language || null,
+      };
+    } finally {
+      await unlink(tempPath).catch(() => undefined);
+    }
+  }
 
   async getOverview() {
     const [accounts, callLogs] = await Promise.all([
