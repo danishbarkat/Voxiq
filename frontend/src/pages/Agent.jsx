@@ -410,24 +410,6 @@ export default function Agent() {
     }
   }, [currentLead?.id]);
 
-  // Auto-load dialer SMS thread when current lead / dial number changes
-  useEffect(() => {
-    const phone = currentLead?.phone || dialNumber;
-    if (phone) {
-      setDialerSmsPhone(phone);
-      scheduleDialerSmsThreadFetch(phone);
-      return;
-    }
-    setDialerSmsPhone('');
-    setDialerSmsMessages([]);
-  }, [currentLead?.phone, dialNumber, scheduleDialerSmsThreadFetch]);
-
-  useEffect(() => () => {
-    if (dialerSmsFetchTimeoutRef.current) {
-      clearTimeout(dialerSmsFetchTimeoutRef.current);
-    }
-  }, []);
-
   const handleStartDialing = () => {
     setStatus('Waiting for Lead...');
     if (socket && agentId) socket.emit('agent:status', { agentId, status: 'available' });
@@ -981,6 +963,24 @@ export default function Agent() {
       fetchDialerSmsThread(phone);
     }, 350);
   }, [dialCountryCode]);
+
+  // Auto-load dialer SMS thread when current lead / dial number changes
+  useEffect(() => {
+    const phone = currentLead?.phone || dialNumber;
+    if (phone) {
+      setDialerSmsPhone(phone);
+      scheduleDialerSmsThreadFetch(phone);
+      return;
+    }
+    setDialerSmsPhone('');
+    setDialerSmsMessages([]);
+  }, [currentLead?.phone, dialNumber, scheduleDialerSmsThreadFetch]);
+
+  useEffect(() => () => {
+    if (dialerSmsFetchTimeoutRef.current) {
+      clearTimeout(dialerSmsFetchTimeoutRef.current);
+    }
+  }, []);
 
   // End call - force resets everything regardless of SIP state
   const handleHangup = useCallback(() => {
