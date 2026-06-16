@@ -46,6 +46,20 @@ function formatHistoryStatus(item) {
   return item?.status || 'Unknown';
 }
 
+function normalizeSmsPhone(input, fallbackCountryCode = '+1') {
+  const raw = `${input || ''}`.trim();
+  if (!raw) return null;
+
+  if (raw.startsWith('+')) {
+    const normalized = `+${raw.slice(1).replace(/\D/g, '')}`;
+    return normalized.length > 1 ? normalized : null;
+  }
+
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  return `${fallbackCountryCode}${digits}`;
+}
+
 export default function Agent() {
   const navigate = useNavigate();
   const { socket, isConnected, reconnect } = useSocket();
@@ -126,6 +140,8 @@ export default function Agent() {
   const [dialerSmsPhone, setDialerSmsPhone] = useState('');
   const [callbackTime, setCallbackTime] = useState('');
   const [dealValue, setDealValue] = useState('');
+  const dialerSmsFetchTimeoutRef = useRef(null);
+  const dialerSmsRequestIdRef = useRef(0);
 
   // ── Period Call Stats ──────────────────────────────────────────────────────
   const [periodStats, setPeriodStats] = useState({ today: 0, yesterday: 0, thisWeek: 0, lastWeek: 0, thisMonth: 0, thisYear: 0 });
@@ -399,9 +415,18 @@ export default function Agent() {
     const phone = currentLead?.phone || dialNumber;
     if (phone) {
       setDialerSmsPhone(phone);
-      fetchDialerSmsThread(phone);
+      scheduleDialerSmsThreadFetch(phone);
+      return;
     }
-  }, [currentLead?.phone, dialNumber]);
+    setDialerSmsPhone('');
+    setDialerSmsMessages([]);
+  }, [currentLead?.phone, dialNumber, scheduleDialerSmsThreadFetch]);
+
+  useEffect(() => () => {
+    if (dialerSmsFetchTimeoutRef.current) {
+      clearTimeout(dialerSmsFetchTimeoutRef.current);
+    }
+  }, []);
 
   const handleStartDialing = () => {
     setStatus('Waiting for Lead...');
@@ -876,23 +901,27 @@ export default function Agent() {
 
   const fetchSmsConversations = async (ch) => {
     const channel = ch || activeChannel;
+    const token = getToken();
+    if (!token) {
+      setSmsConversations([]);
+      return;
+    }
     try {
-      const token = localStorage.getItem('winfi_token');
-      const data = await fetch(`${API_URL}/sms/conversations?channel=${channel}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json());
+      const data = await fetchJson(`${API_URL}/sms/conversations?channel=${channel}`);
       setSmsConversations(Array.isArray(data) ? data : []);
     } catch (e) { console.error('fetchSmsConversations:', e); }
   };
 
   const fetchSmsThread = async (contactNumber, ch) => {
     const channel = ch || activeChannel;
+    const token = getToken();
+    if (!token) {
+      setSmsMessages([]);
+      return;
+    }
     try {
-      const token = localStorage.getItem('winfi_token');
       const encoded = encodeURIComponent(contactNumber);
-      const data = await fetch(`${API_URL}/sms/conversations/${encoded}?channel=${channel}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.ok ? r.json() : []);
+      const data = await fetchJson(`${API_URL}/sms/conversations/${encoded}?channel=${channel}`);
       setSmsMessages(Array.isArray(data) ? data : []);
     } catch (e) { console.error('fetchSmsThread:', e); }
   };
@@ -901,13 +930,10 @@ export default function Agent() {
     if (!smsInput.trim() || !smsActiveThread) return;
     setSmsSendingMsg(true);
     try {
-      const token = localStorage.getItem('winfi_token');
-      const res = await fetch(`${API_URL}/sms/send`, {
+      await fetchJson(`${API_URL}/sms/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ to: smsActiveThread, body: smsInput.trim(), channel: activeChannel }),
       });
-      if (!res.ok) throw new Error(await res.text());
       setSmsInput('');
       await fetchSmsThread(smsActiveThread, activeChannel);
       await fetchHistory();
@@ -916,34 +942,45 @@ export default function Agent() {
   };
 
   const fetchDialerSmsThread = async (phone) => {
-    if (!phone) return;
+    const normalizedPhone = normalizeSmsPhone(phone, dialCountryCode);
+    const token = getToken();
+    const requestId = ++dialerSmsRequestIdRef.current;
+    if (!normalizedPhone || !token) {
+      setDialerSmsMessages([]);
+      return;
+    }
     try {
-      const token = localStorage.getItem('winfi_token');
-      const encoded = encodeURIComponent(phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g,'').slice(-10)}`);
-      const data = await fetch(`${API_URL}/sms/conversations/${encoded}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.ok ? r.json() : []);
+      const encoded = encodeURIComponent(normalizedPhone);
+      const data = await fetchJson(`${API_URL}/sms/conversations/${encoded}`);
+      if (requestId !== dialerSmsRequestIdRef.current) return;
       setDialerSmsMessages(Array.isArray(data) ? data : []);
     } catch { setDialerSmsMessages([]); }
   };
 
   const sendDialerSms = async () => {
-    const phone = dialerSmsPhone || currentLead?.phone || dialNumber;
+    const phone = normalizeSmsPhone(dialerSmsPhone || currentLead?.phone || dialNumber, dialCountryCode);
     if (!dialerSmsInput.trim() || !phone) return;
     setDialerSmsSending(true);
     try {
-      const token = localStorage.getItem('winfi_token');
-      const res = await fetch(`${API_URL}/sms/send`, {
+      await fetchJson(`${API_URL}/sms/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ to: phone, body: dialerSmsInput.trim() }),
       });
-      if (!res.ok) throw new Error(await res.text());
       setDialerSmsInput('');
       await fetchDialerSmsThread(phone);
     } catch (e) { alert('SMS failed: ' + e.message); }
     finally { setDialerSmsSending(false); }
   };
+
+  const scheduleDialerSmsThreadFetch = useCallback((phone) => {
+    if (dialerSmsFetchTimeoutRef.current) {
+      clearTimeout(dialerSmsFetchTimeoutRef.current);
+    }
+
+    dialerSmsFetchTimeoutRef.current = setTimeout(() => {
+      fetchDialerSmsThread(phone);
+    }, 350);
+  }, [dialCountryCode]);
 
   // End call - force resets everything regardless of SIP state
   const handleHangup = useCallback(() => {
@@ -1658,8 +1695,9 @@ export default function Agent() {
                   <input
                     value={dialerSmsPhone}
                     onChange={e => {
-                      setDialerSmsPhone(e.target.value);
-                      if (e.target.value.length >= 10) fetchDialerSmsThread(e.target.value);
+                      const nextPhone = e.target.value;
+                      setDialerSmsPhone(nextPhone);
+                      scheduleDialerSmsThreadFetch(nextPhone);
                     }}
                     placeholder="Enter number e.g. +14422039259"
                     style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 7, fontSize: '0.82rem', outline: 'none', fontFamily: 'monospace', boxSizing: 'border-box' }}
