@@ -62,7 +62,7 @@ function normalizeSmsPhone(input, fallbackCountryCode = '+1') {
 
 export default function Agent() {
   const navigate = useNavigate();
-  const { socket, isConnected, reconnect } = useSocket();
+  const { socket, isConnected } = useSocket();
   const [agentId, setAgentId] = useState(null);
   const [profile, setProfile] = useState(null);
   const [currentLead, setCurrentLead] = useState(null);
@@ -269,9 +269,6 @@ export default function Agent() {
   }, [agentId]);
 
   useEffect(() => {
-    // Reconnect socket on mount to ensure fresh token is used
-    if (reconnect) reconnect();
-
     // 1. Get current user profile
     fetchJson(`${API_URL}/auth/profile`).then(async (auth) => {
       if (auth?.userId) {

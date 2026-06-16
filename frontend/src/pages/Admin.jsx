@@ -762,7 +762,7 @@ export default function Admin() {
       return next;
     });
   };
-  const { socket, isConnected, reconnect } = useSocket();
+  const { socket, isConnected } = useSocket();
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem('voxiq_active_tab') || 'dashboard'; } catch { return 'dashboard'; }
   });
@@ -873,12 +873,6 @@ export default function Admin() {
     else setAvailableLists([]);
   }, [importForm.accountId]);
 
-  useEffect(() => {
-    // Force a fresh reconnect on mount with latest token
-    if (reconnect) reconnect();
-  }, [reconnect]);
-
-  // Load analytics when that tab is active
   useEffect(() => {
     if (activeTab === 'analytics') {
       fetchOverview();

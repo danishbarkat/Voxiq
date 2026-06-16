@@ -8,7 +8,7 @@ import StateMap from '../components/StateMap';
 
 export default function Manager() {
     const navigate = useNavigate();
-    const { isConnected, reconnect } = useSocket();
+    const { isConnected } = useSocket();
     const [activeTab, setActiveTab] = useState('team');
 
     // Data state
@@ -60,9 +60,8 @@ export default function Manager() {
     };
 
     useEffect(() => {
-        if (reconnect) reconnect();
         fetchAll();
-    }, [reconnect]);
+    }, []);
 
     const handleAddTag = async (id, currentTags = []) => {
         const newTag = prompt('Enter new tag (e.g. Excellent, Needs Review, Rude):');
