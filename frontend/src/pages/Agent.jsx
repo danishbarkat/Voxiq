@@ -1236,7 +1236,7 @@ export default function Agent() {
   const isNarrowPhone = viewportWidth <= 560;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
 
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header style={{

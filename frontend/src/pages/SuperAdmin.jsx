@@ -243,7 +243,7 @@ function ApproveModal({ company, onClose, onApproved }) {
 
         {/* Package selector */}
         <label style={labelStyle}>Assign Package</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6, marginBottom: 14 }}>
           {ALL_PACKAGES.map(pkg => {
             const isActive = selectedPackage === pkg.name;
             const f = pkg.features;
@@ -478,6 +478,20 @@ function DashboardTab({ overview, overviewLoading }) {
   const topCountries  = (overview?.topCountries || []).map(c => ({ id: c.id, value: c.calls }));
   const [trendPeriod, setTrendPeriod] = useState('daily');
   const trendSeries = overview?.companyTrends?.[trendPeriod] || [];
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isTablet = viewportWidth <= 1100;
+  const isMobile = viewportWidth <= 768;
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
@@ -510,7 +524,7 @@ function DashboardTab({ overview, overviewLoading }) {
 
       {/* ── Graphs row ── */}
       {!overviewLoading && overview && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr 1fr', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(0, 1fr))' : '1.55fr 1fr 1fr', gap: 18 }}>
 
           <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -577,7 +591,7 @@ function DashboardTab({ overview, overviewLoading }) {
       )}
 
       {/* ── Companies + State breakdown ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: 18 }}>
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, color: '#111827' }}>Top Companies by Calls</div>
           <div style={{ display: 'grid', gap: 10 }}>
@@ -806,6 +820,19 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isTablet = viewportWidth <= 1100;
 
   const loadDetail = useCallback(async (id) => {
     if (!id) return;
@@ -829,7 +856,7 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
   if (loading) return <Placeholder>Loading companies…</Placeholder>;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: selectedId ? 'minmax(0,1.3fr) minmax(320px,0.8fr)' : '1fr', gap: 18, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: selectedId && !isTablet ? 'minmax(0,1.3fr) minmax(320px,0.8fr)' : '1fr', gap: 18, alignItems: 'start' }}>
       <div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
           <input
@@ -2623,6 +2650,9 @@ function BillingTab() {
 
 export default function SuperAdmin() {
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440,
+  );
   const [tab, setTab] = useState('dashboard');
   const [companies, setCompanies] = useState([]);
   const [overview, setOverview] = useState(null);
@@ -2653,6 +2683,13 @@ export default function SuperAdmin() {
 
   useEffect(() => { loadCompanies(); loadOverview(); }, [loadCompanies, loadOverview]);
   useEffect(() => { if (tab === 'analytics') loadAnalytics(); }, [tab, loadAnalytics]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleToggle = async (company) => {
     const ep = company.status === 'ACTIVE' ? 'deactivate' : 'activate';
@@ -2682,24 +2719,26 @@ export default function SuperAdmin() {
   const pendingCount = companies.filter(c => c.status === 'PENDING').length;
   const reactivationCount = companies.filter(c => c.reactivationRequested).length;
   const openRequests = pendingCount + reactivationCount;
+  const isTablet = viewportWidth <= 1100;
+  const isMobile = viewportWidth <= 768;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Inter, system-ui, sans-serif', overflowX: 'hidden' }}>
 
       {/* Sidebar */}
-      <aside style={{ width: 220, background: '#111827', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, position: 'sticky', top: 0, height: '100vh' }}>
-        <div style={{ padding: '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <aside style={{ width: isMobile ? '100%' : 220, background: '#111827', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, position: isMobile ? 'static' : 'sticky', top: 0, height: isMobile ? 'auto' : '100vh' }}>
+        <div style={{ padding: isMobile ? '16px' : '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <img src="/logo.png" alt="Voxiq" style={{ height: 30, marginBottom: 10 }} />
           <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Super Admin</div>
         </div>
 
-        <nav style={{ flex: 1, padding: '12px 10px' }}>
+        <nav style={{ flex: 1, padding: isMobile ? '12px 12px 8px' : '12px 10px', display: 'flex', flexDirection: isMobile ? 'row' : 'column', overflowX: isMobile ? 'auto' : 'visible', gap: isMobile ? 8 : 0 }}>
           {NAV_ITEMS.map(item => {
             const isActive = tab === item.key;
             const badge = item.key === 'requests' ? openRequests : 0;
             return (
               <button key={item.key} onClick={() => setTab(item.key)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: 4, textAlign: 'left',
+                style={{ width: isMobile ? 'auto' : '100%', minWidth: isMobile ? 'max-content' : 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: isMobile ? 0 : 4, textAlign: 'left',
                   background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
                   color: isActive ? '#fff' : '#9ca3af', fontWeight: isActive ? 700 : 500, fontSize: 14, transition: 'all 0.15s' }}>
                 <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -2712,7 +2751,7 @@ export default function SuperAdmin() {
           })}
         </nav>
 
-        <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ padding: isMobile ? '0 12px 12px' : '14px 12px', borderTop: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)' }}>
           <button onClick={() => { clearToken(); navigate('/login'); }}
             style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#d1d5db', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>↩</span> Logout
@@ -2722,7 +2761,7 @@ export default function SuperAdmin() {
 
       {/* Main content */}
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '18px 28px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
+        <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: isMobile ? '14px 16px' : '18px 28px', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 20, color: '#111827' }}>
               {NAV_ITEMS.find(n => n.key === tab)?.label}
@@ -2745,7 +2784,7 @@ export default function SuperAdmin() {
           )}
         </header>
 
-        <div style={{ padding: 28, flex: 1 }}>
+        <div style={{ padding: isMobile ? 16 : 28, flex: 1, minWidth: 0 }}>
           {tab === 'dashboard' && (
             <DashboardTab overview={overview} overviewLoading={overviewLoading} />
           )}

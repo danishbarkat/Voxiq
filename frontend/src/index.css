@@ -782,6 +782,56 @@ tr:last-child td {
   .pricing-grid {
     grid-template-columns: 1fr;
   }
+
+  .admin-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    padding: 16px 0 12px;
+    box-shadow: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  .sidebar-nav a {
+    padding: 10px 14px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .sidebar-nav a.active::before {
+    display: none;
+  }
+
+  .sidebar-tools,
+  .sidebar-health {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .admin-content {
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .dynamic-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 

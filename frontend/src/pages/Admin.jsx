@@ -751,6 +751,9 @@ function TrialBanner({ token }) {
 
 export default function Admin() {
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440,
+  );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try { return localStorage.getItem('voxiq_sidebar_collapsed') === 'true'; } catch { return false; }
   });
@@ -921,6 +924,17 @@ export default function Admin() {
     clearToken();
     navigate('/login');
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isTablet = viewportWidth <= 1100;
+  const isMobile = viewportWidth <= 768;
 
   const handleRequestActivation = async () => {
     try {
@@ -1572,25 +1586,27 @@ export default function Admin() {
       </aside>
 
       {/* Sidebar toggle — fixed so it's always visible regardless of overflow */}
-      <button
-        onClick={toggleSidebar}
-        title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        style={{
-          position: 'fixed',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          left: isSidebarCollapsed ? 58 : 246,
-          zIndex: 300,
-          width: 28, height: 28, borderRadius: '50%',
-          background: '#6366f1', border: '2.5px solid #fff',
-          boxShadow: '0 2px 10px rgba(99,102,241,0.45)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: '#fff',
-          transition: 'left 0.25s ease',
-        }}
-      >
-        {isSidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-      </button>
+      {!isMobile && (
+        <button
+          onClick={toggleSidebar}
+          title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            left: isSidebarCollapsed ? 58 : 246,
+            zIndex: 300,
+            width: 28, height: 28, borderRadius: '50%',
+            background: '#6366f1', border: '2.5px solid #fff',
+            boxShadow: '0 2px 10px rgba(99,102,241,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: '#fff',
+            transition: 'left 0.25s ease',
+          }}
+        >
+          {isSidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+        </button>
+      )}
 
       <main className="admin-content">
         {isLoading && !authState.user && (
@@ -1716,7 +1732,7 @@ export default function Admin() {
                   )}
                 </div>
 
-                <div className="dynamic-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+                <div className="dynamic-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                   <section className="card" id="agents">
                     <h2 className="font-head mb-4">Agent Roster</h2>
                     <div className="table-container">
@@ -1851,7 +1867,7 @@ export default function Admin() {
                   <p className="text-center text-dim mt-2" style={{ fontSize: '0.75rem' }}>Call density by country activity</p>
                 </section>
 
-                <div className="dynamic-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
+                <div className="dynamic-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
                   <div className="card">
                     <h3 className="font-head mb-4" style={{ fontSize: '1rem' }}>Calls Per Hour (Today)</h3>
                     <BarChart data={hourly.filter(h => h.value > 0 || hourly.indexOf(h) > 6 && hourly.indexOf(h) < 22)} labelKey="label" valueKey="value" color="var(--vx-accent)" />
@@ -1991,7 +2007,7 @@ export default function Admin() {
                     </a>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'start', marginBottom: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr auto 1fr', gap: '1rem', alignItems: 'start', marginBottom: '1rem' }}>
                     <div>
                       <label className="stat-label" style={{ marginBottom: 6, display: 'block' }}>Select Existing List</label>
                       <select className="input-field" style={{ width: '100%' }} value={importForm.listId}
@@ -2416,7 +2432,7 @@ export default function Admin() {
             {activeTab === 'integrations' && (
               <div>
                 <h1 className="font-head mb-6">Integrations</h1>
-                <div className="dynamic-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
+                <div className="dynamic-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
                   <section className="card">
                     <h2 className="font-head mb-4" style={{ fontSize: '1.05rem' }}>⚡ Zapier / Outbound Webhooks</h2>
                     <div className="flex flex-col gap-2 mb-4">
@@ -2509,9 +2525,9 @@ export default function Admin() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', height: '70vh', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: isMobile ? 'auto' : '70vh', minHeight: isMobile ? '70vh' : 'unset', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
                   {/* Conversation list */}
-                  <div style={{ width: 300, borderRight: '1px solid #e5e7eb', overflowY: 'auto', background: '#f9fafb', flexShrink: 0 }}>
+                  <div style={{ width: isMobile ? '100%' : 300, maxHeight: isMobile ? 260 : 'none', borderRight: isMobile ? 'none' : '1px solid #e5e7eb', borderBottom: isMobile ? '1px solid #e5e7eb' : 'none', overflowY: 'auto', background: '#f9fafb', flexShrink: 0 }}>
                     {smsConversations
                       .filter(c => smsAgentFilter === 'all' || c.agentId === smsAgentFilter)
                       .map(c => (
