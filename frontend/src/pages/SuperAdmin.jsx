@@ -2196,7 +2196,7 @@ function RecordingsTab() {
                     <div style={{ fontWeight: 700, fontSize: 11, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
                       Transcript
                     </div>
-                    <div style={{ fontSize: 13, lineHeight: 1.6, color: recordingError ? '#b91c1c' : '#0f172a', whiteSpace: 'pre-wrap' }}>
+                    <div style={{ fontSize: 13, lineHeight: 1.6, color: recordingError ? '#b91c1c' : '#0f172a', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                       {recordingError || recordingTranscript}
                     </div>
                   </div>
@@ -2238,7 +2238,7 @@ function RecordingsTab() {
                   <div style={{ fontWeight: 700, fontSize: 11, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
                     Voicemail Transcript
                   </div>
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: voicemailError ? '#b91c1c' : '#0f172a', whiteSpace: 'pre-wrap' }}>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: voicemailError ? '#b91c1c' : '#0f172a', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     {voicemailError || voicemailTranscript}
                   </div>
                 </div>
@@ -2721,24 +2721,25 @@ export default function SuperAdmin() {
   const openRequests = pendingCount + reactivationCount;
   const isTablet = viewportWidth <= 1100;
   const isMobile = viewportWidth <= 768;
+  const isCompactLayout = viewportWidth <= 1024;
 
   return (
-    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Inter, system-ui, sans-serif', overflowX: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompactLayout ? 'column' : 'row', minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Inter, system-ui, sans-serif', overflowX: 'hidden' }}>
 
       {/* Sidebar */}
-      <aside style={{ width: isMobile ? '100%' : 220, background: '#111827', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, position: isMobile ? 'static' : 'sticky', top: 0, height: isMobile ? 'auto' : '100vh' }}>
-        <div style={{ padding: isMobile ? '16px' : '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <aside style={{ width: isCompactLayout ? '100%' : 220, background: '#111827', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, position: isCompactLayout ? 'static' : 'sticky', top: 0, height: isCompactLayout ? 'auto' : '100vh' }}>
+        <div style={{ padding: isCompactLayout ? '16px' : '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <img src="/logo.png" alt="Voxiq" style={{ height: 30, marginBottom: 10 }} />
           <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Super Admin</div>
         </div>
 
-        <nav style={{ flex: 1, padding: isMobile ? '12px 12px 8px' : '12px 10px', display: 'flex', flexDirection: isMobile ? 'row' : 'column', overflowX: isMobile ? 'auto' : 'visible', gap: isMobile ? 8 : 0 }}>
+        <nav style={{ flex: 1, padding: isCompactLayout ? '12px 12px 8px' : '12px 10px', display: 'flex', flexDirection: isCompactLayout ? 'row' : 'column', overflowX: isCompactLayout ? 'auto' : 'visible', gap: isCompactLayout ? 8 : 0 }}>
           {NAV_ITEMS.map(item => {
             const isActive = tab === item.key;
             const badge = item.key === 'requests' ? openRequests : 0;
             return (
               <button key={item.key} onClick={() => setTab(item.key)}
-                style={{ width: isMobile ? 'auto' : '100%', minWidth: isMobile ? 'max-content' : 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: isMobile ? 0 : 4, textAlign: 'left',
+                style={{ width: isCompactLayout ? 'auto' : '100%', minWidth: isCompactLayout ? 'max-content' : 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: isCompactLayout ? 0 : 4, textAlign: 'left',
                   background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
                   color: isActive ? '#fff' : '#9ca3af', fontWeight: isActive ? 700 : 500, fontSize: 14, transition: 'all 0.15s' }}>
                 <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -2751,7 +2752,7 @@ export default function SuperAdmin() {
           })}
         </nav>
 
-        <div style={{ padding: isMobile ? '0 12px 12px' : '14px 12px', borderTop: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ padding: isCompactLayout ? '0 12px 12px' : '14px 12px', borderTop: isCompactLayout ? 'none' : '1px solid rgba(255,255,255,0.08)' }}>
           <button onClick={() => { clearToken(); navigate('/login'); }}
             style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#d1d5db', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>↩</span> Logout
