@@ -701,7 +701,7 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
           <SectionHeader icon="📧" title="Awaiting Email Verification" count={verifications.length} countBg="#fef3c7" countColor="#92400e" />
           <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #fde68a', overflow: 'hidden', marginTop: 10 }}>
             <div style={{ padding: '10px 16px', background: '#fffbeb', fontSize: 12, color: '#92400e', borderBottom: '1px solid #fde68a' }}>
-              Email sending is disabled — share the OTP code directly with the user to complete their signup.
+              Use `New OTP` to email a fresh 24-hour verification code to the pending signup.
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -740,7 +740,7 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
                     <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
                       <button onClick={() => handleRefreshOtp(v.email)} disabled={refreshingOtp[v.email]}
                         style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>
-                        {refreshingOtp[v.email] ? '…' : 'New OTP'}
+                        {refreshingOtp[v.email] ? '…' : 'Email OTP'}
                       </button>
                     </td>
                   </tr>

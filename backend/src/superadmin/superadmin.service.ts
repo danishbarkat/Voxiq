@@ -17,6 +17,7 @@ const SUPERADMIN_ACCOUNT_ID = 'super-admin-account';
 
 @Injectable()
 export class SuperAdminService {
+  private static readonly SIGNUP_OTP_TTL_MS = 24 * 60 * 60 * 1000;
   private readonly accountSummarySelect = {
     id: true,
     name: true,
@@ -80,6 +81,101 @@ export class SuperAdminService {
     }
 
     return url;
+  }
+
+  private async sendSignupVerificationEmail(email: string, companyName: string, otpCode: string) {
+    const resendApiKey = this.configService.get<string>('RESEND_API_KEY') || '';
+    const host = this.configService.get<string>('MAIL_HOST') || '';
+    const port = Number(this.configService.get<string>('MAIL_PORT') || 587);
+    const user = this.configService.get<string>('MAIL_USER') || '';
+    const pass = this.configService.get<string>('MAIL_PASS') || '';
+    const from = this.configService.get<string>('MAIL_FROM') || user;
+    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || '').replace(/\/$/, '');
+    const logoUrl = frontendUrl ? `${frontendUrl}/logo.png` : '';
+    const subject = 'Verify your Voxiq company signup';
+    const text = `Your Voxiq verification code for ${companyName} is ${otpCode}. This code expires in 24 hours.`;
+    const html = `
+      <div style="margin:0;padding:32px 16px;background:#eef2ff;font-family:Inter,Arial,sans-serif;color:#0f172a;">
+        <div style="max-width:640px;margin:0 auto;background:linear-gradient(180deg,#0f172a 0%,#1f2a5a 100%);border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="padding:32px 32px 24px;border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex;align-items:center;gap:14px;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="Voxiq" style="height:40px;display:block;" />` : `<div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:800;font-size:18px;">V</div>`}
+              <div>
+                <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.58);font-weight:700;">Voxiq Onboarding</div>
+                <div style="font-size:24px;line-height:1.2;font-weight:800;color:#ffffff;margin-top:4px;">Verify your company signup</div>
+              </div>
+            </div>
+            <div style="margin-top:22px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
+              Your workspace request for <strong style="color:#ffffff;">${companyName}</strong> is almost ready. Use the verification code below to continue your admin signup.
+            </div>
+          </div>
+          <div style="padding:32px;background:#ffffff;">
+            <div style="background:linear-gradient(135deg,#eef2ff 0%,#f8fafc 100%);border:1px solid #dbe4ff;border-radius:24px;padding:28px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#6366f1;font-weight:800;">Verification Code</div>
+              <div style="margin-top:14px;font-size:40px;line-height:1;font-weight:900;letter-spacing:10px;color:#111827;">${otpCode}</div>
+              <div style="margin-top:14px;font-size:14px;color:#475569;">This code stays valid for <strong>24 hours</strong>.</div>
+            </div>
+            <div style="margin-top:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px 20px;">
+              <div style="font-size:13px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.08em;">What happens next</div>
+              <div style="margin-top:10px;font-size:14px;line-height:1.7;color:#475569;">
+                1. Enter this code in the Voxiq signup flow.<br/>
+                2. Your company admin request will be submitted for review.<br/>
+                3. After approval, your workspace access details will be shared with you.
+              </div>
+            </div>
+            <div style="margin-top:22px;font-size:13px;line-height:1.7;color:#64748b;">
+              If you did not request this signup, you can safely ignore this email.
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    if (resendApiKey && from) {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to: [email],
+          subject,
+          text,
+          html,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new BadRequestException(`Email send failed: ${errorText}`);
+      }
+
+      return;
+    }
+
+    if (!host || !user || !pass || pass === 'your_gmail_app_password_here') {
+      throw new BadRequestException('Email sending is not configured.');
+    }
+
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.default.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass,
+      },
+    });
+
+    await transporter.sendMail({
+      from,
+      to: email,
+      subject,
+      text,
+      html,
+    });
   }
 
   private inferAudioMimeType(filename: string, fallback?: string | null) {
@@ -866,11 +962,13 @@ export class SuperAdminService {
     const record = await this.prisma.signupVerification.findUnique({ where: { email } });
     if (!record) throw new Error('No pending verification for this email');
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const payload = record.payload as any;
     await this.prisma.signupVerification.update({
       where: { email },
-      data: { otpCode: newOtp, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      data: { otpCode: newOtp, expiresAt: new Date(Date.now() + SuperAdminService.SIGNUP_OTP_TTL_MS) },
     });
-    return { otpCode: newOtp, message: 'OTP refreshed — share with user' };
+    await this.sendSignupVerificationEmail(email, payload?.companyName || 'your company', newOtp);
+    return { otpCode: newOtp, message: 'New OTP emailed to the user and valid for 24 hours.' };
   }
 
   async getAvailableNumbers() {
