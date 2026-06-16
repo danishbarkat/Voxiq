@@ -38,6 +38,14 @@ function StatusBadge({ status }) {
   return <Badge bg={s.bg} color={s.color}>{s.label}</Badge>;
 }
 
+function formatMinutesValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return '0';
+  if (numeric >= 1000) return Math.round(numeric).toLocaleString();
+  if (numeric >= 100) return Math.round(numeric).toString();
+  return numeric.toFixed(1).replace(/\.0$/, '');
+}
+
 function StatCard({ label, value, sub, accent }) {
   return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -506,7 +514,7 @@ function DashboardTab({ overview, overviewLoading }) {
             <StatCard label="Agents"        value={overview.totalAgents}     sub={`${overview.totalAdmins} admins`} />
             <StatCard label="Leads"         value={overview.totalLeads}      sub={`${overview.totalLists} lists`} />
             <StatCard label="Calls"         value={overview.totalCalls}      sub={`${overview.connectionRate}% connected`} />
-            <StatCard label="Minutes"       value={overview.totalMinutes}    sub={`${overview.inboundCalls} in / ${overview.outboundCalls} out`} />
+            <StatCard label="Minutes"       value={formatMinutesValue(overview.totalMinutes)}    sub={`${overview.inboundCalls} in / ${overview.outboundCalls} out`} />
             <StatCard label="Revenue"       value={`$${Math.round(overview.totalRevenue || 0).toLocaleString()}`} sub={`${overview.recordings} recordings`} accent="#059669" />
             <StatCard label="Numbers"       value={overview.totalNumbers}    sub={`${overview.totalCampaigns} campaigns`} />
           </>
@@ -603,7 +611,7 @@ function DashboardTab({ overview, overviewLoading }) {
                     <div style={{ width: 26, height: 26, borderRadius: 8, background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{c.companyName}</div>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>{c.totalMinutes} min • ${Math.round(c.revenue || 0).toLocaleString()}</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>{formatMinutesValue(c.totalMinutes)} min • ${Math.round(c.revenue || 0).toLocaleString()}</div>
                       {c.topStates?.slice(0, 3).length > 0 && (
                         <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                           {c.topStates.slice(0, 3).map(s => (
@@ -925,7 +933,7 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
                   </td>
                   <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
                     {c.totalCalls}
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>{c.totalMinutes} min</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>{formatMinutesValue(c.totalMinutes)} min</div>
                   </td>
                   <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13, fontWeight: 700 }}>
                     ${Math.round(c.revenue || 0).toLocaleString()}
@@ -1363,7 +1371,7 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         <StatCard label="Calls"     value={detail.stats.totalCalls}    sub={`${detail.stats.inboundCalls} in / ${detail.stats.outboundCalls} out`} />
         <StatCard label="Revenue"   value={`$${Math.round(detail.stats.revenue || 0).toLocaleString()}`} sub={`${detail.stats.recordings} recordings`} />
-        <StatCard label="Minutes"   value={detail.stats.totalMinutes}  sub={`${detail.stats.avgDuration}s avg`} />
+        <StatCard label="Minutes"   value={formatMinutesValue(detail.stats.totalMinutes)}  sub={`${detail.stats.avgDuration}s avg`} />
         <StatCard label="Connected" value={detail.stats.connectedCalls} sub={`${detail.campaigns.length} campaigns`} />
       </div>
 

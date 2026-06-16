@@ -1634,9 +1634,7 @@ export class SuperAdminService {
       (log) => log.callStatus === CallStatus.CONNECTED || log.callStatus === CallStatus.COMPLETED,
     ).length;
     const totalSeconds = logs.reduce((sum, log) => {
-      if (log.durationSeconds != null) return sum + log.durationSeconds;
-      if (!log.endedAt || !log.startedAt) return sum;
-      return sum + (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000;
+      return sum + this.normalizeCallDurationSeconds(log);
     }, 0);
     const totalMinutes = parseFloat((totalSeconds / 60).toFixed(2));
     const avgDuration = totalCalls > 0 ? Math.round(totalSeconds / totalCalls) : 0;
@@ -1655,6 +1653,25 @@ export class SuperAdminService {
       inboundCalls,
       outboundCalls,
     };
+  }
+
+  private normalizeCallDurationSeconds(log: any) {
+    const maxReasonableSeconds = 12 * 60 * 60;
+    const rawDuration = Number(log?.durationSeconds);
+
+    if (Number.isFinite(rawDuration) && rawDuration > 0) {
+      if (rawDuration <= maxReasonableSeconds) return rawDuration;
+      if (rawDuration <= maxReasonableSeconds * 1000) return rawDuration / 1000;
+    }
+
+    if (!log?.endedAt || !log?.startedAt) return 0;
+
+    const derivedSeconds =
+      (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000;
+
+    if (!Number.isFinite(derivedSeconds) || derivedSeconds <= 0) return 0;
+    if (derivedSeconds > maxReasonableSeconds) return 0;
+    return derivedSeconds;
   }
 
   private buildTopStates(logs: any[]) {
