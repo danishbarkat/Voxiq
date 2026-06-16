@@ -948,12 +948,14 @@ export class SuperAdminService {
       const payload = r.payload as any;
       return {
         email: r.email,
+        sentTo: r.email,
         companyName: payload?.companyName || '',
         name: `${payload?.name || ''} ${payload?.lastName || ''}`.trim(),
         phone: payload?.phone || '',
         otpCode: r.otpCode,
         expired: r.expiresAt < new Date(),
         createdAt: r.createdAt,
+        lastEmailedAt: r.updatedAt,
       };
     });
   }

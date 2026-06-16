@@ -706,9 +706,9 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f9fafb' }}>
-                  {['Company', 'Email', 'Phone', 'OTP Code', 'Status', 'Action'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                  ))}
+                {['Company', 'Email', 'Phone', 'OTP Code', 'Status', 'Email Activity', 'Action'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+                ))}
                 </tr>
               </thead>
               <tbody>
@@ -736,6 +736,12 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
                       <Badge bg={v.expired ? '#fee2e2' : '#d1fae5'} color={v.expired ? '#991b1b' : '#065f46'}>
                         {v.expired ? 'Expired' : 'Valid'}
                       </Badge>
+                    </td>
+                    <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 12 }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{v.sentTo || v.email}</div>
+                      <div style={{ color: '#6b7280', marginTop: 3 }}>
+                        {v.lastEmailedAt ? `Last email: ${formatDateTime(v.lastEmailedAt)}` : 'No email activity yet'}
+                      </div>
                     </td>
                     <td style={{ padding: '13px 16px', borderBottom: '1px solid #f3f4f6' }}>
                       <button onClick={() => handleRefreshOtp(v.email)} disabled={refreshingOtp[v.email]}
