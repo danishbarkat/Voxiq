@@ -46,6 +46,15 @@ function formatMinutesValue(value) {
   return numeric.toFixed(1).replace(/\.0$/, '');
 }
 
+function sanitizeDurationSeconds(value) {
+  const numeric = Number(value);
+  const maxReasonableSeconds = 12 * 60 * 60;
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  if (numeric <= maxReasonableSeconds) return numeric;
+  if (numeric <= maxReasonableSeconds * 1000) return numeric / 1000;
+  return 0;
+}
+
 function StatCard({ label, value, sub, accent }) {
   return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1970,7 +1979,7 @@ function AnalyticsTab({ analytics, loading }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: 15 }}>{c.name}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>{c.calls} calls · {c.minutes} min</div>
+                    <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>{c.calls} calls · {formatMinutesValue(c.minutes)} min</div>
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#059669' }}>${Math.round(c.revenue).toLocaleString()}</div>
                 </div>
@@ -2012,9 +2021,10 @@ function Placeholder({ children }) {
 }
 
 function formatDuration(seconds) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60);
+  const safeSeconds = sanitizeDurationSeconds(seconds);
+  if (!Number.isFinite(safeSeconds) || safeSeconds <= 0) return '0s';
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = Math.round(safeSeconds % 60);
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
@@ -2555,7 +2565,7 @@ function BillingTab() {
                       </td>
                       <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>
                         {c.totalCalls}
-                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{c.totalCallMinutes} min</div>
+                        <div style={{ fontSize: 10, color: '#9ca3af' }}>{formatMinutesValue(c.totalCallMinutes)} min</div>
                       </td>
                       <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', color: '#dc2626' }}>${c.callCost.toFixed(3)}</td>
                       <td style={{ padding: '10px 12px', borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6' }}>{c.smsCount}</td>

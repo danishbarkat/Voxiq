@@ -1296,11 +1296,7 @@ export class SuperAdminService {
       let totalCallSec = 0;
 
       for (const log of callLogs) {
-        const secs = log.durationSeconds != null
-          ? log.durationSeconds
-          : log.endedAt && log.startedAt
-            ? (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000
-            : 0;
+        const secs = this.normalizeCallDurationSeconds(log);
         totalCallSec += secs;
         const mins = secs / 60;
 
