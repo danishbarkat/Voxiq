@@ -2619,6 +2619,9 @@ function BillingTab() {
                   <td style={{ padding: '11px 12px', fontWeight: 800, color: '#fca5a5' }}>${summary.totalTelnyxCost.toFixed(2)}</td>
                   <td style={{ padding: '11px 12px', fontWeight: 900, color: summary.totalNetProfit >= 0 ? '#6ee7b7' : '#fca5a5', fontSize: 13 }}>${summary.totalNetProfit.toFixed(2)}</td>
                   <td style={{ padding: '11px 12px', fontWeight: 800, color: '#fbbf24' }}>{summary.overallMargin}%</td>
+                  <td style={{ padding: '11px 12px' }}></td>
+                  <td style={{ padding: '11px 12px' }}></td>
+                  <td style={{ padding: '11px 12px' }}></td>
                 </tr>
               </tfoot>
             )}

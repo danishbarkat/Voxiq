@@ -60,6 +60,12 @@ exports.validationSchema = Joi.object({
     MAIL_USER: Joi.string().allow('').default(''),
     MAIL_PASS: Joi.string().allow('').default(''),
     MAIL_FROM: Joi.string().allow('').default(''),
+    RESEND_API_KEY: Joi.string().allow('').default(''),
     FRONTEND_URL: Joi.string().allow('').default(''),
+    WHISPER_MODEL: Joi.string().allow('').default('small'),
+    WHISPER_DEVICE: Joi.string().allow('').default('auto'),
+    WHISPER_COMPUTE_TYPE: Joi.string().allow('').default('int8'),
+    WHISPER_LANGUAGE: Joi.string().allow('').default(''),
+    WHISPER_PYTHON_BIN: Joi.string().allow('').default('python3'),
 });
 //# sourceMappingURL=validation.js.map

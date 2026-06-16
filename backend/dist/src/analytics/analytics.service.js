@@ -56,34 +56,57 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
             return client_1.Prisma.sql `AND "startedAt" <= ${endDate}`;
         return client_1.Prisma.empty;
     }
+    normalizeCallDurationSeconds(log) {
+        const maxReasonableSeconds = 12 * 60 * 60;
+        const rawDuration = Number(log?.durationSeconds);
+        if (Number.isFinite(rawDuration) && rawDuration > 0) {
+            if (rawDuration <= maxReasonableSeconds)
+                return rawDuration;
+            if (rawDuration <= maxReasonableSeconds * 1000)
+                return rawDuration / 1000;
+        }
+        if (!log?.startedAt || !log?.endedAt)
+            return 0;
+        const derivedSeconds = Math.round((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000);
+        if (!Number.isFinite(derivedSeconds) || derivedSeconds <= 0)
+            return 0;
+        if (derivedSeconds > maxReasonableSeconds)
+            return 0;
+        return derivedSeconds;
+    }
     async getCampaignStats(campaignId, startDate, endDate, requester) {
         await this.assertCampaignAccess(campaignId, requester);
-        const dateFilter = this.buildDateFilter(startDate, endDate);
-        const statsQuery = await this.prisma.$queryRaw(client_1.Prisma.sql `
-            SELECT
-                COUNT(*) as "totalCalls",
-                COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
-                SUM("dealValue") as "revenue",
-                AVG(COALESCE("durationSeconds", EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))) as "avgDuration"
-            FROM "CallLog"
-            WHERE "campaignId" = ${campaignId} ${dateFilter}
-        `);
-        const dispositionQuery = await this.prisma.$queryRaw(client_1.Prisma.sql `
-            SELECT "disposition", COUNT(*) as count
-            FROM "CallLog"
-            WHERE "campaignId" = ${campaignId} ${dateFilter}
-            GROUP BY "disposition"
-        `);
-        const stats = statsQuery[0];
-        const totalCalls = Number(stats.totalCalls) || 0;
-        const connected = Number(stats.connected) || 0;
+        const where = { campaignId };
+        if (startDate || endDate) {
+            where.startedAt = {};
+            if (startDate)
+                where.startedAt.gte = startDate;
+            if (endDate)
+                where.startedAt.lte = endDate;
+        }
+        const logs = await this.prisma.callLog.findMany({
+            where,
+            select: {
+                callStatus: true,
+                dealValue: true,
+                disposition: true,
+                durationSeconds: true,
+                startedAt: true,
+                endedAt: true,
+            },
+        });
+        const totalCalls = logs.length;
+        const connected = logs.filter((log) => log.callStatus === client_1.CallStatus.CONNECTED || log.callStatus === client_1.CallStatus.COMPLETED).length;
         const connectionRate = totalCalls > 0 ? (connected / totalCalls) * 100 : 0;
-        const avgDuration = Number(stats.avgDuration) || 0;
-        const revenue = Number(stats.revenue) || 0;
+        const durationValues = logs.map((log) => this.normalizeCallDurationSeconds(log)).filter((value) => value > 0);
+        const avgDuration = durationValues.length > 0
+            ? durationValues.reduce((sum, value) => sum + value, 0) / durationValues.length
+            : 0;
+        const revenue = logs.reduce((sum, log) => sum + Number(log.dealValue || 0), 0);
         const dispositions = {};
-        for (const row of dispositionQuery) {
-            const disp = row.disposition || 'Unknown';
-            dispositions[disp] = Number(row.count) || 0;
+        for (const log of logs) {
+            const disp = log.disposition || 'Unknown';
+            dispositions[disp] = (dispositions[disp] || 0) + 1;
         }
         return {
             totalCalls,
@@ -96,23 +119,30 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     }
     async getAgentStats(agentId, startDate, endDate, requester) {
         await this.assertAgentAccess(agentId, requester);
-        const dateFilter = this.buildDateFilter(startDate, endDate);
-        const statsQuery = await this.prisma.$queryRaw(client_1.Prisma.sql `
-            SELECT
-                COUNT(*) as "totalCalls",
-                COUNT(*) FILTER (WHERE "callStatus" IN ('CONNECTED', 'COMPLETED')) as "connected",
-                COUNT(*) FILTER (WHERE LOWER("disposition") IN ('interested', 'booked')) as "appointments",
-                SUM("dealValue") as "revenue",
-                SUM(COALESCE("durationSeconds", EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))) as "totalTalkTime"
-            FROM "CallLog"
-            WHERE "agentId" = ${agentId} ${dateFilter}
-        `);
-        const stats = statsQuery[0];
-        const totalCalls = Number(stats.totalCalls) || 0;
-        const connected = Number(stats.connected) || 0;
-        const appointments = Number(stats.appointments) || 0;
-        const totalTalkTime = Number(stats.totalTalkTime) || 0;
-        const revenue = Number(stats.revenue) || 0;
+        const where = { agentId };
+        if (startDate || endDate) {
+            where.startedAt = {};
+            if (startDate)
+                where.startedAt.gte = startDate;
+            if (endDate)
+                where.startedAt.lte = endDate;
+        }
+        const logs = await this.prisma.callLog.findMany({
+            where,
+            select: {
+                callStatus: true,
+                disposition: true,
+                dealValue: true,
+                durationSeconds: true,
+                startedAt: true,
+                endedAt: true,
+            },
+        });
+        const totalCalls = logs.length;
+        const connected = logs.filter((log) => log.callStatus === client_1.CallStatus.CONNECTED || log.callStatus === client_1.CallStatus.COMPLETED).length;
+        const appointments = logs.filter((log) => ['interested', 'booked'].includes((log.disposition || '').toLowerCase())).length;
+        const totalTalkTime = logs.reduce((sum, log) => sum + this.normalizeCallDurationSeconds(log), 0);
+        const revenue = logs.reduce((sum, log) => sum + Number(log.dealValue || 0), 0);
         const conversionRate = totalCalls > 0 ? ((appointments / totalCalls) * 100).toFixed(2) : '0.00';
         const avgTalkTime = totalCalls > 0 ? (totalTalkTime / totalCalls).toFixed(0) : '0';
         return {
@@ -448,8 +478,8 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
         const webhookLinked = logs.filter((log) => !!log.callControlId).length;
         const answered = logs.filter((log) => log.disposition && !['No Answer', 'Voicemail', 'Unreachable'].includes(log.disposition)).length;
         const avgDurationSeconds = logs
-            .map((log) => log.durationSeconds ?? (log.endedAt ? Math.max(0, Math.round((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000)) : null))
-            .filter((value) => value !== null);
+            .map((log) => this.normalizeCallDurationSeconds(log))
+            .filter((value) => value > 0);
         return {
             windowHours: 24,
             attempts,

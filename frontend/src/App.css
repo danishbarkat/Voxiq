@@ -49,7 +49,7 @@
   padding: 20px 14px;
   flex-shrink: 0;
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;

@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { setToken } from '../lib/auth';
+import { useSocket } from '../context/SocketContext';
 
 export default function Login() {
     const navigate = useNavigate();
+    const { reconnect } = useSocket();
     const [email, setEmail] = useState(() => {
         try { return localStorage.getItem('voxiq_saved_email') || ''; } catch { return ''; }
     });
@@ -57,6 +59,7 @@ export default function Login() {
             const token = data.access_token || data.accessToken;
             if (token) {
                 setToken(token);
+                reconnect();
                 const role = data.user?.role?.toLowerCase();
                 if (role === 'superadmin') navigate('/superadmin');
                 else if (role === 'admin') navigate('/admin');
@@ -100,6 +103,7 @@ export default function Login() {
                 throw new Error('MFA verification failed');
             }
             setToken(token);
+            reconnect();
             const role = data.user?.role?.toLowerCase();
             if (role === 'superadmin') navigate('/superadmin');
             else if (role === 'admin') navigate('/admin');

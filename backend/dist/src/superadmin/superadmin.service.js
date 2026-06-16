@@ -14,6 +14,10 @@ exports.SuperAdminService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
+const promises_1 = require("fs/promises");
+const child_process_1 = require("child_process");
+const path_1 = require("path");
+const os_1 = require("os");
 const prisma_service_1 = require("../prisma/prisma.service");
 const areaCodes_1 = require("../utils/areaCodes");
 const SUPERADMIN_ACCOUNT_ID = 'super-admin-account';
@@ -21,6 +25,7 @@ let SuperAdminService = class SuperAdminService {
     static { SuperAdminService_1 = this; }
     prisma;
     configService;
+    static SIGNUP_OTP_TTL_MS = 24 * 60 * 60 * 1000;
     accountSummarySelect = {
         id: true,
         name: true,
@@ -68,6 +73,263 @@ let SuperAdminService = class SuperAdminService {
     constructor(prisma, configService) {
         this.prisma = prisma;
         this.configService = configService;
+    }
+    resolveMediaUrl(url) {
+        if (/^https?:\/\//i.test(url))
+            return url;
+        const publicBaseUrl = this.configService.get('PUBLIC_BASE_URL') ||
+            this.configService.get('FRONTEND_URL') ||
+            '';
+        if (url.startsWith('/') && publicBaseUrl) {
+            return `${publicBaseUrl.replace(/\/$/, '')}${url}`;
+        }
+        return url;
+    }
+    async sendSignupVerificationEmail(email, companyName, otpCode) {
+        const resendApiKey = this.configService.get('RESEND_API_KEY') || '';
+        const host = this.configService.get('MAIL_HOST') || '';
+        const port = Number(this.configService.get('MAIL_PORT') || 587);
+        const user = this.configService.get('MAIL_USER') || '';
+        const pass = this.configService.get('MAIL_PASS') || '';
+        const from = this.configService.get('MAIL_FROM') || user;
+        const frontendUrl = (this.configService.get('FRONTEND_URL') || '').replace(/\/$/, '');
+        const logoUrl = frontendUrl ? `${frontendUrl}/logo.png` : '';
+        const subject = 'Verify your Voxiq company signup';
+        const text = `Your Voxiq verification code for ${companyName} is ${otpCode}. This code expires in 24 hours.`;
+        const html = `
+      <div style="margin:0;padding:32px 16px;background:#eef2ff;font-family:Inter,Arial,sans-serif;color:#0f172a;">
+        <div style="max-width:640px;margin:0 auto;background:linear-gradient(180deg,#0f172a 0%,#1f2a5a 100%);border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,0.22);">
+          <div style="padding:32px 32px 24px;border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex;align-items:center;gap:14px;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="Voxiq" style="height:40px;display:block;" />` : `<div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:800;font-size:18px;">V</div>`}
+              <div>
+                <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.58);font-weight:700;">Voxiq Onboarding</div>
+                <div style="font-size:24px;line-height:1.2;font-weight:800;color:#ffffff;margin-top:4px;">Verify your company signup</div>
+              </div>
+            </div>
+            <div style="margin-top:22px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
+              Your workspace request for <strong style="color:#ffffff;">${companyName}</strong> is almost ready. Use the verification code below to continue your admin signup.
+            </div>
+          </div>
+          <div style="padding:32px;background:#ffffff;">
+            <div style="background:linear-gradient(135deg,#eef2ff 0%,#f8fafc 100%);border:1px solid #dbe4ff;border-radius:24px;padding:28px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#6366f1;font-weight:800;">Verification Code</div>
+              <div style="margin-top:14px;font-size:40px;line-height:1;font-weight:900;letter-spacing:10px;color:#111827;">${otpCode}</div>
+              <div style="margin-top:14px;font-size:14px;color:#475569;">This code stays valid for <strong>24 hours</strong>.</div>
+            </div>
+            <div style="margin-top:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px 20px;">
+              <div style="font-size:13px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.08em;">What happens next</div>
+              <div style="margin-top:10px;font-size:14px;line-height:1.7;color:#475569;">
+                1. Enter this code in the Voxiq signup flow.<br/>
+                2. Your company admin request will be submitted for review.<br/>
+                3. After approval, your workspace access details will be shared with you.
+              </div>
+            </div>
+            <div style="margin-top:22px;font-size:13px;line-height:1.7;color:#64748b;">
+              If you did not request this signup, you can safely ignore this email.
+            </div>
+          </div>
+        </div>
+      </div>`;
+        if (resendApiKey && from) {
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${resendApiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from,
+                    to: [email],
+                    subject,
+                    text,
+                    html,
+                }),
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new common_1.BadRequestException(`Email send failed: ${errorText}`);
+            }
+            return;
+        }
+        if (!host || !user || !pass || pass === 'your_gmail_app_password_here') {
+            throw new common_1.BadRequestException('Email sending is not configured.');
+        }
+        const nodemailer = await import('nodemailer');
+        const transporter = nodemailer.default.createTransport({
+            host,
+            port,
+            secure: port === 465,
+            auth: {
+                user,
+                pass,
+            },
+        });
+        await transporter.sendMail({
+            from,
+            to: email,
+            subject,
+            text,
+            html,
+        });
+    }
+    inferAudioMimeType(filename, fallback) {
+        const ext = filename.split('.').pop()?.toLowerCase();
+        if (ext === 'wav')
+            return 'audio/wav';
+        if (ext === 'webm')
+            return 'audio/webm';
+        if (ext === 'm4a')
+            return 'audio/mp4';
+        if (ext === 'mp4')
+            return 'audio/mp4';
+        if (ext === 'mpeg' || ext === 'mpga' || ext === 'mp3')
+            return 'audio/mpeg';
+        return fallback || 'application/octet-stream';
+    }
+    inferAudioExtension(filename, contentType) {
+        const ext = filename.split('.').pop()?.toLowerCase();
+        if (ext)
+            return ext;
+        if (contentType?.includes('wav'))
+            return 'wav';
+        if (contentType?.includes('webm'))
+            return 'webm';
+        if (contentType?.includes('mp4'))
+            return 'm4a';
+        if (contentType?.includes('mpeg') || contentType?.includes('mp3'))
+            return 'mp3';
+        return 'mp3';
+    }
+    async loadRecordingBinary(url) {
+        if (url.startsWith('/uploads/')) {
+            const absolutePath = (0, path_1.join)(process.cwd(), url.replace(/^\//, ''));
+            const buffer = await (0, promises_1.readFile)(absolutePath);
+            return {
+                buffer,
+                contentType: this.inferAudioMimeType(url),
+                filename: url.split('/').pop() || 'recording.mp3',
+            };
+        }
+        const mediaUrl = this.resolveMediaUrl(url);
+        if (!/^https?:\/\//i.test(mediaUrl)) {
+            throw new common_1.BadRequestException('Recording URL is not reachable from the server.');
+        }
+        const response = await fetch(mediaUrl);
+        if (!response.ok) {
+            throw new common_1.BadRequestException(`Failed to fetch recording (${response.status}).`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const contentType = response.headers.get('content-type');
+        const filenameFromUrl = (() => {
+            try {
+                return new URL(mediaUrl).pathname.split('/').pop() || 'recording.mp3';
+            }
+            catch {
+                return 'recording.mp3';
+            }
+        })();
+        return {
+            buffer,
+            contentType: this.inferAudioMimeType(filenameFromUrl, contentType),
+            filename: filenameFromUrl,
+        };
+    }
+    async runWhisperTranscription(params) {
+        const configuredPython = this.configService.get('WHISPER_PYTHON_BIN') || '';
+        const pythonBin = configuredPython || (process.platform === 'win32' ? 'python' : 'python3');
+        const scriptPath = (0, path_1.join)(process.cwd(), 'scripts', 'transcribe_audio.py');
+        const args = [
+            scriptPath,
+            '--file',
+            params.filePath,
+            '--model',
+            params.model,
+            '--device',
+            params.device,
+            '--compute-type',
+            params.computeType,
+        ];
+        if (params.language) {
+            args.push('--language', params.language);
+        }
+        return new Promise((resolve, reject) => {
+            const child = (0, child_process_1.spawn)(pythonBin, args, { cwd: process.cwd() });
+            let stdout = '';
+            let stderr = '';
+            child.stdout.on('data', (chunk) => {
+                stdout += chunk.toString();
+            });
+            child.stderr.on('data', (chunk) => {
+                stderr += chunk.toString();
+            });
+            child.on('error', (error) => {
+                reject(new common_1.BadRequestException(`Failed to start whisper transcription: ${error.message}`));
+            });
+            child.on('close', (code) => {
+                if (code !== 0) {
+                    reject(new common_1.BadRequestException(`Whisper transcription failed: ${(stderr || stdout || `exit ${code}`).trim()}`));
+                    return;
+                }
+                try {
+                    resolve(JSON.parse(stdout || '{}'));
+                }
+                catch (error) {
+                    reject(new common_1.BadRequestException(`Invalid whisper response: ${error.message}`));
+                }
+            });
+        });
+    }
+    async transcribeRecording(callLogId, source = 'recording') {
+        const log = await this.prisma.callLog.findUnique({
+            where: { id: callLogId },
+            select: {
+                id: true,
+                recordingUrl: true,
+                vmRecordingUrl: true,
+                agent: { select: { name: true } },
+                lead: { select: { firstName: true, lastName: true, phone: true } },
+            },
+        });
+        if (!log) {
+            throw new common_1.NotFoundException('Recording not found.');
+        }
+        const selectedUrl = source === 'voicemail' ? log.vmRecordingUrl : log.recordingUrl;
+        if (!selectedUrl) {
+            throw new common_1.NotFoundException(source === 'voicemail' ? 'Voicemail recording not found.' : 'Call recording not found.');
+        }
+        const { buffer, contentType, filename } = await this.loadRecordingBinary(selectedUrl);
+        const maxBytes = 25 * 1024 * 1024;
+        if (buffer.byteLength > maxBytes) {
+            throw new common_1.BadRequestException('Recording exceeds the 25 MB transcription limit.');
+        }
+        const model = this.configService.get('WHISPER_MODEL') || 'small';
+        const device = this.configService.get('WHISPER_DEVICE') || 'auto';
+        const computeType = this.configService.get('WHISPER_COMPUTE_TYPE') || 'int8';
+        const language = this.configService.get('WHISPER_LANGUAGE') || '';
+        const extension = this.inferAudioExtension(filename, contentType);
+        const tempPath = (0, path_1.join)((0, os_1.tmpdir)(), `voxiq-transcribe-${log.id}-${source}.${extension}`);
+        try {
+            await (0, promises_1.writeFile)(tempPath, buffer);
+            const payload = await this.runWhisperTranscription({
+                filePath: tempPath,
+                model,
+                device,
+                computeType,
+                language,
+            });
+            return {
+                id: log.id,
+                source,
+                model,
+                text: payload?.text || '',
+                language: payload?.language || null,
+            };
+        }
+        finally {
+            await (0, promises_1.unlink)(tempPath).catch(() => undefined);
+        }
     }
     async getOverview() {
         const [accounts, callLogs] = await Promise.all([
@@ -603,12 +865,14 @@ let SuperAdminService = class SuperAdminService {
             const payload = r.payload;
             return {
                 email: r.email,
+                sentTo: r.email,
                 companyName: payload?.companyName || '',
                 name: `${payload?.name || ''} ${payload?.lastName || ''}`.trim(),
                 phone: payload?.phone || '',
                 otpCode: r.otpCode,
                 expired: r.expiresAt < new Date(),
                 createdAt: r.createdAt,
+                lastEmailedAt: r.updatedAt,
             };
         });
     }
@@ -617,11 +881,13 @@ let SuperAdminService = class SuperAdminService {
         if (!record)
             throw new Error('No pending verification for this email');
         const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const payload = record.payload;
         await this.prisma.signupVerification.update({
             where: { email },
-            data: { otpCode: newOtp, expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+            data: { otpCode: newOtp, expiresAt: new Date(Date.now() + SuperAdminService_1.SIGNUP_OTP_TTL_MS) },
         });
-        return { otpCode: newOtp, message: 'OTP refreshed — share with user' };
+        await this.sendSignupVerificationEmail(email, payload?.companyName || 'your company', newOtp);
+        return { otpCode: newOtp, message: 'New OTP emailed to the user and valid for 24 hours.' };
     }
     async getAvailableNumbers() {
         const telnyxNumbers = await this.fetchTelnyxNumbers();
@@ -1022,11 +1288,7 @@ let SuperAdminService = class SuperAdminService {
             let usageBill = 0;
             let totalCallSec = 0;
             for (const log of callLogs) {
-                const secs = log.durationSeconds != null
-                    ? log.durationSeconds
-                    : log.endedAt && log.startedAt
-                        ? (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000
-                        : 0;
+                const secs = this.normalizeCallDurationSeconds(log);
                 totalCallSec += secs;
                 const mins = secs / 60;
                 const isInbound = (log.direction || 'outbound').toLowerCase() === 'inbound';
@@ -1331,11 +1593,7 @@ let SuperAdminService = class SuperAdminService {
         const totalCalls = logs.length;
         const connectedCalls = logs.filter((log) => log.callStatus === client_1.CallStatus.CONNECTED || log.callStatus === client_1.CallStatus.COMPLETED).length;
         const totalSeconds = logs.reduce((sum, log) => {
-            if (log.durationSeconds != null)
-                return sum + log.durationSeconds;
-            if (!log.endedAt || !log.startedAt)
-                return sum;
-            return sum + (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000;
+            return sum + this.normalizeCallDurationSeconds(log);
         }, 0);
         const totalMinutes = parseFloat((totalSeconds / 60).toFixed(2));
         const avgDuration = totalCalls > 0 ? Math.round(totalSeconds / totalCalls) : 0;
@@ -1353,6 +1611,24 @@ let SuperAdminService = class SuperAdminService {
             inboundCalls,
             outboundCalls,
         };
+    }
+    normalizeCallDurationSeconds(log) {
+        const maxReasonableSeconds = 12 * 60 * 60;
+        const rawDuration = Number(log?.durationSeconds);
+        if (Number.isFinite(rawDuration) && rawDuration > 0) {
+            if (rawDuration <= maxReasonableSeconds)
+                return rawDuration;
+            if (rawDuration <= maxReasonableSeconds * 1000)
+                return rawDuration / 1000;
+        }
+        if (!log?.endedAt || !log?.startedAt)
+            return 0;
+        const derivedSeconds = (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000;
+        if (!Number.isFinite(derivedSeconds) || derivedSeconds <= 0)
+            return 0;
+        if (derivedSeconds > maxReasonableSeconds)
+            return 0;
+        return derivedSeconds;
     }
     buildTopStates(logs) {
         const stateCounts = {};

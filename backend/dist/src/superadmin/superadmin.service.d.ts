@@ -3,8 +3,22 @@ import { PrismaService } from '../prisma/prisma.service';
 export declare class SuperAdminService {
     private prisma;
     private configService;
+    private static readonly SIGNUP_OTP_TTL_MS;
     private readonly accountSummarySelect;
     constructor(prisma: PrismaService, configService: ConfigService);
+    private resolveMediaUrl;
+    private sendSignupVerificationEmail;
+    private inferAudioMimeType;
+    private inferAudioExtension;
+    private loadRecordingBinary;
+    private runWhisperTranscription;
+    transcribeRecording(callLogId: string, source?: 'recording' | 'voicemail'): Promise<{
+        id: string;
+        source: "voicemail" | "recording";
+        model: string;
+        text: string;
+        language: string | null;
+    }>;
     getOverview(): Promise<{
         connectionRate: number;
         topCompanies: {
@@ -483,12 +497,14 @@ export declare class SuperAdminService {
     }>;
     getPendingVerifications(): Promise<{
         email: string;
+        sentTo: string;
         companyName: any;
         name: string;
         phone: any;
         otpCode: string;
         expired: boolean;
         createdAt: Date;
+        lastEmailedAt: Date;
     }[]>;
     regenerateOtp(email: string): Promise<{
         otpCode: string;
@@ -700,6 +716,7 @@ export declare class SuperAdminService {
     private groupLogsByAccount;
     private buildCompanySnapshot;
     private computeLogStats;
+    private normalizeCallDurationSeconds;
     private buildTopStates;
     private buildTopCountries;
     private buildDailyActivity;

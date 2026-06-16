@@ -8,6 +8,7 @@ export declare class AnalyticsService {
     private getTzAwareYearStart;
     private getTzAwareWeekStart;
     private buildDateFilter;
+    private normalizeCallDurationSeconds;
     getCampaignStats(campaignId: string, startDate?: Date, endDate?: Date, requester?: any): Promise<{
         totalCalls: number;
         connected: number;

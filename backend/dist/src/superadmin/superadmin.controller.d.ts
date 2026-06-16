@@ -15,6 +15,9 @@ declare class AssignNumbersDto {
 declare class RejectDto {
     reason: string;
 }
+declare class TranscribeRecordingDto {
+    source?: 'recording' | 'voicemail';
+}
 export declare class SuperAdminController {
     private readonly superAdminService;
     constructor(superAdminService: SuperAdminService);
@@ -367,12 +370,14 @@ export declare class SuperAdminController {
     }>;
     getPendingVerifications(): Promise<{
         email: string;
+        sentTo: string;
         companyName: any;
         name: string;
         phone: any;
         otpCode: string;
         expired: boolean;
         createdAt: Date;
+        lastEmailedAt: Date;
     }[]>;
     resendOtp(email: string): Promise<{
         otpCode: string;
@@ -707,6 +712,13 @@ export declare class SuperAdminController {
             companyName: string;
             recordings: number;
         }[];
+    }>;
+    transcribeRecording(id: string, dto: TranscribeRecordingDto): Promise<{
+        id: string;
+        source: "voicemail" | "recording";
+        model: string;
+        text: string;
+        language: string | null;
     }>;
 }
 export {};

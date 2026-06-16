@@ -73,6 +73,15 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], RejectDto.prototype, "reason", void 0);
+class TranscribeRecordingDto {
+    source;
+}
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['recording', 'voicemail']),
+    __metadata("design:type", String)
+], TranscribeRecordingDto.prototype, "source", void 0);
 let SuperAdminController = class SuperAdminController {
     superAdminService;
     constructor(superAdminService) {
@@ -173,6 +182,9 @@ let SuperAdminController = class SuperAdminController {
             to,
             limit: limit ? Number(limit) : undefined,
         });
+    }
+    transcribeRecording(id, dto) {
+        return this.superAdminService.transcribeRecording(id, dto.source || 'recording');
     }
 };
 exports.SuperAdminController = SuperAdminController;
@@ -381,6 +393,14 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], SuperAdminController.prototype, "getCompanyRecordings", null);
+__decorate([
+    (0, common_1.Post)('recordings/:id/transcribe'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, TranscribeRecordingDto]),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "transcribeRecording", null);
 exports.SuperAdminController = SuperAdminController = __decorate([
     (0, common_1.Controller)('superadmin'),
     (0, roles_decorator_1.Roles)('SuperAdmin'),

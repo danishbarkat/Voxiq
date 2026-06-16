@@ -8,6 +8,7 @@ export declare class AuthService {
     private jwtService;
     private configService;
     private websocketGateway;
+    private static readonly SIGNUP_OTP_TTL_MS;
     private readonly blockedEmailDomains;
     private accountColumnCache;
     constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, websocketGateway: WebsocketGateway);
