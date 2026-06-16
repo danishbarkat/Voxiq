@@ -591,11 +591,39 @@ export class AuthService {
   }
 
   private async sendSignupVerificationEmail(email: string, companyName: string, otpCode: string) {
+    const resendApiKey = this.configService.get<string>('RESEND_API_KEY') || '';
     const host = this.configService.get<string>('MAIL_HOST') || '';
     const port = Number(this.configService.get<string>('MAIL_PORT') || 587);
     const user = this.configService.get<string>('MAIL_USER') || '';
     const pass = this.configService.get<string>('MAIL_PASS') || '';
     const from = this.configService.get<string>('MAIL_FROM') || user;
+    const subject = 'Verify your Voxiq company signup';
+    const text = `Your Voxiq verification code for ${companyName} is ${otpCode}. This code expires in 10 minutes.`;
+    const html = `<div style="font-family:Arial,sans-serif;line-height:1.6"><h2>Verify your Voxiq signup</h2><p>Your verification code for <strong>${companyName}</strong> is:</p><div style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0">${otpCode}</div><p>This code expires in 10 minutes.</p></div>`;
+
+    if (resendApiKey && from) {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to: [email],
+          subject,
+          text,
+          html,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new BadRequestException(`Email send failed: ${errorText}`);
+      }
+
+      return null;
+    }
 
     if (!host || !user || !pass || pass === 'your_gmail_app_password_here') {
       return otpCode;
@@ -614,9 +642,9 @@ export class AuthService {
     await transporter.sendMail({
       from,
       to: email,
-      subject: 'Verify your Voxiq company signup',
-      text: `Your Voxiq verification code for ${companyName} is ${otpCode}. This code expires in 10 minutes.`,
-      html: `<div style="font-family:Arial,sans-serif;line-height:1.6"><h2>Verify your Voxiq signup</h2><p>Your verification code for <strong>${companyName}</strong> is:</p><div style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0">${otpCode}</div><p>This code expires in 10 minutes.</p></div>`,
+      subject,
+      text,
+      html,
     });
 
     return null;

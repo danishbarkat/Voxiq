@@ -27,6 +27,7 @@ export const validationSchema = Joi.object({
   MAIL_USER: Joi.string().allow('').default(''),
   MAIL_PASS: Joi.string().allow('').default(''),
   MAIL_FROM: Joi.string().allow('').default(''),
+  RESEND_API_KEY: Joi.string().allow('').default(''),
   FRONTEND_URL: Joi.string().allow('').default(''),
   WHISPER_MODEL: Joi.string().allow('').default('small'),
   WHISPER_DEVICE: Joi.string().allow('').default('auto'),
