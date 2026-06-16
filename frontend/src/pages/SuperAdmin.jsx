@@ -2660,18 +2660,35 @@ export default function SuperAdmin() {
   const [loading, setLoading] = useState(true);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [approveModal, setApproveModal] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
 
   const loadCompanies = useCallback(async () => {
     setLoading(true);
-    try { const d = await fetchJson(`${API_URL}/superadmin/companies`); setCompanies(Array.isArray(d) ? d : []); }
+    try {
+      const d = await fetchJson(`${API_URL}/superadmin/companies`);
+      setCompanies(Array.isArray(d) ? d : []);
+      setLoadError('');
+    } catch (error) {
+      console.error('Failed to load super admin companies', error);
+      setCompanies([]);
+      setLoadError('Super Admin data is temporarily unavailable. Please refresh in a moment.');
+    }
     finally { setLoading(false); }
   }, []);
 
   const loadOverview = useCallback(async () => {
     setOverviewLoading(true);
-    try { const d = await fetchJson(`${API_URL}/superadmin/overview`); setOverview(d); }
+    try {
+      const d = await fetchJson(`${API_URL}/superadmin/overview`);
+      setOverview(d);
+      setLoadError('');
+    } catch (error) {
+      console.error('Failed to load super admin overview', error);
+      setOverview(null);
+      setLoadError('Super Admin data is temporarily unavailable. Please refresh in a moment.');
+    }
     finally { setOverviewLoading(false); }
   }, []);
 
@@ -2786,6 +2803,11 @@ export default function SuperAdmin() {
         </header>
 
         <div style={{ padding: isMobile ? 16 : 28, flex: 1, minWidth: 0 }}>
+          {loadError && (
+            <div style={{ marginBottom: 16, background: '#fff7ed', color: '#9a3412', border: '1px solid #fdba74', borderRadius: 14, padding: '12px 14px', fontSize: 13, fontWeight: 600 }}>
+              {loadError}
+            </div>
+          )}
           {tab === 'dashboard' && (
             <DashboardTab overview={overview} overviewLoading={overviewLoading} />
           )}
