@@ -157,6 +157,9 @@ export default function Agent() {
   const [showApptModal, setShowApptModal] = useState(false);
   const [apptForm, setApptForm] = useState({ customerName: '', customerPhone: '', customerEmail: '', scheduledAt: '', notes: '' });
   const [apptSaving, setApptSaving] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440,
+  );
 
   // Persist today's stats to localStorage whenever they change
   useEffect(() => {
@@ -1220,17 +1223,31 @@ export default function Agent() {
     return status;
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isTablet = viewportWidth <= 1100;
+  const isMobile = viewportWidth <= 768;
+  const isNarrowPhone = viewportWidth <= 560;
+
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1b2050 100%)',
-        padding: '0 2rem',
-        height: '64px',
+        padding: isMobile ? '0.75rem 1rem' : '0 2rem',
+        minHeight: isMobile ? 'auto' : '64px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        gap: isMobile ? '0.75rem' : 0,
         position: 'sticky',
         top: 0,
         zIndex: 100,
@@ -1257,14 +1274,14 @@ export default function Agent() {
           </div>
         </div>
         {/* Right: info pills + sign out */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', justifyContent: isMobile ? 'flex-start' : 'flex-end', width: isMobile ? '100%' : 'auto' }}>
           {profile && (
-            <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', minWidth: isMobile ? 'calc(50% - 0.4rem)' : 'auto' }}>
               <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agent</div>
               <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'white' }}>{profile.name || 'Agent'}</div>
             </div>
           )}
-          <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', minWidth: isMobile ? 'calc(50% - 0.4rem)' : 'auto' }}>
             <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Caller ID</div>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace' }}>
               {profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '---'}
@@ -1312,7 +1329,7 @@ export default function Agent() {
                 outline: 'none',
                 fontSize: '0.72rem',
                 fontWeight: 700,
-                maxWidth: 170,
+                maxWidth: isMobile ? 120 : 170,
                 cursor: speakerSupported ? 'pointer' : 'not-allowed',
               }}
               title={speakerSupported ? 'Choose call speaker output' : 'Speaker selection not supported in this browser'}
@@ -1330,7 +1347,7 @@ export default function Agent() {
           </div>
           <button
             onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', color: 'white', border: '1px solid rgba(220,38,38,0.5)', borderRadius: 9, fontWeight: 700, fontSize: '0.85rem', fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.4)', letterSpacing: '0.01em' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', color: 'white', border: '1px solid rgba(220,38,38,0.5)', borderRadius: 9, fontWeight: 700, fontSize: '0.85rem', fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.4)', letterSpacing: '0.01em', width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -1343,7 +1360,7 @@ export default function Agent() {
       </header>
 
       {/* ── PAGE BODY ──────────────────────────────────────────────── */}
-      <div style={{ padding: '1.5rem 2rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ padding: isMobile ? '1rem' : '1.5rem 2rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {speakerError && (
           <div style={{
             background: '#fff7ed',
@@ -1423,9 +1440,9 @@ export default function Agent() {
 
         {/* ── MESSAGES PANEL (SMS or WhatsApp) ── */}
         {smsTab && (
-          <div style={{ display: 'flex', height: '65vh', border: `1px solid ${activeChannel === 'whatsapp' ? '#25d36633' : '#e5e7eb'}`, borderRadius: 12, overflow: 'hidden', background: '#fff', marginTop: 12 }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: isMobile ? 'auto' : '65vh', minHeight: isMobile ? '70vh' : 'unset', border: `1px solid ${activeChannel === 'whatsapp' ? '#25d36633' : '#e5e7eb'}`, borderRadius: 12, overflow: 'hidden', background: '#fff', marginTop: 12 }}>
             {/* Left: conversation list */}
-            <div style={{ width: 270, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', background: activeChannel === 'whatsapp' ? '#f0fdf4' : '#f9fafb', flexShrink: 0 }}>
+            <div style={{ width: isMobile ? '100%' : 270, maxHeight: isMobile ? 240 : 'none', borderRight: isMobile ? 'none' : '1px solid #e5e7eb', borderBottom: isMobile ? '1px solid #e5e7eb' : 'none', display: 'flex', flexDirection: 'column', background: activeChannel === 'whatsapp' ? '#f0fdf4' : '#f9fafb', flexShrink: 0 }}>
               <div style={{ padding: '10px 14px', fontWeight: 700, borderBottom: '1px solid #e5e7eb', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeChannel === 'whatsapp' ? '#dcfce7' : undefined }}>
                 <span style={{ color: activeChannel === 'whatsapp' ? '#15803d' : '#111827' }}>
                   {activeChannel === 'whatsapp' ? '📱 WhatsApp' : '💬 SMS'}
@@ -1559,7 +1576,7 @@ export default function Agent() {
 
         {/* Stats Row + Dialer panels (hidden when SMS tab is active) */}
         {!smsTab && (<>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(0, 1fr))' : '2fr 1fr 1fr 1fr', gap: '1rem' }}>
           {/* Calls — period selector card */}
           <div className="card" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #6366f1' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1600,13 +1617,13 @@ export default function Agent() {
         </div>
 
         {/* Main 2-column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.25rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 360px', gap: '1.25rem', alignItems: 'start' }}>
 
         {/* ── LEFT COLUMN ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* Lead Profile + Quick SMS — side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
 
             {/* Compact Lead Profile Card */}
             <section className="card" style={{ minHeight: 240 }}>
@@ -1756,7 +1773,7 @@ export default function Agent() {
             </section>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(320px, 0.95fr)', gap: '1.25rem', alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.15fr) minmax(320px, 0.95fr)', gap: '1.25rem', alignItems: 'stretch' }}>
           {/* Disposition Card */}
           <section className="card" style={{ height: '100%' }}>
             <h2 className="font-head mb-4" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1777,7 +1794,7 @@ export default function Agent() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isNarrowPhone ? '1fr' : '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.3rem' }}>Schedule Callback</label>
                 <input type="datetime-local" className="input-field" value={callbackTime} onChange={e => setCallbackTime(e.target.value)} />
@@ -1824,7 +1841,7 @@ export default function Agent() {
           </section>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
-          <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 494, maxHeight: 494 }}>
+          <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: isMobile ? 'auto' : 494, maxHeight: isMobile ? 'none' : 494 }}>
             {/* Header row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
               <h2 className="font-head" style={{ fontSize: '1rem', margin: 0 }}>Call &amp; SMS History</h2>
@@ -2044,7 +2061,7 @@ export default function Agent() {
             />
 
             {/* Number display + call button */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: isNarrowPhone ? 'column' : 'row', gap: '0.5rem', marginBottom: '0.5rem' }}>
               {/* Country code — manually typeable with datalist suggestions */}
               <div style={{ position: 'relative' }}>
                 <input
@@ -2052,7 +2069,7 @@ export default function Agent() {
                   list="country-codes-list"
                   value={dialCountryCode}
                   onChange={(e) => setDialCountryCode(e.target.value)}
-                  style={{ width: '72px', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'monospace', background: '#f8fafc', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: isNarrowPhone ? '100%' : '72px', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'monospace', background: '#f8fafc', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
                   placeholder="+92"
                 />
                 <datalist id="country-codes-list">
@@ -2071,7 +2088,7 @@ export default function Agent() {
                 style={{ flex: 1, fontSize: '1.1rem', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'monospace' }}
               />
               <button
-                style={{ height: '52px', padding: '0 1.25rem', fontSize: '1.3rem', borderRadius: 10, minWidth: '54px', border: 'none', cursor: callActive ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: dialNumber && !callActive ? 'linear-gradient(135deg,#10b981,#059669)' : '#f1f5f9', color: dialNumber && !callActive ? 'white' : '#94a3b8', boxShadow: dialNumber && !callActive ? '0 4px 14px rgba(16,185,129,0.4)' : 'none', transition: 'all 0.2s' }}
+                style={{ height: '52px', padding: '0 1.25rem', fontSize: '1.3rem', borderRadius: 10, minWidth: isNarrowPhone ? '100%' : '54px', border: 'none', cursor: callActive ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: dialNumber && !callActive ? 'linear-gradient(135deg,#10b981,#059669)' : '#f1f5f9', color: dialNumber && !callActive ? 'white' : '#94a3b8', boxShadow: dialNumber && !callActive ? '0 4px 14px rgba(16,185,129,0.4)' : 'none', transition: 'all 0.2s' }}
                 onClick={() => handleManualInputDial()}
                 disabled={!dialNumber || callActive}
                 title="Call (Enter)"
@@ -2132,11 +2149,11 @@ export default function Agent() {
         </div> {/* end RIGHT COLUMN */}
         </div> {/* end main 2-col grid */}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
 
         {/* ── LEAD QUEUE ── */}
         <section className="card" style={{ height: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0.75rem' : 0, marginBottom: '1rem' }}>
             <div>
               <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span>⚡</span> Lead Queue
@@ -2147,7 +2164,7 @@ export default function Agent() {
                   : <>{leads.length} leads available • Click a lead to dial</>}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
               <button
                 className="btn"
                 style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0.5rem 1.25rem', background: autoDial ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none', borderRadius: 8, boxShadow: autoDial ? '0 4px 12px rgba(239,68,68,0.35)' : '0 4px 12px rgba(16,185,129,0.35)' }}
@@ -2161,7 +2178,7 @@ export default function Agent() {
               )}
               <input
                 className="input-field"
-                style={{ width: '180px', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                style={{ width: isMobile ? '100%' : '180px', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
                 placeholder="Search name or phone..."
                 value={leadSearch}
                 onChange={e => setLeadSearch(e.target.value)}
@@ -2340,11 +2357,11 @@ export default function Agent() {
 
         {/* ── CALENDAR / SCHEDULED CALLBACKS ── */}
         <section className="card" style={{ height: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0.75rem' : 0, marginBottom: '1.25rem' }}>
             <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📅</span> Callback Calendar
             </h2>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
               {calSelectedDate && (
                 <button className="btn" style={{ fontSize: '0.75rem', background: '#f1f5f9' }} onClick={() => setCalSelectedDate(null)}>
                   ✕ Show All
@@ -2361,7 +2378,7 @@ export default function Agent() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 260px) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(220px, 260px) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
             {/* Mini Calendar */}
             <div style={{ background: '#f8fafc', borderRadius: 12, padding: '1rem', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
