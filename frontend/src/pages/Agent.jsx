@@ -15,8 +15,16 @@ function errorLabel(err) {
     case 'no_answer': return '🔕 No answer';
     case 'rejected': return '❌ Call rejected';
     case 'error': return '⚠️ Call failed';
+    case 'mic_permission': return 'Microphone permission or device is missing';
     default: return null;
   }
+}
+
+function callFailureMessage(err) {
+  if (err === 'mic_permission') {
+    return 'Call could not start because microphone access is blocked or no working mic device is available. Please allow mic access in your browser and verify your input device.';
+  }
+  return 'Call failed to initiate. Please check your softphone registration.';
 }
 
 function AgentHistoryBadge({ item }) {
@@ -217,6 +225,8 @@ export default function Agent() {
       // Show error briefly then clear lead and reset state.
       // The callOutcome auto-advance effect will handle moving to the next lead.
       const t = setTimeout(() => {
+        // Mark the pre-dial RINGING call log as FAILED so retries are not blocked.
+        if (callLogIdRef.current) finalizeCallLog('invalid', callLogIdRef.current);
         setCurrentLead(null);
         currentLeadRef.current = null;
         setCallLogId(null);
@@ -226,9 +236,9 @@ export default function Agent() {
       }, 2500);
       return () => clearTimeout(t);
     }
-    // NOTE: handleDialLead intentionally excluded — it's defined later in the component
-    // and including it in deps here causes a TDZ crash. The auto-advance is handled
-    // by the callOutcome effect below which is defined after handleDialLead.
+    // NOTE: handleDialLead and finalizeCallLog are intentionally excluded — they are defined
+    // later in the component and including them in deps here causes a TDZ crash at render time.
+    // finalizeCallLog has [] deps so its reference is stable; callLogIdRef is a ref (stable).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callState, lastError, agentId, socket]);
 
@@ -477,8 +487,16 @@ export default function Agent() {
     // 2. Start the actual WebRTC call (logId already set from lock)
     const result = await makeCall(lead.phone, lead.id, logId);
     if (result?.callLogId) setCallLogId(result.callLogId);
+    if (!result) {
+      if (logId) finalizeCallLog('invalid', logId);
+      setStatus('Dial Failed');
+      setLocalCallActive(false);
+      setCurrentLead(null);
+      currentLeadRef.current = null;
+      return false;
+    }
     return true; // Success
-  }, [makeCall, agentId]);
+  }, [makeCall, agentId, finalizeCallLog]);
 
   const handleManualInputDial = useCallback(async (overrideNumber, overrideName) => {
     const rawNumber = (typeof overrideNumber === 'string' ? overrideNumber : null) || dialNumber;
@@ -541,11 +559,12 @@ export default function Agent() {
           setDialName('');
           if (logData?.id) setCallLogId(logData.id);
         } else {
+          if (logData?.id) finalizeCallLog('invalid', logData.id);
           setStatus('Dial Failed');
           setLocalCallActive(false);
           setCurrentLead(null);
           currentLeadRef.current = null;
-          alert('Call failed to initiate. Please check your softphone registration.');
+          alert(callFailureMessage(lastError));
         }
       } catch (e) {
         console.warn('Manual dial process failed:', e);
@@ -558,11 +577,11 @@ export default function Agent() {
           setLocalCallActive(false);
           setCurrentLead(null);
           currentLeadRef.current = null;
-          alert('Error: Could not connect the call. Check console for details.');
+          alert(callFailureMessage(lastError));
         }
       }
     }
-  }, [dialNumber, dialCountryCode, dialName, currentLead, handleDialLead, makeCall, agentId]);
+  }, [dialNumber, dialCountryCode, dialName, currentLead, handleDialLead, makeCall, agentId, finalizeCallLog, lastError]);
 
   // Skip to next lead in auto-dial mode (or stop if list exhausted)
   const handleAutoSkip = useCallback(async () => {
