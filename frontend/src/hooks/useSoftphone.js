@@ -81,6 +81,7 @@ export const useSoftphone = (config) => {
     const activeCallRef = useRef(null);
     const activeCallLogIdRef = useRef(null);
     const callControlIdRef = useRef(null);
+    const recentlyFinishedCallIdsRef = useRef(new Set());
     const micStreamRef = useRef(null);
     const recorderRef = useRef(null);
     const recordingChunksRef = useRef([]);
@@ -324,6 +325,12 @@ export const useSoftphone = (config) => {
         }
     }, [startCustomRecording]);
 
+    const rememberFinishedCallId = useCallback((id) => {
+        if (!id) return;
+        recentlyFinishedCallIdsRef.current.add(id);
+        setTimeout(() => recentlyFinishedCallIdsRef.current.delete(id), 30000);
+    }, []);
+
     // ── Init TelnyxRTC ───────────────────────────────────────────────────────
     useEffect(() => {
         const login = config?.login || config?.username;
@@ -442,7 +449,9 @@ export const useSoftphone = (config) => {
                         // Keep the UI in ringing until the backend confirms the actual answer.
                         setCallState(prev => (prev === 'connected' ? prev : 'ringing'));
                     }
-                    setLastError(null);
+                    if (cause === 'CALL_REJECTED') {
+                        setLastError('rejected');
+                    }
 
                     // Belt + suspenders: try to manually attach stream in case SDK didn't
                     const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
@@ -536,11 +545,24 @@ export const useSoftphone = (config) => {
                     // Reset reach tracking for next call
                     callReachedRingingRef.current = false;
                     callReachedActiveRef.current = false;
+                    rememberFinishedCallId(activeCallLogIdRef.current);
+                    rememberFinishedCallId(callControlIdRef.current);
+                    rememberFinishedCallId(call?.id);
                     setCallState('disconnected');
-                    setLastError(null);
+                    setLastError(cause === 'CALL_REJECTED' ? 'rejected' : null);
                     stopCustomRecording();
                     activeCallRef.current = null;
-                    activeCallLogIdRef.current = null;
+                    const finishedLogId = activeCallLogIdRef.current;
+                    const finishedCtrlId = callControlIdRef.current;
+                    setTimeout(() => {
+                        if (activeCallLogIdRef.current === finishedLogId) {
+                            activeCallLogIdRef.current = null;
+                        }
+                        if (callControlIdRef.current === finishedCtrlId) {
+                            callControlIdRef.current = null;
+                            setCallControlId(null);
+                        }
+                    }, 30000);
                     const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
                     if (audioEl) audioEl.srcObject = null;
                     break;
@@ -766,6 +788,8 @@ export const useSoftphone = (config) => {
             activeCallRef.current = null;
         }
         const cid = callControlIdRef.current;
+        rememberFinishedCallId(activeCallLogIdRef.current);
+        rememberFinishedCallId(cid);
         if (cid) {
             try {
                 await fetch(`${API_BASE}/api/dialer/call/hangup`, {
@@ -780,7 +804,7 @@ export const useSoftphone = (config) => {
         setCallState('disconnected');
         const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
         if (audioEl) audioEl.srcObject = null;
-    }, [stopCustomRecording]);
+    }, [stopCustomRecording, rememberFinishedCallId]);
 
     const answerCall = useCallback(async () => {
         const call = incomingCallRef.current;
@@ -835,6 +859,7 @@ export const useSoftphone = (config) => {
             !incomingLogId || // No ID = broadcast to all (safe to apply)
             incomingLogId === activeLogId ||
             incomingLogId === activeCtrlId;
+        const wasRecentlyFinished = incomingLogId && recentlyFinishedCallIdsRef.current.has(incomingLogId);
 
         if (status === 'connected') {
             // Only mark connected if it's our call or we have no active call tracked yet
