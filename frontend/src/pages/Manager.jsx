@@ -8,7 +8,7 @@ import StateMap from '../components/StateMap';
 
 export default function Manager() {
     const navigate = useNavigate();
-    const { isConnected } = useSocket();
+    const { isConnected, disconnectForLogout } = useSocket();
     const [activeTab, setActiveTab] = useState('team');
 
     // Data state
@@ -27,6 +27,7 @@ export default function Manager() {
     const [scriptText, setScriptText] = useState('Hi {firstName}, calling from WinFi...');
 
     const handleLogout = () => {
+        disconnectForLogout();
         clearToken();
         navigate('/login');
     };

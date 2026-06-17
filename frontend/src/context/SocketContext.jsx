@@ -74,8 +74,16 @@ export const SocketProvider = ({ children }) => {
         }
     }, [socket]);
 
+    const disconnectForLogout = useCallback(() => {
+        if (socket) {
+            socket.auth = undefined;
+            socket.disconnect();
+        }
+        setIsConnected(false);
+    }, [socket]);
+
     return (
-        <SocketContext.Provider value={{ socket, isConnected, reconnect }}>
+        <SocketContext.Provider value={{ socket, isConnected, reconnect, disconnectForLogout }}>
             {children}
         </SocketContext.Provider>
     );

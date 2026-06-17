@@ -765,7 +765,7 @@ export default function Admin() {
       return next;
     });
   };
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, disconnectForLogout } = useSocket();
   const [activeTab, setActiveTab] = useState(() => {
     try { return localStorage.getItem('voxiq_active_tab') || 'dashboard'; } catch { return 'dashboard'; }
   });
@@ -921,6 +921,7 @@ export default function Admin() {
 
   const handleLogout = () => {
     console.log('Logging out...');
+    disconnectForLogout();
     clearToken();
     navigate('/login');
   };

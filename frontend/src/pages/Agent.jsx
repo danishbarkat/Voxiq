@@ -70,7 +70,7 @@ function normalizeSmsPhone(input, fallbackCountryCode = '+1') {
 
 export default function Agent() {
   const navigate = useNavigate();
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, disconnectForLogout } = useSocket();
   const [agentId, setAgentId] = useState(null);
   const [profile, setProfile] = useState(null);
   const [currentLead, setCurrentLead] = useState(null);
@@ -1044,6 +1044,7 @@ export default function Agent() {
   }, [callState, finalizeCallLog, hangup, agentId, socket]);
 
   const handleLogout = () => {
+    disconnectForLogout();
     clearToken();
     navigate('/login');
   };

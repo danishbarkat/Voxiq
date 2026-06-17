@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken } from '../lib/auth';
@@ -2677,6 +2678,7 @@ function BillingTab() {
 
 export default function SuperAdmin() {
   const navigate = useNavigate();
+  const { disconnectForLogout } = useSocket();
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1440,
   );
@@ -2797,7 +2799,7 @@ export default function SuperAdmin() {
         </nav>
 
         <div style={{ padding: isCompactLayout ? '0 12px 12px' : '14px 12px', borderTop: isCompactLayout ? 'none' : '1px solid rgba(255,255,255,0.08)' }}>
-          <button onClick={() => { clearToken(); navigate('/login'); }}
+          <button onClick={() => { disconnectForLogout(); clearToken(); navigate('/login'); }}
             style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#d1d5db', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>↩</span> Logout
           </button>
