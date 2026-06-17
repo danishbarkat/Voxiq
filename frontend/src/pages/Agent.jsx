@@ -505,7 +505,11 @@ export default function Agent() {
       return false;
     }
     return true; // Success
-  }, [makeCall, agentId, finalizeCallLog]);
+  // finalizeCallLog intentionally excluded from deps: declared with const at line ~688 (after this
+  // callback), so including it in the deps array causes a TDZ ReferenceError at render time.
+  // It has [] deps itself so its reference is stable — safe to omit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [makeCall, agentId]);
 
   const handleManualInputDial = useCallback(async (overrideNumber, overrideName) => {
     const rawNumber = (typeof overrideNumber === 'string' ? overrideNumber : null) || dialNumber;
@@ -590,7 +594,9 @@ export default function Agent() {
         }
       }
     }
-  }, [dialNumber, dialCountryCode, dialName, currentLead, handleDialLead, makeCall, agentId, finalizeCallLog, lastError]);
+  // finalizeCallLog intentionally excluded: TDZ (declared later). Stable [] deps — safe to omit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialNumber, dialCountryCode, dialName, currentLead, handleDialLead, makeCall, agentId, lastError]);
 
   // Skip to next lead in auto-dial mode (or stop if list exhausted)
   const handleAutoSkip = useCallback(async () => {
