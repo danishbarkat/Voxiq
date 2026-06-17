@@ -272,14 +272,18 @@ export default function Agent() {
   }, [agentId]);
 
   useEffect(() => {
-    // 1. Get current user profile
-    fetchJson(`${API_URL}/auth/profile`).then(async (auth) => {
+    // Guard: if no token is present, ProtectedRoute should already redirect — bail early
+    if (!getToken()) return;
+
+    // 1. Get current user profile — cache: 'no-store' prevents stale cached responses
+    //    on re-mounts from returning a 200 after the token has been cleared
+    fetchJson(`${API_URL}/auth/profile`, { cache: 'no-store' }).then(async (auth) => {
       if (auth?.userId) {
         setAgentId(auth.userId);
         try { localStorage.setItem('voxiq_agent_id', auth.userId); } catch { }
         const tzOffset = new Date().getTimezoneOffset();
         const [fullUser, historyData, appointmentData, periodData, leadData] = await Promise.all([
-          fetchJson(`${API_URL}/users/${auth.userId}`),
+          fetchJson(`${API_URL}/users/${auth.userId}`).catch(() => null),
           fetchJson(`${API_URL}/analytics/history?limit=100`).catch(() => null),
           fetchJson(`${API_URL}/dialer/scheduled-callbacks?agentId=${auth.userId}`).catch(() => null),
           fetchJson(`${API_URL}/analytics/my-period-stats?tzOffset=${encodeURIComponent(tzOffset)}`).catch(() => null),
@@ -317,7 +321,8 @@ export default function Agent() {
       .then(r => r.ok ? r.json() : [])
       .then(d => setSmsTemplates(Array.isArray(d) ? d : []))
       .catch(() => setSmsTemplates([]));
-  }, [fetchLeads, fetchHistory, fetchAppointments]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Call timer
   useEffect(() => {
