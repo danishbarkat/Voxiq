@@ -24,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 export class DialerController {
     private readonly ringingLockWindowMs = 90 * 1000;
     private readonly connectedLockWindowMs = 2 * 60 * 60 * 1000;
+    private readonly orphanedRingingGraceMs = 15 * 1000;
 
     constructor(
         private dialerService: DialerService,
@@ -40,6 +41,29 @@ export class DialerController {
         const digits = (phone || '').replace(/\D/g, '');
         if (!digits) return null;
         return digits.length > 10 ? digits.slice(-10) : digits;
+    }
+
+    private async clearOrphanedRingingCall(
+        callLog: { id: string; callStatus: CallStatus; callControlId?: string | null; startedAt?: Date | null } | null,
+    ): Promise<boolean> {
+        if (!callLog) return false;
+        if (callLog.callStatus !== CallStatus.RINGING) return false;
+        if (callLog.callControlId) return false;
+        if (!callLog.startedAt) return false;
+
+        const ageMs = Date.now() - new Date(callLog.startedAt).getTime();
+        if (ageMs < this.orphanedRingingGraceMs) return false;
+
+        await this.prisma.callLog.update({
+            where: { id: callLog.id },
+            data: {
+                callStatus: CallStatus.FAILED,
+                endedAt: new Date(),
+                disposition: 'Unreachable',
+            },
+        });
+        console.warn(`[Dialer] Cleared orphaned ringing call ${callLog.id} after ${ageMs}ms without callControlId`);
+        return true;
     }
 
     @SetMetadata('isPublic', true)
@@ -75,15 +99,19 @@ export class DialerController {
                         },
                     ],
                 },
-                select: { id: true, callStatus: true },
+                select: { id: true, callStatus: true, callControlId: true, startedAt: true },
             });
             if (activeCallLog) {
+                if (await this.clearOrphanedRingingCall(activeCallLog)) {
+                    // Stale pre-dial lock cleared; allow this new attempt through.
+                } else {
                 console.warn(`[Dialer] DUPLICATE CALL BLOCKED: ${to} already has an active call (log: ${activeCallLog.id}, status: ${activeCallLog.callStatus})`);
                 return {
                     error: 'duplicate_call',
                     message: `This number (${to}) is already in an active call. Duplicate call blocked.`,
                     existingCallLogId: activeCallLog.id,
                 };
+                }
             }
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -263,10 +291,13 @@ export class DialerController {
                     },
                 ],
             },
-            select: { id: true, agentId: true },
+            select: { id: true, agentId: true, callStatus: true, callControlId: true, startedAt: true },
         });
 
         if (existing) {
+            if (await this.clearOrphanedRingingCall(existing)) {
+                // Stale pre-dial lock cleared; continue acquiring a fresh lock below.
+            } else {
             const lockedBySelf = existing.agentId === agentId;
             if (lockedBySelf) {
                 // If same agent is re-dialing, just reuse/refresh the existing lock
@@ -279,6 +310,7 @@ export class DialerController {
                 locked: false,
                 reason: 'already_dialing_other_agent',
             };
+            }
         }
 
         // No active lock — create a RINGING callLog to claim the lead

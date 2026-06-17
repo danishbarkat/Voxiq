@@ -637,8 +637,15 @@ export const useSoftphone = (config) => {
                     loadSpeakerDevices();
                 } catch (micErr) {
                     console.error('[Softphone] Microphone access denied/failed:', micErr);
-                    alert('Error: Please allow microphone access in your browser to make WebRTC calls.');
-                    setLastError('error');
+                    const micErrorName = micErr?.name || '';
+                    const micBlocked =
+                        micErrorName === 'NotAllowedError' ||
+                        micErrorName === 'PermissionDeniedError' ||
+                        micErrorName === 'NotFoundError' ||
+                        micErrorName === 'NotReadableError' ||
+                        micErrorName === 'NotSupportedError';
+                    alert('Error: Microphone access is required to place WebRTC calls. Please allow mic access and confirm a working input device is selected.');
+                    setLastError(micBlocked ? 'mic_permission' : 'error');
                     setCallOutcome('invalid');
                     setCallState('failed');
                     stopMicCapture();
