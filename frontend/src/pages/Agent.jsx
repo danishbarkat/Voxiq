@@ -226,7 +226,16 @@ export default function Agent() {
       // The callOutcome auto-advance effect will handle moving to the next lead.
       const t = setTimeout(() => {
         // Mark the pre-dial RINGING call log as FAILED so retries are not blocked.
-        if (callLogIdRef.current) finalizeCallLog('invalid', callLogIdRef.current);
+        // Cannot call finalizeCallLog() here (TDZ: const declared later at line 677).
+        // Inline equivalent: PATCH the call log directly.
+        const stuckLogId = callLogIdRef.current;
+        if (stuckLogId && !finalizedCallLogsRef.current.has(stuckLogId)) {
+          finalizedCallLogsRef.current.add(stuckLogId);
+          fetchJson(`${API_URL}/dialer/call/log/${stuckLogId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ callStatus: 'FAILED', disposition: 'Unreachable', endedAt: new Date().toISOString() }),
+          }).catch(() => { finalizedCallLogsRef.current.delete(stuckLogId); });
+        }
         setCurrentLead(null);
         currentLeadRef.current = null;
         setCallLogId(null);
