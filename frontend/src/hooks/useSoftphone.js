@@ -449,10 +449,6 @@ export const useSoftphone = (config) => {
                         // Keep the UI in ringing until the backend confirms the actual answer.
                         setCallState(prev => (prev === 'connected' ? prev : 'ringing'));
                     }
-                    if (cause === 'CALL_REJECTED') {
-                        setLastError('rejected');
-                    }
-
                     // Belt + suspenders: try to manually attach stream in case SDK didn't
                     const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
                     if (audioEl) {
