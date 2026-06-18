@@ -275,12 +275,17 @@ export class AnalyticsService {
     }, requester?: any) {
         const limit = filters?.limit ?? 200;
 
-        // Build where clause
+        // Build where clause — use AND so accountId filter is not overwritten by the recording-URL OR
+        const accountWhere = this.buildCallLogWhereForRequester(requester);
         const where: any = {
-            ...this.buildCallLogWhereForRequester(requester),
-            OR: [
-                { recordingUrl: { not: null } },
-                { vmRecordingUrl: { not: null } },
+            AND: [
+                accountWhere,
+                {
+                    OR: [
+                        { recordingUrl: { not: null } },
+                        { vmRecordingUrl: { not: null } },
+                    ],
+                },
             ],
         };
 

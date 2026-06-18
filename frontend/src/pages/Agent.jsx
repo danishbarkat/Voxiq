@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useSoftphoneContext } from '../context/SoftphoneContext';
-import { API_URL, SIP_URI, SIP_PASSWORD, DEFAULT_OUTBOUND_NUMBER } from '../config/env';
+import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken, getToken } from '../lib/auth';
 import { countries } from '../lib/countries';
@@ -311,10 +311,10 @@ export default function Agent() {
 
         setProfile(fullUser);
         updateCredentials({
-          login: SIP_URI || fullUser?.sipUri || 'winfiagent',
-          password: SIP_PASSWORD || fullUser?.sipPassword || 'WinFi2024',
+          login: fullUser?.sipUri || '',
+          password: fullUser?.sipPassword || '',
           callerName: fullUser?.name || 'Voxiq Agent',
-          callerNumber: fullUser?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '+14422039259',
+          callerNumber: fullUser?.callerNumber || '',
         });
 
         setHistoryFeed(Array.isArray(historyData?.items) ? historyData.items : []);

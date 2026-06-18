@@ -5,7 +5,7 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSoftphone } from '../hooks/useSoftphone';
-import { SIP_URI, SIP_PASSWORD, API_URL } from '../config/env';
+import { API_URL } from '../config/env';
 import { getToken } from '../lib/auth';
 
 const SoftphoneContext = createContext(null);
@@ -96,12 +96,12 @@ function releaseWakeLock() {
 function loadCreds() {
     try {
         return {
-            login: localStorage.getItem('voxiq_sip_login') || SIP_URI || '',
-            password: localStorage.getItem('voxiq_sip_password') || SIP_PASSWORD || '',
+            login: localStorage.getItem('voxiq_sip_login') || '',
+            password: localStorage.getItem('voxiq_sip_password') || '',
             callerName: localStorage.getItem('voxiq_caller_name') || 'Voxiq Agent',
             callerNumber: localStorage.getItem('voxiq_caller_number') || '',
         };
-    } catch { return { login: SIP_URI || '', password: SIP_PASSWORD || '', callerName: 'Voxiq Agent', callerNumber: '' }; }
+    } catch { return { login: '', password: '', callerName: 'Voxiq Agent', callerNumber: '' }; }
 }
 
 function saveCreds(creds) {
