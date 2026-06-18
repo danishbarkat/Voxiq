@@ -1,23 +1,16 @@
 firstName,lastName,phone,address,tags
-Mike,B,+18605957643,12 Smith Street Hartford CT,test
-Michael,B,+12626298181,100 Terrance Ave Hartford CT,test
-Tania,S,+19208174571,150 Maple Street Hartford CT,test
-danish,barkat,+923015039305,karachi,tech
-hanan,Bajwa,+923480367812,DC,navy
-Anthony,Maitilasso,+19739190222,,apollo
-Kyle,Cioffi,+16037488379,,apollo
-Campbell,Culling,+12489906341,,apollo
-Nicole,Romero,+17133381324,,apollo
-Mario,Melendez,+19497151510,,apollo
-Dmitrii,Kustov,+18324307063,,apollo
-Daniel,Monteiro,+12817980002,,apollo
-Anthony,Vu,+19492461692,,apollo
-Taber,Streur,+15099695103,,apollo
-Jen,Butler,+18283350787,,apollo
-Michelle,Hacunda,+16175522108,,apollo
-Lauren,Farkash,+18334256288,,apollo
-Martingly,Nelson,+13602232996,,apollo
-Catherine,Campbell,+18282528902,,apollo
-Nick,Pucci,+18889650341,,apollo
-Lovelyne,Armstrong,+19867771114,,apollo
-Joyce,Bank,+13183471275,,apollo
+John,Doe,+12125550101,123 Main Street New York NY,sample
+Jane,Smith,+13105550102,456 Oak Avenue Los Angeles CA,sample
+Robert,Johnson,+17185550103,789 Pine Road Brooklyn NY,sample
+Emily,Davis,+13125550104,321 Elm Street Chicago IL,sample
+Michael,Brown,+14155550105,654 Cedar Lane San Francisco CA,sample
+Sarah,Wilson,+16175550106,987 Maple Ave Boston MA,sample
+David,Martinez,+17135550107,111 Birch Blvd Houston TX,sample
+Jessica,Anderson,+16025550108,222 Walnut St Phoenix AZ,sample
+James,Taylor,+12155550109,333 Spruce Rd Philadelphia PA,sample
+Ashley,Thomas,+12105550110,444 Willow Way San Antonio TX,sample
+Christopher,Jackson,+18585550111,555 Ash Street San Diego CA,sample
+Amanda,White,+12145550112,666 Poplar Ave Dallas TX,sample
+Daniel,Harris,+14085550113,777 Chestnut Blvd San Jose CA,sample
+Melissa,Clark,+15125550114,888 Magnolia Dr Austin TX,sample
+Matthew,Lewis,+19045550115,999 Holly Lane Jacksonville FL,sample
