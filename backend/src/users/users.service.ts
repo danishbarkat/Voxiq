@@ -415,7 +415,17 @@ export class UsersService {
     return {
       ...safeUser,
       callerName,
-      account: account ? { id: account.id, name: account.name, numberPool: account.numberPool ?? [] } : null,
+      account: account ? {
+        id: account.id,
+        name: account.name,
+        numberPool: account.numberPool ?? [],
+        canSendSms: account.canSendSms ?? false,
+        canSendWhatsapp: account.canSendWhatsapp ?? false,
+        canOutboundCall: account.canOutboundCall ?? false,
+        canInboundCall: account.canInboundCall ?? false,
+        canCallInternational: account.canCallInternational ?? false,
+        canRecord: account.canRecord ?? false,
+      } : null,
     };
   }
 
