@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { countries } from '../lib/countries';
+import PricingCards from '../components/PricingCards';
 
 function checkPassword(pw) {
     return {
@@ -51,6 +52,9 @@ export default function Signup() {
     const [signupStep, setSignupStep] = useState('form');
     const [verificationCode, setVerificationCode] = useState('');
     const [verificationPreview, setVerificationPreview] = useState('');
+    const [selectedPackage, setSelectedPackage] = useState('Trial');
+    const [billingCycle, setBillingCycle] = useState('monthly');
+    const [seatCount, setSeatCount] = useState(1);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -80,7 +84,7 @@ export default function Signup() {
         setFormData({ ...formData, [e.target.name]: value });
     };
 
-    const handleSignup = async (e) => {
+    const handleGoToPricing = (e) => {
         e.preventDefault();
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match. Please make sure both fields are the same.');
@@ -110,6 +114,11 @@ export default function Signup() {
             setError('Use your company work email address for signup.');
             return;
         }
+        setError(null);
+        setSignupStep('pricing');
+    };
+
+    const handleSignup = async () => {
         setIsLoading(true);
         setError(null);
         try {
@@ -124,9 +133,12 @@ export default function Signup() {
                     companyName: formData.companyName,
                     website: formData.website || undefined,
                     ntn: formData.ntn,
-                    requestedAgentLimit: formData.requestedAgentLimit,
+                    requestedAgentLimit: seatCount,
                     requestedNumbers: formData.requestedNumbers,
                     termsAccepted: true,
+                    requestedPackage: selectedPackage,
+                    billingCycle,
+                    seatCount,
                 }),
             });
             if (import.meta.env.DEV) setVerificationPreview(response.verificationCodePreview || '');
@@ -175,6 +187,52 @@ export default function Signup() {
         );
     }
 
+    if (signupStep === 'pricing') {
+        return (
+            <div className="auth-page" style={{ padding: '24px 16px' }}>
+                <div style={{ maxWidth: '1150px', margin: '0 auto', background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
+                        <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Step 2 of 3 — Choose Your Plan</div>
+                    </div>
+                    <h2 style={{ textAlign: 'center', marginBottom: '6px', fontSize: '1.5rem' }}>Choose Your Plan</h2>
+                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '24px', fontSize: '0.88rem' }}>
+                        You can upgrade anytime from your Admin dashboard
+                    </p>
+                    <PricingCards
+                        selectedPackage={selectedPackage}
+                        selectedBilling={billingCycle}
+                        onBillingChange={setBillingCycle}
+                        onSelect={(pkgId, seats) => {
+                            setSelectedPackage(pkgId);
+                            setSeatCount(seats);
+                        }}
+                    />
+                    {error && <div className="auth-error" style={{ marginTop: '16px', maxWidth: '600px', margin: '16px auto 0' }}>{error}</div>}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px', maxWidth: '500px', margin: '24px auto 0' }}>
+                        <button
+                            type="button"
+                            className="btn"
+                            style={{ flex: 1, background: '#f1f5f9', color: '#475569' }}
+                            onClick={() => { setSignupStep('form'); setError(null); }}
+                        >
+                            ← Back
+                        </button>
+                        <button
+                            type="button"
+                            className="auth-btn-primary"
+                            style={{ flex: 2 }}
+                            disabled={isLoading}
+                            onClick={handleSignup}
+                        >
+                            {isLoading ? 'Submitting…' : `Continue with ${selectedPackage} →`}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="auth-page">
             <div className="auth-card auth-card-wide">
@@ -207,7 +265,7 @@ export default function Signup() {
                     {error && <div className="auth-error">{error}</div>}
 
                     {signupStep === 'form' ? (
-                    <form onSubmit={handleSignup} className="auth-form">
+                    <form onSubmit={handleGoToPricing} className="auth-form">
                         <div className="auth-field-row">
                             <div className="auth-field">
                                 <label>First Name</label>
@@ -275,15 +333,9 @@ export default function Signup() {
                             </div>
                         </div>
 
-                        <div className="auth-field-row">
-                            <div className="auth-field">
-                                <label>Agents Needed</label>
-                                <input name="requestedAgentLimit" type="number" min="1" max="100" value={formData.requestedAgentLimit} onChange={handleChange} required />
-                            </div>
-                            <div className="auth-field">
-                                <label>Phone Numbers Needed</label>
-                                <input name="requestedNumbers" type="number" min="1" max="50" value={formData.requestedNumbers} onChange={handleChange} required />
-                            </div>
+                        <div className="auth-field">
+                            <label>Phone Numbers Needed</label>
+                            <input name="requestedNumbers" type="number" min="1" max="50" value={formData.requestedNumbers} onChange={handleChange} required />
                         </div>
 
                         <div className="auth-field-row">

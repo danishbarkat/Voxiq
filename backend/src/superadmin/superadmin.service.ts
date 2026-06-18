@@ -41,6 +41,11 @@ export class SuperAdminService {
     canInboundCall: true,
     canSendSms: true,
     canRecord: true,
+    canSendWhatsapp: true,
+    canAiInsights: true,
+    billingCycle: true,
+    seatCount: true,
+    requestedPackage: true,
     monthlyCallLimit: true,
     monthlySmsLimit: true,
     users: {
@@ -665,10 +670,12 @@ export class SuperAdminService {
         packageName: pkgName,
         isTrial: !!preset.isTrial,
         trialEndsAt,
-        canOutboundCall: preset.canOutboundCall,
-        canInboundCall:  preset.canInboundCall,
-        canSendSms:      preset.canSendSms,
-        canRecord:       preset.canRecord,
+        canOutboundCall:  preset.canOutboundCall,
+        canInboundCall:   preset.canInboundCall,
+        canSendSms:       preset.canSendSms,
+        canRecord:        preset.canRecord,
+        canSendWhatsapp:  preset.canSendWhatsapp,
+        canAiInsights:    preset.canAiInsights,
         monthlyCallLimit: preset.monthlyCallLimit,
         monthlySmsLimit:  preset.monthlySmsLimit,
       },
@@ -1240,17 +1247,16 @@ export class SuperAdminService {
 
   static readonly PACKAGES: Record<string, {
     canOutboundCall: boolean; canInboundCall: boolean;
-    canSendSms: boolean; canRecord: boolean;
+    canSendSms: boolean; canRecord: boolean; canSendWhatsapp: boolean; canAiInsights: boolean;
     monthlyCallLimit: number | null; monthlySmsLimit: number | null;
     agentLimit: number; isTrial?: boolean; trialDays?: number;
+    pricePerSeat: number; billingLabel: string;
   }> = {
-    Trial:      { canOutboundCall: true,  canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 100,   monthlySmsLimit: 0,    agentLimit: 1,  isTrial: true, trialDays: 7  },
-    Starter:    { canOutboundCall: true,  canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 300,   monthlySmsLimit: 0,    agentLimit: 1  },
-    Basic:      { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: false, monthlyCallLimit: 500,   monthlySmsLimit: 400,  agentLimit: 3  },
-    Growth:     { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 1000,  monthlySmsLimit: 800,  agentLimit: 5  },
-    Pro:        { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 2500,  monthlySmsLimit: 2000, agentLimit: 10 },
-    Agency:     { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: 6000,  monthlySmsLimit: 5000, agentLimit: 25 },
-    Enterprise: { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  monthlyCallLimit: null,  monthlySmsLimit: null, agentLimit: 100 },
+    Trial:      { canOutboundCall: true,  canInboundCall: false, canSendSms: false, canRecord: false, canSendWhatsapp: false, canAiInsights: false, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1,   isTrial: true, trialDays: 7, pricePerSeat: 0,     billingLabel: 'Free' },
+    Basic:      { canOutboundCall: true,  canInboundCall: true,  canSendSms: false, canRecord: false, canSendWhatsapp: false, canAiInsights: false, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1,   pricePerSeat: 24.99, billingLabel: '$24.99/seat/mo' },
+    Pro:        { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  canSendWhatsapp: false, canAiInsights: false, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1,   pricePerSeat: 39.99, billingLabel: '$39.99/seat/mo' },
+    Business:   { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  canSendWhatsapp: true,  canAiInsights: true,  monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1,   pricePerSeat: 69.99, billingLabel: '$69.99/seat/mo' },
+    Enterprise: { canOutboundCall: true,  canInboundCall: true,  canSendSms: true,  canRecord: true,  canSendWhatsapp: true,  canAiInsights: true,  monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 100, pricePerSeat: 0,     billingLabel: 'Contact Sales' },
   };
 
   async assignPackage(accountId: string, packageName: string) {
@@ -1267,10 +1273,12 @@ export class SuperAdminService {
         packageName,
         isTrial: !!preset.isTrial,
         trialEndsAt,
-        canOutboundCall: preset.canOutboundCall,
-        canInboundCall:  preset.canInboundCall,
-        canSendSms:      preset.canSendSms,
-        canRecord:       preset.canRecord,
+        canOutboundCall:  preset.canOutboundCall,
+        canInboundCall:   preset.canInboundCall,
+        canSendSms:       preset.canSendSms,
+        canRecord:        preset.canRecord,
+        canSendWhatsapp:  preset.canSendWhatsapp,
+        canAiInsights:    preset.canAiInsights,
         monthlyCallLimit: preset.monthlyCallLimit,
         monthlySmsLimit:  preset.monthlySmsLimit,
         agentLimit:       preset.agentLimit,
@@ -1278,15 +1286,14 @@ export class SuperAdminService {
       select: {
         id: true, name: true, packageName: true, isTrial: true, trialEndsAt: true,
         canOutboundCall: true, canInboundCall: true,
-        canSendSms: true, canRecord: true,
+        canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true,
         monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
       },
     });
   }
 
   static readonly PACKAGE_PRICES: Record<string, number> = {
-    Trial: 0, Starter: 29, Basic: 49, Growth: 89,
-    Pro: 179, Agency: 399, Enterprise: 899,
+    Trial: 0, Basic: 24.99, Pro: 39.99, Business: 69.99, Enterprise: 0,
   };
 
   // Telnyx rates from pricing sheet (June 2026) — what YOU PAY Telnyx
@@ -1564,13 +1571,14 @@ export class SuperAdminService {
     canSendWhatsapp?: boolean;
     canRecord?: boolean;
     canCallInternational?: boolean;
+    canAiInsights?: boolean;
   }) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) throw new NotFoundException('Company not found');
     return this.prisma.account.update({
       where: { id: accountId },
       data: features,
-      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true, canCallInternational: true },
+      select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true, canCallInternational: true, canAiInsights: true },
     });
   }
 
@@ -1589,8 +1597,9 @@ export class SuperAdminService {
         where: { id: accountId },
         select: {
           packageName: true, canOutboundCall: true, canInboundCall: true,
-          canSendSms: true, canRecord: true,
+          canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true,
           monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+          canCallInternational: true,
         },
       }),
     ]);

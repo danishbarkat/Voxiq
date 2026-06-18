@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from 'class-validator';
 
 export class SignupDto {
   @IsString()
@@ -48,4 +48,19 @@ export class SignupDto {
 
   @IsBoolean()
   termsAccepted: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['Trial', 'Basic', 'Pro', 'Business', 'Enterprise'])
+  requestedPackage?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['monthly', 'annual'])
+  billingCycle?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  seatCount?: number;
 }

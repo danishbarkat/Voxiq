@@ -27,6 +27,7 @@ import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { getToken, setToken, clearToken } from '../lib/auth';
 import ProWorldMap from '../components/ProWorldMap';
+import PricingCards from '../components/PricingCards';
 
 const COUNTRY_LABELS = {
   US: 'United States', GB: 'United Kingdom', PK: 'Pakistan', IN: 'India', CN: 'China',
@@ -699,6 +700,109 @@ function HistoryTab({ historyFeed, historyStats, onRefresh, loading }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function PlanCard({ token }) {
+  const [plan, setPlan] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradePackage, setUpgradePackage] = useState(null);
+  const [upgradeBilling, setUpgradeBilling] = useState('monthly');
+  const [upgradeSeats, setUpgradeSeats] = useState(1);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/auth/my-plan`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null).then(setPlan).catch(() => {});
+  }, [token]);
+
+  if (!plan || !plan.packageName) return null;
+
+  const FEATURE_LABELS = [
+    { key: 'canOutboundCall', label: 'Outbound Calls' },
+    { key: 'canInboundCall', label: 'Inbound Calls' },
+    { key: 'canSendSms', label: 'SMS' },
+    { key: 'canRecord', label: 'Recordings' },
+    { key: 'canSendWhatsapp', label: 'WhatsApp' },
+    { key: 'canAiInsights', label: 'AI Insights' },
+  ];
+
+  const PACKAGE_COLORS = { Trial: '#6366f1', Basic: '#3b82f6', Pro: '#8b5cf6', Business: '#f59e0b', Enterprise: '#10b981' };
+  const pkgColor = PACKAGE_COLORS[plan.packageName] || '#6366f1';
+
+  return (
+    <>
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem', borderLeft: `4px solid ${pkgColor}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>Current Plan</span>
+              <span style={{ background: `${pkgColor}20`, color: pkgColor, padding: '3px 12px', borderRadius: '999px', fontWeight: 700, fontSize: '0.82rem' }}>
+                {plan.packageName}
+              </span>
+              {plan.isTrial && plan.trialEndsAt && (
+                <span style={{ color: '#ef4444', fontSize: '0.78rem', fontWeight: 600 }}>
+                  Trial ends {new Date(plan.trialEndsAt).toLocaleDateString()}
+                </span>
+              )}
+              {plan.billingCycle && (
+                <span style={{ background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {plan.billingCycle}
+                </span>
+              )}
+              {(plan.seatCount > 1 || plan.agentLimit > 1) && (
+                <span style={{ background: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {plan.seatCount || plan.agentLimit} seats
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
+              {FEATURE_LABELS.map(({ key, label }) => (
+                <span key={key} style={{
+                  padding: '3px 9px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600,
+                  background: plan[key] ? '#dcfce7' : '#f1f5f9',
+                  color: plan[key] ? '#16a34a' : '#94a3b8',
+                }}>
+                  {plan[key] ? '✓' : '✗'} {label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={() => { setUpgradePackage(plan.packageName); setUpgradeBilling(plan.billingCycle || 'monthly'); setShowUpgrade(true); }}
+            style={{ background: pkgColor, color: '#fff', border: 'none', borderRadius: '10px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+          >
+            Upgrade Plan
+          </button>
+        </div>
+      </div>
+
+      {showUpgrade && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, overflow: 'auto', padding: '32px 16px' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '24px', maxWidth: '1150px', margin: '0 auto', padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Upgrade Your Plan</h2>
+              <button onClick={() => setShowUpgrade(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+            </div>
+            <PricingCards
+              selectedPackage={upgradePackage || plan.packageName}
+              selectedBilling={upgradeBilling}
+              onBillingChange={setUpgradeBilling}
+              onSelect={(pkgId, seats) => { setUpgradePackage(pkgId); setUpgradeSeats(seats); }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowUpgrade(false)} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button
+                onClick={() => { alert(`Upgrade request submitted: ${upgradePackage} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
+                style={{ padding: '9px 20px', borderRadius: '10px', background: pkgColor, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Request Upgrade →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2365,6 +2469,9 @@ export default function Admin() {
                     <button className="btn btn-primary" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>+ New Account</button>
                   )}
                 </div>
+                {!isSuperAdmin && (
+                  <PlanCard token={authState.token} />
+                )}
                 {!isSuperAdmin && (
                   <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
                     <div className="flex justify-between items-center" style={{ gap: '1rem', flexWrap: 'wrap' }}>

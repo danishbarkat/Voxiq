@@ -33,6 +33,9 @@ model Account {
   isTrial             Boolean             @default(false)
   trialEndsAt         DateTime?
   requestedPackage    String?
+  billingCycle        String?             @default("monthly")
+  seatCount           Int?                @default(1)
+  canAiInsights          Boolean             @default(false)
   canOutboundCall        Boolean             @default(true)
   canInboundCall         Boolean             @default(true)
   canSendSms             Boolean             @default(false)

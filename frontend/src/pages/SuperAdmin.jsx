@@ -187,13 +187,11 @@ const btnSecondary = { padding: '10px 20px', background: '#f3f4f6', color: '#374
 const actionRow = { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 };
 
 const ALL_PACKAGES = [
-  { name: 'Trial',      color: '#6366f1', calls: 100,  agents: 1,   trial: true,  features: { out: true,  in: false, sms: false, rec: false } },
-  { name: 'Starter',   color: '#10b981', calls: 300,  agents: 1,   trial: false, features: { out: true,  in: false, sms: false, rec: false } },
-  { name: 'Basic',     color: '#3b82f6', calls: 500,  agents: 3,   trial: false, features: { out: true,  in: true,  sms: true,  rec: false } },
-  { name: 'Growth',    color: '#8b5cf6', calls: 1000, agents: 5,   trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
-  { name: 'Pro',       color: '#f59e0b', calls: 2500, agents: 10,  trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
-  { name: 'Agency',    color: '#ef4444', calls: 6000, agents: 25,  trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
-  { name: 'Enterprise',color: '#1f2937', calls: null, agents: 100, trial: false, features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Trial',      color: '#6366f1', agents: 1,   trial: true,  features: { out: true,  in: false, sms: false, rec: false, wp: false, ai: false } },
+  { name: 'Basic',      color: '#3b82f6', agents: 1,   trial: false, features: { out: true,  in: true,  sms: false, rec: false, wp: false, ai: false } },
+  { name: 'Pro',        color: '#8b5cf6', agents: 1,   trial: false, features: { out: true,  in: true,  sms: true,  rec: true,  wp: false, ai: false } },
+  { name: 'Business',   color: '#f59e0b', agents: 1,   trial: false, features: { out: true,  in: true,  sms: true,  rec: true,  wp: true,  ai: true  } },
+  { name: 'Enterprise', color: '#10b981', agents: 100, trial: false, features: { out: true,  in: true,  sms: true,  rec: true,  wp: true,  ai: true  } },
 ];
 
 function ApproveModal({ company, onClose, onApproved }) {
@@ -272,11 +270,10 @@ function ApproveModal({ company, onClose, onApproved }) {
                   background: isActive ? `${pkg.color}15` : '#fff', transition: 'all 0.15s' }}>
                 <div style={{ fontWeight: 800, fontSize: 11, color: pkg.color, marginBottom: 2 }}>{pkg.name}</div>
                 <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 3 }}>
-                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞'} · {pkg.agents} agent{pkg.agents > 1 ? 's' : ''}
-                  {pkg.trial && <span style={{ color: pkg.color, fontWeight: 700 }}> · 7d</span>}
+                  {pkg.trial ? 'Free · 7 days' : (pkg.name === 'Enterprise' ? 'Custom' : `$${pkg.name === 'Basic' ? '24.99' : pkg.name === 'Pro' ? '39.99' : '69.99'}/seat`)}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 2px' }}>
-                  {[['out','Out'],['in','In'],['sms','SMS'],['rec','Rec']].map(([key, lbl]) => (
+                  {[['out','Out'],['in','In'],['sms','SMS'],['rec','Rec'],['wp','WA'],['ai','AI']].map(([key, lbl]) => (
                     <div key={key} style={{ fontSize: 9, fontWeight: 700, color: f[key] ? '#059669' : '#d1d5db', display: 'flex', alignItems: 'center', gap: 2 }}>
                       <span>{f[key] ? '✓' : '✗'}</span>{lbl}
                     </div>
@@ -288,7 +285,7 @@ function ApproveModal({ company, onClose, onApproved }) {
         </div>
         {selectedPackage === 'Trial' && (
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: 12, color: '#1e40af' }}>
-            🎯 <strong>Trial:</strong> 1 number · 100 calls · 7 days · Outbound only · No SMS · No Recording
+            🎯 <strong>Trial:</strong> 1 seat · 7 days · Outbound calls only · No SMS, Recording, WhatsApp, or AI
           </div>
         )}
 
@@ -911,7 +908,7 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
                 <tr><td colSpan={7} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>No companies match your filter.</td></tr>
               )}
               {filtered.map((c, i) => {
-                const pkgColor = { Trial:'#6366f1', Starter:'#10b981', Basic:'#3b82f6', Growth:'#8b5cf6', Pro:'#f59e0b', Agency:'#ef4444', Enterprise:'#1f2937' }[c.packageName] || '#9ca3af';
+                const pkgColor = { Trial:'#6366f1', Basic:'#3b82f6', Pro:'#8b5cf6', Business:'#f59e0b', Enterprise:'#10b981' }[c.packageName] || '#9ca3af';
                 const trialExpired = c.isTrial && c.trialEndsAt && new Date(c.trialEndsAt) < new Date();
                 const trialDaysLeft = c.isTrial && c.trialEndsAt && !trialExpired
                   ? Math.ceil((new Date(c.trialEndsAt) - new Date()) / (1000*60*60*24)) : null;
@@ -991,12 +988,11 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
 }
 
 const PACKAGES = [
-  { name: 'Starter',    calls: 300,   sms: 0,     agents: 1,   color: '#10b981', features: { out: true,  in: false, sms: false, rec: false } },
-  { name: 'Basic',      calls: 500,   sms: 400,   agents: 3,   color: '#3b82f6', features: { out: true,  in: true,  sms: true,  rec: false } },
-  { name: 'Growth',     calls: 1000,  sms: 800,   agents: 5,   color: '#8b5cf6', features: { out: true,  in: true,  sms: true,  rec: true  } },
-  { name: 'Pro',        calls: 2500,  sms: 2000,  agents: 10,  color: '#f59e0b', features: { out: true,  in: true,  sms: true,  rec: true  } },
-  { name: 'Agency',     calls: 6000,  sms: 5000,  agents: 25,  color: '#ef4444', features: { out: true,  in: true,  sms: true,  rec: true  } },
-  { name: 'Enterprise', calls: null,  sms: null,  agents: 100, color: '#1f2937', features: { out: true,  in: true,  sms: true,  rec: true  } },
+  { name: 'Trial',      price: 'Free',          agents: 1,   color: '#6366f1', features: { out: true,  in: false, sms: false, rec: false, wp: false, ai: false } },
+  { name: 'Basic',      price: '$24.99/seat',   agents: 1,   color: '#3b82f6', features: { out: true,  in: true,  sms: false, rec: false, wp: false, ai: false } },
+  { name: 'Pro',        price: '$39.99/seat',   agents: 1,   color: '#8b5cf6', features: { out: true,  in: true,  sms: true,  rec: true,  wp: false, ai: false } },
+  { name: 'Business',   price: '$69.99/seat',   agents: 1,   color: '#f59e0b', features: { out: true,  in: true,  sms: true,  rec: true,  wp: true,  ai: true  } },
+  { name: 'Enterprise', price: 'Custom',        agents: 100, color: '#10b981', features: { out: true,  in: true,  sms: true,  rec: true,  wp: true,  ai: true  } },
 ];
 
 function PackageSection({ detail, onRefresh }) {
@@ -1117,6 +1113,7 @@ function PackageSection({ detail, onRefresh }) {
           <FeatureToggle flag="canSendSms"           on={usage.canSendSms}           label="SMS Messaging"  />
           <FeatureToggle flag="canSendWhatsapp"      on={usage.canSendWhatsapp}      label="WhatsApp Messaging" />
           <FeatureToggle flag="canRecord"            on={usage.canRecord}            label="Call Recording" />
+          <FeatureToggle flag="canAiInsights"        on={usage.canAiInsights}        label="AI Call Insights" />
           <div style={{ marginTop: 10 }}>
             <UsageBar used={usage.usage?.callsThisMonth} limit={usage.monthlyCallLimit} label="Calls this month" color="#6366f1" />
             {usage.canSendSms && <UsageBar used={usage.usage?.smsThisMonth} limit={usage.monthlySmsLimit} label="SMS this month" color="#10b981" />}
@@ -1144,10 +1141,10 @@ function PackageSection({ detail, onRefresh }) {
                 }}>
                 <div style={{ fontWeight: 800, fontSize: 12, color: pkg.color, marginBottom: 3 }}>{pkg.name}</div>
                 <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
-                  {pkg.calls ? `${pkg.calls.toLocaleString()} calls` : '∞ calls'} · {pkg.agents} agent{pkg.agents > 1 ? 's' : ''}
+                  {pkg.price}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px 4px' }}>
-                  {[['out', 'Outbound'], ['in', 'Inbound'], ['sms', 'SMS'], ['rec', 'Record']].map(([key, label]) => (
+                  {[['out', 'Out'], ['in', 'In'], ['sms', 'SMS'], ['rec', 'Rec'], ['wp', 'WA'], ['ai', 'AI']].map(([key, label]) => (
                     <div key={key} style={{ fontSize: 9, fontWeight: 700, color: f[key] ? '#059669' : '#d1d5db', display: 'flex', alignItems: 'center', gap: 2 }}>
                       <span style={{ fontSize: 10 }}>{f[key] ? '✓' : '✗'}</span> {label}
                     </div>
@@ -2469,7 +2466,7 @@ function BillingTab() {
   if (!data) return <Placeholder>Failed to load billing data.</Placeholder>;
 
   const { summary, companies, month, rates, sellRates } = data;
-  const pkgColors = { Trial:'#6366f1', Starter:'#10b981', Basic:'#3b82f6', Growth:'#8b5cf6', Pro:'#f59e0b', Agency:'#ef4444', Enterprise:'#1f2937' };
+  const pkgColors = { Trial:'#6366f1', Basic:'#3b82f6', Pro:'#8b5cf6', Business:'#f59e0b', Enterprise:'#10b981' };
 
   const SummaryCard = ({ label, value, sub, color = '#111827', bg = '#f9fafb' }) => (
     <div style={{ background: bg, border: '1.5px solid #e5e7eb', borderRadius: 14, padding: '18px 20px', minWidth: 0 }}>
