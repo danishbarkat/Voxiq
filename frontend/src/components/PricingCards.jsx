@@ -129,6 +129,8 @@ export default function PricingCards({ onSelect, selectedPackage, selectedBillin
                 position: 'relative',
                 transition: 'all 0.2s',
                 boxShadow: isSelected ? `0 0 0 3px ${pkg.color}25` : '0 2px 6px rgba(0,0,0,0.05)',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               {pkg.popular && (
@@ -186,7 +188,7 @@ export default function PricingCards({ onSelect, selectedPackage, selectedBillin
               )}
 
               {/* Features */}
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px 0', fontSize: '0.77rem' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px 0', fontSize: '0.77rem', flex: 1 }}>
                 {pkg.features.map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', marginBottom: '5px', color: '#374151' }}>
                     <span style={{ color: pkg.color, fontWeight: 700, marginTop: '1px', flexShrink: 0 }}>✓</span>
