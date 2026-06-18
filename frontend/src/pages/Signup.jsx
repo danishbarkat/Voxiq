@@ -48,6 +48,34 @@ function PasswordStrength({ password }) {
     );
 }
 
+function StepBar({ step }) {
+    const steps = ['Company Info', 'Choose Plan', 'Verify Email'];
+    const idx = step === 'form' ? 0 : step === 'pricing' ? 1 : 2;
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
+            {steps.map((label, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{
+                            width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontWeight: 800, fontSize: 12,
+                            background: i < idx ? '#10b981' : i === idx ? '#2563eb' : '#e5e7eb',
+                            color: i <= idx ? '#fff' : '#9ca3af',
+                            flexShrink: 0,
+                        }}>
+                            {i < idx ? '✓' : i + 1}
+                        </div>
+                        <span style={{ fontSize: 10, color: i === idx ? '#2563eb' : '#9ca3af', fontWeight: i === idx ? 700 : 400, whiteSpace: 'nowrap' }}>{label}</span>
+                    </div>
+                    {i < steps.length - 1 && (
+                        <div style={{ flex: 1, height: 2, background: i < idx ? '#10b981' : '#e5e7eb', margin: '0 6px', marginBottom: 16 }} />
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function Signup() {
     const [signupStep, setSignupStep] = useState('form');
     const [verificationCode, setVerificationCode] = useState('');
@@ -191,9 +219,9 @@ export default function Signup() {
         return (
             <div className="auth-page" style={{ padding: '24px 16px' }}>
                 <div style={{ maxWidth: '1150px', margin: '0 auto', background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                         <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
-                        <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Step 2 of 3 — Choose Your Plan</div>
+                        <div style={{ maxWidth: 360, flex: 1, marginLeft: 32 }}><StepBar step="pricing" /></div>
                     </div>
                     <h2 style={{ textAlign: 'center', marginBottom: '6px', fontSize: '1.5rem' }}>Choose Your Plan</h2>
                     <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '24px', fontSize: '0.88rem' }}>
@@ -238,15 +266,19 @@ export default function Signup() {
             <div className="auth-card auth-card-wide">
                 <div className="auth-left">
                     <h2>Join<br />Voxiq</h2>
-                    <p>Register your company for access to the next generation sales dialer.</p>
+                    <p>Register your company and pick a plan that fits your team.</p>
                     <div className="auth-feature-list">
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
-                            Company Admin Access
+                            Free 7-Day Trial — no card needed
                         </div>
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
-                            Managed Agent Seats
+                            Per-seat pricing from $24.99/mo
+                        </div>
+                        <div className="auth-feature-item">
+                            <span className="auth-feature-check">✓</span>
+                            Calls, SMS, WhatsApp &amp; AI Insights
                         </div>
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
@@ -260,7 +292,8 @@ export default function Signup() {
                         <img src="/logo.png" alt="Voxiq" style={{ height: '44px' }} />
                     </div>
                     <h1>Company Registration</h1>
-                    <p className="auth-subtitle">Admins only — no code is needed for signup. A one-time first-login code is shared after approval.</p>
+                    <StepBar step={signupStep} />
+                    <p className="auth-subtitle">Admins only — after approval you'll receive a one-time access code to complete first login.</p>
 
                     {error && <div className="auth-error">{error}</div>}
 
@@ -393,7 +426,7 @@ export default function Signup() {
 
                         <button type="submit" className="auth-btn-primary" disabled={isLoading || !termsAccepted}
                             style={{ opacity: !termsAccepted ? 0.6 : 1 }}>
-                            {isLoading ? 'Submitting…' : 'Submit Registration →'}
+                            {isLoading ? 'Checking…' : 'Next: Choose Plan →'}
                         </button>
 
                         <p className="auth-switch">

@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
+import PricingCards from '../components/PricingCards';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [apiState, setApiState] = useState({
     status: 'checking',
     timestamp: null,
     error: null,
   });
+  const [pricingPlan, setPricingPlan] = useState('Trial');
+  const [pricingBilling, setPricingBilling] = useState('monthly');
 
   const checkHealth = () => {
     fetchJson(`${API_URL}/health`)
@@ -168,15 +172,29 @@ export default function Home() {
         {/* Pricing Section */}
         <section className="section" id="pricing" style={{ background: 'var(--vx-gray-50)' }}>
           <div className="container">
-            <div className="section-head" style={{ marginBottom: '80px' }}>
+            <div className="section-head" style={{ marginBottom: '48px' }}>
               <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--vx-primary)' }}>Simple, predictable pricing</h2>
-              <p style={{ fontSize: '1.25rem' }}>No hidden fees or complex usage tiers. Just straightforward pricing.</p>
+              <p style={{ fontSize: '1.25rem' }}>Per-seat pricing with no hidden fees. Start free, upgrade anytime.</p>
             </div>
 
-            <div className="pricing-grid" style={{ gap: '32px' }}>
-              <PricingCard tier="Basic" title="Talk to Sales" desc="Perfect for small teams just getting started with outbound." features={["1-Click Dialing", "Basic Analytics", "Email Support"]} />
-              <PricingCard tier="Pro" title="Talk to Sales" desc="Advanced tools for growing sales organizations." features={["Everything in Basic", "Live Coaching", "CRM Integrations", "Priority Support"]} featured={true} />
-              <PricingCard tier="Enterprise" title="Custom Tier" desc="Custom solutions for large-scale operations." features={["Unlimited Everything", "Dedicated Manager", "Custom API Access", "24/7 Phone Support"]} />
+            <PricingCards
+              selectedPackage={pricingPlan}
+              selectedBilling={pricingBilling}
+              onBillingChange={setPricingBilling}
+              onSelect={(pkgId) => setPricingPlan(pkgId)}
+            />
+
+            <div style={{ textAlign: 'center', marginTop: 48 }}>
+              <Link
+                to="/signup"
+                className="btn btn-primary btn-lg"
+                style={{ background: 'var(--vx-accent)', padding: '18px 56px', fontSize: '1.1rem', borderRadius: '14px', fontWeight: 800, textDecoration: 'none', display: 'inline-block' }}
+              >
+                Get Started with {pricingPlan === 'Trial' ? 'Free Trial' : pricingPlan} →
+              </Link>
+              <p style={{ marginTop: 14, color: '#94a3b8', fontSize: '0.88rem' }}>
+                {pricingPlan === 'Trial' ? 'No credit card required • 7 days free' : 'No credit card required to register • Start with Trial anytime'}
+              </p>
             </div>
           </div>
         </section>
@@ -256,16 +274,3 @@ function StatItem({ value, label }) {
   );
 }
 
-function PricingCard({ tier, title, desc, features, featured = false }) {
-  return (
-    <div className={`pricing-card ${featured ? 'featured' : ''}`} style={{ padding: '60px 48px', borderRadius: '32px', border: featured ? 'none' : '1px solid var(--vx-gray-200)', background: 'white', boxShadow: featured ? '0 40px 80px rgba(45,51,107,0.1)' : 'none' }}>
-      <span style={{ color: 'var(--vx-accent)', fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{tier}</span>
-      <h3 style={{ fontSize: '2.5rem', fontWeight: 900, margin: '16px 0 24px', color: 'var(--vx-primary)' }}>{title}</h3>
-      <p style={{ color: 'var(--vx-gray-500)', marginBottom: '40px', minHeight: '60px' }}>{desc}</p>
-      <ul className="pricing-features" style={{ marginBottom: '48px' }}>
-        {features.map((f, i) => <li key={i} style={{ marginBottom: '16px', fontWeight: 600, color: 'var(--vx-primary)' }}>✓ {f}</li>)}
-      </ul>
-      <button className={`btn ${featured ? 'btn-primary' : 'btn-outline'}`} style={{ width: '100%', padding: '16px', borderRadius: '14px', fontWeight: 800 }}>Get Started</button>
-    </div>
-  );
-}
