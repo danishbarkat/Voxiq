@@ -1281,7 +1281,7 @@ export class SuperAdminService {
         canAiInsights:    preset.canAiInsights,
         monthlyCallLimit: preset.monthlyCallLimit,
         monthlySmsLimit:  preset.monthlySmsLimit,
-        agentLimit:       preset.agentLimit,
+        // agentLimit intentionally not changed here — managed separately via seat count
       },
       select: {
         id: true, name: true, packageName: true, isTrial: true, trialEndsAt: true,
