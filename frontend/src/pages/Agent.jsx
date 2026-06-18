@@ -1324,7 +1324,7 @@ export default function Agent() {
           <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', minWidth: isMobile ? 'calc(50% - 0.4rem)' : 'auto' }}>
             <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Caller ID</div>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace' }}>
-              {profile?.callerNumber || DEFAULT_OUTBOUND_NUMBER || '---'}
+              {profile?.callerNumber || '---'}
             </div>
           </div>
           <div style={{
