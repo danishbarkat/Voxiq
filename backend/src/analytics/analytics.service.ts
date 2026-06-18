@@ -275,11 +275,18 @@ export class AnalyticsService {
     }, requester?: any) {
         const limit = filters?.limit ?? 200;
 
-        // Build where clause — use AND so accountId filter is not overwritten by the recording-URL OR
-        const accountWhere = this.buildCallLogWhereForRequester(requester);
+        // Filter recordings strictly by the agent's company — using lead/campaign accountId would
+        // expose cross-company recordings when a lead from company A was called by an agent of company B
+        const agentAccountFilter = requester?.role?.toLowerCase() === 'superadmin'
+            ? {}
+            : (() => {
+                if (!requester?.accountId) throw new ForbiddenException('Company context is required');
+                return { agent: { accountId: requester.accountId } };
+            })();
+
         const where: any = {
             AND: [
-                accountWhere,
+                agentAccountFilter,
                 {
                     OR: [
                         { recordingUrl: { not: null } },
