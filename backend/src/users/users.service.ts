@@ -405,6 +405,13 @@ export class UsersService {
   private attachCallerName<T extends { callerNumber?: string | null; account?: Record<string, any> | null }>(user: T) {
     const callerName = this.resolveCallerName(user.callerNumber, user.account?.numberPool);
     const { account, ...safeUser } = user as any;
+
+    // Fall back to company-level default SIP credentials stored securely in backend env
+    const defaultSipUri = this.configService.get<string>('DEFAULT_SIP_URI') || '';
+    const defaultSipPassword = this.configService.get<string>('DEFAULT_SIP_PASSWORD') || '';
+    if (!safeUser.sipUri && defaultSipUri) safeUser.sipUri = defaultSipUri;
+    if (!safeUser.sipPassword && defaultSipPassword) safeUser.sipPassword = defaultSipPassword;
+
     return {
       ...safeUser,
       callerName,
