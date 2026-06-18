@@ -1,0 +1,284 @@
+import { useState } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+
+const PLANS = {
+  Trial: {
+    id: 'Trial',
+    name: '7-Day Free Trial',
+    tagline: 'Try before you buy',
+    price: 0,
+    color: '#6366f1',
+    features: ['Outbound Calls', '1 Agent Seat', '7 Days Free', 'No credit card required'],
+    popular: false,
+    contactSales: false,
+  },
+  Basic: {
+    id: 'Basic',
+    name: 'Basic',
+    tagline: 'Unlimited calling per seat',
+    price: 24.99,
+    color: '#3b82f6',
+    features: ['Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'],
+    popular: false,
+    contactSales: false,
+  },
+  Pro: {
+    id: 'Pro',
+    name: 'Pro',
+    tagline: 'Calls + SMS + Recordings',
+    price: 39.99,
+    color: '#8b5cf6',
+    features: ['Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'],
+    popular: true,
+    contactSales: false,
+  },
+  Business: {
+    id: 'Business',
+    name: 'Business',
+    tagline: 'Full-featured platform',
+    price: 69.99,
+    color: '#f59e0b',
+    features: ['Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'],
+    popular: false,
+    contactSales: false,
+  },
+  Enterprise: {
+    id: 'Enterprise',
+    name: 'Enterprise',
+    tagline: 'Custom for large teams',
+    price: null,
+    color: '#10b981',
+    features: ['Everything in Business', 'Custom Seat Limit', 'Dedicated Account Manager', 'SLA & Custom Integrations'],
+    popular: false,
+    contactSales: true,
+  },
+};
+
+function SummaryRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.875rem' }}>
+      <span style={{ color: 'var(--vx-gray-500)' }}>{label}</span>
+      <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>{value}</span>
+    </div>
+  );
+}
+
+export default function Checkout() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const planId = searchParams.get('plan') || 'Pro';
+  const [seats, setSeats] = useState(Math.max(1, parseInt(searchParams.get('seats') || '1', 10)));
+  const [billing, setBilling] = useState(searchParams.get('billing') === 'annual' ? 'annual' : 'monthly');
+
+  const plan = PLANS[planId] || PLANS.Pro;
+
+  const perSeatPrice = plan.price
+    ? (billing === 'annual' ? plan.price * 0.9 : plan.price)
+    : null;
+
+  const totalPrice = perSeatPrice ? (perSeatPrice * seats).toFixed(2) : null;
+
+  const handleContinue = () => {
+    navigate(`/signup?plan=${plan.id}&seats=${seats}&billing=${billing}`);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--vx-gray-50)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '40px 24px 80px' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '48px' }}>
+          <Link to="/">
+            <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
+          </Link>
+          <Link
+            to="/#pricing"
+            style={{ color: 'var(--vx-gray-500)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}
+          >
+            ← Change Plan
+          </Link>
+        </div>
+
+        {/* Page title */}
+        <div style={{ marginBottom: '40px' }}>
+          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 900, color: 'var(--vx-primary)', marginBottom: '8px' }}>
+            Review Your Order
+          </h1>
+          <p style={{ color: 'var(--vx-gray-500)', fontSize: '1rem' }}>
+            Confirm your plan and continue to create your account.
+          </p>
+        </div>
+
+        <div className="checkout-grid">
+          {/* Left: Plan Details */}
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '40px', border: '1px solid var(--vx-gray-200)', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+            {/* Plan header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: plan.color, flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: 900, color: 'var(--vx-primary)' }}>{plan.name}</span>
+              {plan.popular && (
+                <span style={{ background: plan.color, color: '#fff', padding: '3px 10px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.05em' }}>MOST POPULAR</span>
+              )}
+            </div>
+            <p style={{ color: 'var(--vx-gray-500)', marginBottom: '28px', fontSize: '0.95rem' }}>{plan.tagline}</p>
+
+            {/* Price display */}
+            {plan.contactSales ? (
+              <div style={{ marginBottom: '28px' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom Pricing</div>
+                <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.875rem', marginTop: '4px' }}>Tailored to your team's size and needs</p>
+              </div>
+            ) : plan.price === 0 ? (
+              <div style={{ marginBottom: '28px' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Free</div>
+                <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.875rem', marginTop: '4px' }}>7 days, no credit card required</p>
+              </div>
+            ) : (
+              <div style={{ marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '2.5rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>${perSeatPrice.toFixed(2)}</span>
+                  <span style={{ color: 'var(--vx-gray-400)', fontSize: '0.875rem' }}>/seat/mo</span>
+                </div>
+                <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem' }}>
+                  {billing === 'annual' ? `10% annual discount applied` : 'Standard monthly rate'}
+                </p>
+              </div>
+            )}
+
+            {/* Billing Toggle */}
+            {plan.price > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', background: 'var(--vx-gray-50)', borderRadius: '12px', padding: '14px 18px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: billing === 'monthly' ? 'var(--vx-primary)' : 'var(--vx-gray-400)' }}>Monthly</span>
+                <button
+                  onClick={() => setBilling(b => b === 'monthly' ? 'annual' : 'monthly')}
+                  style={{ width: '44px', height: '24px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: billing === 'annual' ? '#6366f1' : '#e2e8f0', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+                >
+                  <span style={{ position: 'absolute', top: '2px', left: billing === 'annual' ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block' }} />
+                </button>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: billing === 'annual' ? 'var(--vx-primary)' : 'var(--vx-gray-400)' }}>
+                  Annual&nbsp;
+                  <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800 }}>Save 10%</span>
+                </span>
+              </div>
+            )}
+
+            {/* Seat Selector */}
+            {plan.price > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', background: 'var(--vx-gray-50)', borderRadius: '12px', padding: '14px 18px', gap: '16px' }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--vx-primary)', fontSize: '0.9rem' }}>Number of Seats</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--vx-gray-400)', marginTop: '2px' }}>One seat = one agent account</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => setSeats(s => Math.max(1, s - 1))}
+                    style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1.5px solid var(--vx-gray-200)', background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--vx-primary)' }}
+                  >−</button>
+                  <span style={{ fontWeight: 900, minWidth: '28px', textAlign: 'center', fontSize: '1.1rem', color: 'var(--vx-primary)' }}>{seats}</span>
+                  <button
+                    onClick={() => setSeats(s => Math.min(100, s + 1))}
+                    style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1.5px solid var(--vx-gray-200)', background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--vx-primary)' }}
+                  >+</button>
+                </div>
+              </div>
+            )}
+
+            {/* Features */}
+            <div style={{ borderTop: '1px solid var(--vx-gray-100)', paddingTop: '28px' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--vx-gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>What's included</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '10px' }}>
+                {plan.features.map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9375rem', color: 'var(--vx-primary)', fontWeight: 500 }}>
+                    <span style={{ color: plan.color, fontWeight: 900, fontSize: '0.875rem', flexShrink: 0 }}>✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Right: Order Summary */}
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '32px', border: `2px solid ${plan.color}`, position: 'sticky', top: '100px' }}>
+            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.15rem', fontWeight: 900, color: 'var(--vx-primary)', marginBottom: '24px' }}>Order Summary</h3>
+
+            {/* Summary rows */}
+            <div style={{ background: 'var(--vx-gray-50)', borderRadius: '14px', padding: '18px', marginBottom: '24px' }}>
+              <SummaryRow label="Plan" value={plan.name} />
+              {plan.price > 0 && (
+                <>
+                  <SummaryRow label="Per seat" value={`$${perSeatPrice.toFixed(2)}/mo`} />
+                  <SummaryRow label="Seats" value={`× ${seats}`} />
+                  <SummaryRow label="Billing" value={billing === 'annual' ? 'Annual (–10%)' : 'Monthly'} />
+                </>
+              )}
+              {plan.price === 0 && <SummaryRow label="Duration" value="7 days free" />}
+
+              {/* Total */}
+              <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '14px', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <span style={{ fontWeight: 800, color: 'var(--vx-primary)', fontSize: '0.9375rem' }}>Total due today</span>
+                <div style={{ textAlign: 'right' }}>
+                  {plan.price === 0 ? (
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>$0</div>
+                  ) : plan.contactSales ? (
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom</div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>${totalPrice}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--vx-gray-400)' }}>/{billing === 'annual' ? 'year' : 'month'}</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            {plan.contactSales ? (
+              <a
+                href="mailto:sales@voxiq.com"
+                style={{
+                  display: 'block', padding: '15px 20px', borderRadius: '12px',
+                  background: plan.color, color: '#fff', fontWeight: 800, fontSize: '1rem',
+                  textAlign: 'center', textDecoration: 'none', fontFamily: 'inherit',
+                  boxSizing: 'border-box', width: '100%',
+                }}
+              >
+                Contact Sales →
+              </a>
+            ) : (
+              <button
+                onClick={handleContinue}
+                style={{
+                  width: '100%', padding: '15px 20px', borderRadius: '12px', border: 'none',
+                  background: 'var(--vx-accent)', color: '#fff', fontWeight: 800, fontSize: '1rem',
+                  cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.01em',
+                  transition: 'background 0.2s, transform 0.15s, box-shadow 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1a1e42'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(45,51,107,0.28)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--vx-accent)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              >
+                Continue to Registration →
+              </button>
+            )}
+
+            <p style={{ fontSize: '0.75rem', color: 'var(--vx-gray-400)', textAlign: 'center', marginTop: '14px', lineHeight: '1.5' }}>
+              {plan.price === 0
+                ? 'No credit card required. Cancel anytime.'
+                : 'No charges until approved by our team.'}
+            </p>
+
+            {/* Trust badges */}
+            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--vx-gray-100)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {['7-day free trial on all plans', 'Cancel anytime — no lock-in', '99.99% uptime SLA guaranteed'].map(item => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0 }}>✓</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--vx-gray-500)' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

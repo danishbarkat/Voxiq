@@ -9,6 +9,7 @@ import './App.css'
 const Home = lazy(() => import('./pages/Home'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
+const Checkout = lazy(() => import('./pages/Checkout'))
 const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin'))
 const Admin = lazy(() => import('./pages/Admin'))
@@ -77,6 +78,7 @@ function AppRoutes() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/superadmin" element={
             <ProtectedRoute allowedRoles={['superadmin']}>

@@ -1,9 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { countries } from '../lib/countries';
 import PricingCards from '../components/PricingCards';
+
+const PLAN_DETAILS = {
+    Trial:      { name: '7-Day Free Trial', tagline: 'Try before you buy',        price: 0,     color: '#6366f1', popular: false, contactSales: false, features: ['Outbound Calls', '1 Agent Seat', '7 Days Free', 'No credit card required'] },
+    Basic:      { name: 'Basic',            tagline: 'Unlimited calling per seat', price: 24.99, color: '#3b82f6', popular: false, contactSales: false, features: ['Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'] },
+    Pro:        { name: 'Pro',              tagline: 'Calls + SMS + Recordings',   price: 39.99, color: '#8b5cf6', popular: true,  contactSales: false, features: ['Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'] },
+    Business:   { name: 'Business',         tagline: 'Full-featured platform',     price: 69.99, color: '#f59e0b', popular: false, contactSales: false, features: ['Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'] },
+    Enterprise: { name: 'Enterprise',       tagline: 'Custom for large teams',     price: null,  color: '#10b981', popular: false, contactSales: true,  features: ['Everything in Business', 'Custom Seat Limit', 'Dedicated Account Manager', 'SLA & Custom Integrations'] },
+};
 
 function checkPassword(pw) {
     return {
@@ -49,8 +57,8 @@ function PasswordStrength({ password }) {
 }
 
 function StepBar({ step }) {
-    const steps = ['Company Info', 'Choose Plan', 'Verify Email'];
-    const idx = step === 'form' ? 0 : step === 'pricing' ? 1 : 2;
+    const steps = ['Company Info', 'Choose Plan', 'Review Order', 'Verify Email'];
+    const idx = step === 'form' ? 0 : step === 'pricing' ? 1 : step === 'checkout' ? 2 : 3;
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
             {steps.map((label, i) => (
@@ -77,12 +85,13 @@ function StepBar({ step }) {
 }
 
 export default function Signup() {
+    const [searchParams] = useSearchParams();
     const [signupStep, setSignupStep] = useState('form');
     const [verificationCode, setVerificationCode] = useState('');
     const [verificationPreview, setVerificationPreview] = useState('');
-    const [selectedPackage, setSelectedPackage] = useState('Trial');
-    const [billingCycle, setBillingCycle] = useState('monthly');
-    const [seatCount, setSeatCount] = useState(1);
+    const [selectedPackage, setSelectedPackage] = useState(searchParams.get('plan') || 'Trial');
+    const [billingCycle, setBillingCycle] = useState(searchParams.get('billing') === 'annual' ? 'annual' : 'monthly');
+    const [seatCount, setSeatCount] = useState(Math.max(1, parseInt(searchParams.get('seats') || '1', 10)));
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -234,6 +243,7 @@ export default function Signup() {
                         onSelect={(pkgId, seats) => {
                             setSelectedPackage(pkgId);
                             setSeatCount(seats);
+                            setSignupStep('checkout');
                         }}
                     />
                     {error && <div className="auth-error" style={{ marginTop: '16px', maxWidth: '600px', margin: '16px auto 0' }}>{error}</div>}
@@ -250,10 +260,166 @@ export default function Signup() {
                             type="button"
                             className="auth-btn-primary"
                             style={{ flex: 2 }}
-                            disabled={isLoading}
-                            onClick={handleSignup}
+                            onClick={() => setSignupStep('checkout')}
                         >
-                            {isLoading ? 'Submitting…' : `Continue with ${selectedPackage} →`}
+                            Review Order →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (signupStep === 'checkout') {
+        const plan = PLAN_DETAILS[selectedPackage] || PLAN_DETAILS.Trial;
+        const perSeatPrice = plan.price ? (billingCycle === 'annual' ? plan.price * 0.9 : plan.price) : null;
+        const totalPrice = perSeatPrice ? (perSeatPrice * seatCount).toFixed(2) : null;
+
+        return (
+            <div className="auth-page" style={{ padding: '24px 16px' }}>
+                <div style={{ maxWidth: '960px', margin: '0 auto', background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                        <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
+                        <div style={{ maxWidth: 480, flex: 1, marginLeft: 32 }}><StepBar step="checkout" /></div>
+                    </div>
+                    <h2 style={{ textAlign: 'center', marginBottom: '6px', fontSize: '1.5rem' }}>Review Your Order</h2>
+                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '24px', fontSize: '0.88rem' }}>
+                        Confirm your plan before completing registration
+                    </p>
+
+                    <div className="checkout-grid">
+                        {/* Left: Plan Details */}
+                        <div style={{ background: 'var(--vx-gray-50)', borderRadius: '18px', padding: '28px', border: '1px solid var(--vx-gray-200)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: plan.color, display: 'inline-block', flexShrink: 0 }} />
+                                <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 900, color: 'var(--vx-primary)' }}>{plan.name}</span>
+                                {plan.popular && <span style={{ background: plan.color, color: '#fff', padding: '2px 8px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>MOST POPULAR</span>}
+                            </div>
+                            <p style={{ color: 'var(--vx-gray-500)', marginBottom: '18px', fontSize: '0.875rem' }}>{plan.tagline}</p>
+
+                            {/* Price */}
+                            {plan.contactSales ? (
+                                <div style={{ marginBottom: '18px' }}>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom</div>
+                                </div>
+                            ) : plan.price === 0 ? (
+                                <div style={{ marginBottom: '18px' }}>
+                                    <div style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Free</div>
+                                    <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem', marginTop: '2px' }}>7 days, no credit card</p>
+                                </div>
+                            ) : (
+                                <div style={{ marginBottom: '18px' }}>
+                                    <span style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>${perSeatPrice.toFixed(2)}</span>
+                                    <span style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem' }}>/seat/mo</span>
+                                </div>
+                            )}
+
+                            {/* Billing Toggle */}
+                            {plan.price > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: '#fff', borderRadius: '10px', padding: '10px 14px' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: billingCycle === 'monthly' ? 'var(--vx-primary)' : 'var(--vx-gray-400)' }}>Monthly</span>
+                                    <button type="button" onClick={() => setBillingCycle(b => b === 'monthly' ? 'annual' : 'monthly')}
+                                        style={{ width: '40px', height: '22px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: billingCycle === 'annual' ? '#6366f1' : '#e2e8f0', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+                                        <span style={{ position: 'absolute', top: '2px', left: billingCycle === 'annual' ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block' }} />
+                                    </button>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: billingCycle === 'annual' ? 'var(--vx-primary)' : 'var(--vx-gray-400)' }}>
+                                        Annual <span style={{ background: '#dcfce7', color: '#16a34a', padding: '1px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>–10%</span>
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Seat Selector */}
+                            {plan.price > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', borderRadius: '10px', padding: '10px 14px', marginBottom: '18px' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--vx-gray-600)' }}>Seats</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <button type="button" onClick={() => setSeatCount(s => Math.max(1, s - 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--vx-gray-200)', background: '#fff', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                        <span style={{ fontWeight: 800, minWidth: '24px', textAlign: 'center', color: 'var(--vx-primary)' }}>{seatCount}</span>
+                                        <button type="button" onClick={() => setSeatCount(s => Math.min(100, s + 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--vx-gray-200)', background: '#fff', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Features */}
+                            <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '16px' }}>
+                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--vx-gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Included</p>
+                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                    {plan.features.map(f => (
+                                        <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.875rem', color: 'var(--vx-primary)' }}>
+                                            <span style={{ color: plan.color, fontWeight: 800, flexShrink: 0 }}>✓</span>{f}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* Right: Order Summary */}
+                        <div style={{ background: '#fff', borderRadius: '18px', padding: '24px', border: `2px solid ${plan.color}` }}>
+                            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: 900, color: 'var(--vx-primary)', marginBottom: '18px' }}>Order Summary</h3>
+
+                            <div style={{ background: 'var(--vx-gray-50)', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                                    <span style={{ color: 'var(--vx-gray-500)' }}>Plan</span>
+                                    <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>{plan.name}</span>
+                                </div>
+                                {plan.price > 0 && (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                                            <span style={{ color: 'var(--vx-gray-500)' }}>Per seat</span>
+                                            <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>${perSeatPrice.toFixed(2)}/mo</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                                            <span style={{ color: 'var(--vx-gray-500)' }}>Seats</span>
+                                            <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>× {seatCount}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                                            <span style={{ color: 'var(--vx-gray-500)' }}>Billing</span>
+                                            <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>{billingCycle === 'annual' ? 'Annual (–10%)' : 'Monthly'}</span>
+                                        </div>
+                                    </>
+                                )}
+                                {plan.price === 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                                        <span style={{ color: 'var(--vx-gray-500)' }}>Duration</span>
+                                        <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>7 days free</span>
+                                    </div>
+                                )}
+                                <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '12px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                    <span style={{ fontWeight: 800, color: 'var(--vx-primary)', fontSize: '0.875rem' }}>Total due today</span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>
+                                            {plan.price === 0 ? '$0' : plan.contactSales ? 'Custom' : `$${totalPrice}`}
+                                        </div>
+                                        {plan.price > 0 && <div style={{ fontSize: '0.7rem', color: 'var(--vx-gray-400)' }}>/{billingCycle === 'annual' ? 'year' : 'month'}</div>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {error && <div className="auth-error" style={{ marginBottom: '12px' }}>{error}</div>}
+
+                            <button type="button" className="auth-btn-primary" disabled={isLoading} onClick={handleSignup}>
+                                {isLoading ? 'Submitting…' : 'Submit Registration →'}
+                            </button>
+
+                            <p style={{ fontSize: '0.72rem', color: 'var(--vx-gray-400)', textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
+                                {plan.price === 0 ? 'No credit card required.' : 'No charges until approved by our team.'}
+                            </p>
+
+                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--vx-gray-100)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {['7-day free trial on all plans', 'Cancel anytime', '99.99% uptime SLA'].map(item => (
+                                    <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                        <span style={{ color: '#10b981', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--vx-gray-500)' }}>{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '20px', maxWidth: '400px', margin: '20px auto 0' }}>
+                        <button type="button" className="btn" style={{ flex: 1, background: '#f1f5f9', color: '#475569' }}
+                            onClick={() => { setSignupStep('pricing'); setError(null); }}>
+                            ← Back to Plans
                         </button>
                     </div>
                 </div>

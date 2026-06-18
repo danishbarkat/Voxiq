@@ -749,7 +749,7 @@ tr:last-child td {
   }
 
   .metric-pill-float {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -1179,5 +1179,75 @@ tr:last-child td {
 
   .auth-right {
     padding: 32px 24px 36px;
+  }
+}
+
+/* ── Hero Home Responsive ────────────────────────────────────── */
+.hero-home {
+  text-align: left;
+  padding: 100px 0 80px;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hero-badges {
+  justify-content: flex-start;
+}
+
+.hero-trust {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1024px) {
+  .hero-home {
+    padding: 80px 0 60px;
+    text-align: center;
+  }
+
+  .hero-content {
+    align-items: center;
+  }
+
+  .hero-badges,
+  .hero-trust {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-home {
+    padding: 56px 0 40px;
+  }
+
+  .hero-media {
+    display: none;
+  }
+
+  .hero-trust {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px !important;
+  }
+
+  .hero-badges {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Checkout Page ───────────────────────────────────────────── */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
   }
 }

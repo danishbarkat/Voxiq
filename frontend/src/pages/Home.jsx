@@ -11,7 +11,6 @@ export default function Home() {
     timestamp: null,
     error: null,
   });
-  const [pricingPlan, setPricingPlan] = useState('Trial');
   const [pricingBilling, setPricingBilling] = useState('monthly');
 
   const checkHealth = () => {
@@ -36,13 +35,13 @@ export default function Home() {
     <div className="shell">
       <main>
         {/* Hero Section */}
-        <section className="hero" style={{ textAlign: 'left', padding: '140px 0 100px' }}>
+        <section className="hero hero-home" id="hero">
           <div className="bg-blob" style={{ top: '-200px', right: '-200px' }}></div>
           <div className="bg-blob" style={{ bottom: '-200px', left: '-200px', background: 'rgba(45, 51, 107, 0.05)' }}></div>
-          
+
           <div className="container hero-grid">
-            <div>
-              <div className="flex-center" style={{ justifyContent: 'flex-start', gap: '12px', marginBottom: '32px' }}>
+            <div className="hero-content">
+              <div className="flex-center hero-badges" style={{ gap: '12px', marginBottom: '32px' }}>
                 <span className="pill-status" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}>
                   <span style={{ width: '8px', height: '8px', background: '#16a34a', borderRadius: '50%' }}></span>
                   2,000+ teams dialing live
@@ -51,14 +50,14 @@ export default function Home() {
                   AI-Powered Cloud Dialer
                 </span>
               </div>
-              
-              <h1 style={{ fontSize: 'clamp(3.5rem, 6vw, 5rem)', marginBottom: '32px', lineHeight: '0.95', fontWeight: 900, color: 'var(--vx-primary)' }}>
+
+              <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', marginBottom: '32px', lineHeight: '0.95', fontWeight: 900, color: 'var(--vx-primary)' }}>
                 Dial Smarter.<br />
                 Close Faster.<br />
                 Win More.
               </h1>
-              
-              <p style={{ fontSize: '1.4rem', color: 'var(--vx-gray-600)', marginBottom: '48px', maxWidth: '600px', lineHeight: '1.5' }}>
+
+              <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', color: 'var(--vx-gray-600)', marginBottom: '48px', maxWidth: '600px', lineHeight: '1.5' }}>
                 Voxiq delivers 5x more conversations with predictive dialing, real-time AI coaching, and seamless CRM sync.
               </p>
 
@@ -69,18 +68,18 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="flex-center" style={{ justifyContent: 'flex-start', gap: '32px', flexWrap: 'wrap' }}>
+              <div className="flex-center hero-trust" style={{ gap: '32px', flexWrap: 'wrap' }}>
                 <TrustItem text="No credit card required" />
                 <TrustItem text="99.99% Uptime SLA" />
                 <TrustItem text="SOC 2 Certified" />
               </div>
             </div>
             
-            <div style={{ position: 'relative' }}>
+            <div className="hero-media" style={{ position: 'relative' }}>
               <div className="dashboard-preview" style={{ borderRadius: '32px', overflow: 'hidden', boxShadow: '0 60px 120px rgba(0,0,0,0.15)', border: '8px solid white' }}>
                 <img src="https://images.unsplash.com/photo-1551288049-bbbda546697a?auto=format&fit=crop&q=80&w=2000" alt="Voxiq Dashboard" style={{ width: '100%', display: 'block' }} />
               </div>
-              
+
               {/* Floating Metrics */}
               <MetricPill top="-30px" left="-50px" emoji="📈" label="Connect Rate" value="+34.2%" color="var(--vx-accent)" />
               <MetricPill bottom="40px" right="-50px" emoji="⚡" label="Calls/Hour" value="127" color="#f97316" />
@@ -178,24 +177,11 @@ export default function Home() {
             </div>
 
             <PricingCards
-              selectedPackage={pricingPlan}
+              selectedPackage=""
               selectedBilling={pricingBilling}
               onBillingChange={setPricingBilling}
-              onSelect={(pkgId) => setPricingPlan(pkgId)}
+              onSelect={(pkgId, seats) => navigate(`/checkout?plan=${pkgId}&seats=${seats}&billing=${pricingBilling}`)}
             />
-
-            <div style={{ textAlign: 'center', marginTop: 48 }}>
-              <Link
-                to="/signup"
-                className="btn btn-primary btn-lg"
-                style={{ background: 'var(--vx-accent)', padding: '18px 56px', fontSize: '1.1rem', borderRadius: '14px', fontWeight: 800, textDecoration: 'none', display: 'inline-block' }}
-              >
-                Get Started with {pricingPlan === 'Trial' ? 'Free Trial' : pricingPlan} →
-              </Link>
-              <p style={{ marginTop: 14, color: '#94a3b8', fontSize: '0.88rem' }}>
-                {pricingPlan === 'Trial' ? 'No credit card required • 7 days free' : 'No credit card required to register • Start with Trial anytime'}
-              </p>
-            </div>
           </div>
         </section>
 
