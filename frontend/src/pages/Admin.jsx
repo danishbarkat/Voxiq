@@ -703,6 +703,219 @@ function HistoryTab({ historyFeed, historyStats, onRefresh, loading }) {
   );
 }
 
+function DashboardPlanBanner({ token }) {
+  const [plan, setPlan] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradePkg, setUpgradePkg] = useState('');
+  const [upgradeBilling, setUpgradeBilling] = useState('monthly');
+  const [upgradeSeats, setUpgradeSeats] = useState(1);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/auth/my-plan`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null).then(setPlan).catch(() => {});
+  }, [token]);
+
+  if (!plan?.packageName) return null;
+
+  const COLORS = { Trial: '#6366f1', Basic: '#3b82f6', Pro: '#8b5cf6', Business: '#f59e0b', Enterprise: '#10b981' };
+  const color = COLORS[plan.packageName] || '#6366f1';
+  const seats = plan.seatCount || plan.agentLimit || 1;
+  const FEATURES = [
+    { key: 'canOutboundCall', label: 'Outbound' },
+    { key: 'canInboundCall', label: 'Inbound' },
+    { key: 'canSendSms', label: 'SMS' },
+    { key: 'canRecord', label: 'Recording' },
+    { key: 'canSendWhatsapp', label: 'WhatsApp' },
+    { key: 'canAiInsights', label: 'AI Insights' },
+  ];
+
+  const daysLeft = plan.isTrial && plan.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(plan.trialEndsAt) - Date.now()) / 86400000))
+    : null;
+
+  return (
+    <>
+      <div style={{
+        background: '#fff',
+        border: '1px solid #e8ecf4',
+        borderRadius: 16,
+        marginBottom: 20,
+        overflow: 'hidden',
+        boxShadow: '0 1px 4px rgba(15,23,42,0.05)',
+      }}>
+        {/* Color bar */}
+        <div style={{ height: 4, background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
+        <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+          {/* Icon + plan name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 13, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+              {plan.packageName === 'Trial' ? '🎯' : plan.packageName === 'Basic' ? '📞' : plan.packageName === 'Pro' ? '⚡' : plan.packageName === 'Business' ? '💼' : '🏢'}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{plan.packageName} Plan</span>
+                {plan.isTrial && (
+                  <span style={{ background: '#fef2f2', color: '#ef4444', fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
+                    {daysLeft != null ? `${daysLeft}d left` : 'TRIAL'}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <span style={{ background: `${color}15`, color, padding: '2px 9px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700 }}>
+                  {seats} seat{seats !== 1 ? 's' : ''}
+                </span>
+                {plan.billingCycle && (
+                  <span style={{ background: '#f1f5f9', color: '#64748b', padding: '2px 9px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600, textTransform: 'capitalize' }}>
+                    {plan.billingCycle}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Feature chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1 }}>
+            {FEATURES.map(({ key, label }) => (
+              <span key={key} style={{
+                padding: '5px 11px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600,
+                background: plan[key] ? '#f0fdf4' : '#f8fafc',
+                color: plan[key] ? '#16a34a' : '#cbd5e1',
+                border: `1px solid ${plan[key] ? '#bbf7d0' : '#e2e8f0'}`,
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                <span style={{ fontSize: 11 }}>{plan[key] ? '✓' : '✗'}</span>
+                {label}
+              </span>
+            ))}
+          </div>
+
+          {/* Upgrade button */}
+          <button
+            onClick={() => { setUpgradePkg(plan.packageName); setUpgradeBilling(plan.billingCycle || 'monthly'); setShowUpgrade(true); }}
+            style={{ background: color, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: `0 4px 14px ${color}40` }}
+          >
+            Upgrade Plan →
+          </button>
+        </div>
+      </div>
+
+      {showUpgrade && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, overflow: 'auto', padding: '32px 16px' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '24px', maxWidth: '1150px', margin: '0 auto', padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Upgrade Your Plan</h2>
+              <button onClick={() => setShowUpgrade(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+            </div>
+            <PricingCards
+              selectedPackage={upgradePkg || plan.packageName}
+              selectedBilling={upgradeBilling}
+              onBillingChange={setUpgradeBilling}
+              onSelect={(pkgId, s) => { setUpgradePkg(pkgId); setUpgradeSeats(s); }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowUpgrade(false)} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button
+                onClick={() => { alert(`Upgrade request submitted: ${upgradePkg} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
+                style={{ padding: '9px 20px', borderRadius: '10px', background: color, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Request Upgrade →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SidebarPlanWidget({ token, collapsed }) {
+  const [plan, setPlan] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradePkg, setUpgradePkg] = useState('');
+  const [upgradeBilling, setUpgradeBilling] = useState('monthly');
+  const [upgradeSeats, setUpgradeSeats] = useState(1);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/auth/my-plan`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null).then(setPlan).catch(() => {});
+  }, [token]);
+
+  if (!plan?.packageName) return null;
+
+  const COLORS = { Trial: '#6366f1', Basic: '#3b82f6', Pro: '#8b5cf6', Business: '#f59e0b', Enterprise: '#10b981' };
+  const color = COLORS[plan.packageName] || '#6366f1';
+  const seats = plan.seatCount || plan.agentLimit || 1;
+
+  return (
+    <>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: collapsed ? '10px 0' : '10px 0', marginBottom: 4 }}>
+        {collapsed ? (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div
+              title={`${plan.packageName} · ${seats} seat${seats !== 1 ? 's' : ''}`}
+              onClick={() => { setUpgradePkg(plan.packageName); setShowUpgrade(true); }}
+              style={{ width: 10, height: 10, borderRadius: '50%', background: color, cursor: 'pointer', boxShadow: `0 0 6px ${color}80` }}
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)' }}>Current Plan</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{plan.packageName}</span>
+                {plan.isTrial && <span style={{ fontSize: '0.6rem', color: '#f87171', fontWeight: 800, flexShrink: 0 }}>TRIAL</span>}
+              </div>
+              <span style={{ background: `${color}28`, color, fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>
+                {seats} seat{seats !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {plan.isTrial && plan.trialEndsAt && (
+              <div style={{ fontSize: '0.68rem', color: '#fca5a5', fontWeight: 500 }}>
+                Ends {new Date(plan.trialEndsAt).toLocaleDateString()}
+              </div>
+            )}
+            <button
+              onClick={() => { setUpgradePkg(plan.packageName); setUpgradeBilling(plan.billingCycle || 'monthly'); setShowUpgrade(true); }}
+              style={{ marginTop: 2, width: '100%', padding: '6px 0', borderRadius: 8, border: `1px solid ${color}55`, background: `${color}18`, color, fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', transition: 'background 0.2s' }}
+            >
+              Upgrade Plan
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showUpgrade && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, overflow: 'auto', padding: '32px 16px' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '24px', maxWidth: '1150px', margin: '0 auto', padding: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Upgrade Your Plan</h2>
+              <button onClick={() => setShowUpgrade(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+            </div>
+            <PricingCards
+              selectedPackage={upgradePkg || plan.packageName}
+              selectedBilling={upgradeBilling}
+              onBillingChange={setUpgradeBilling}
+              onSelect={(pkgId, s) => { setUpgradePkg(pkgId); setUpgradeSeats(s); }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowUpgrade(false)} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button
+                onClick={() => { alert(`Upgrade request submitted: ${upgradePkg} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
+                style={{ padding: '9px 20px', borderRadius: '10px', background: color, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Request Upgrade →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function PlanCard({ token }) {
   const [plan, setPlan] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -1632,54 +1845,52 @@ export default function Admin() {
           )}
         </div>
 
-        <nav className="sidebar-nav">
-          {TABS.map(t => (
-            <a 
-              key={t.id} 
-              href={`#${t.id}`} 
-              title={isSidebarCollapsed ? t.label : ''}
-              className={activeTab === t.id ? 'active' : ''} 
-              onClick={e => { e.preventDefault(); switchTab(t.id); }}
-            >
-              {t.icon}
-              {!isSidebarCollapsed && t.label}
-            </a>
-          ))}
-        </nav>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+          <nav className="sidebar-nav" style={{ flex: 'none' }}>
+            {TABS.map(t => (
+              <a
+                key={t.id}
+                href={`#${t.id}`}
+                title={isSidebarCollapsed ? t.label : ''}
+                className={activeTab === t.id ? 'active' : ''}
+                onClick={e => { e.preventDefault(); switchTab(t.id); }}
+              >
+                {t.icon}
+                {!isSidebarCollapsed && t.label}
+              </a>
+            ))}
+          </nav>
 
-        {/* Quick Actions */}
-        {!isSidebarCollapsed && (
-          <div className="sidebar-tools">
-            <div className="sidebar-section-label">Quick Actions</div>
-            {isSuperAdmin && (
-              <button className="sidebar-btn" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>
-                <Plus size={14} /> Account
-              </button>
-            )}
-            <button className="sidebar-btn" onClick={() => { setListForm({ name: '', accountId: companyAccountId, description: '' }); fetchAccounts(); setShowListModal(true); }}>
-              <Plus size={14} /> List
-            </button>
-            <button className="sidebar-btn" onClick={() => {
-              const { email } = generateAgentId(companyName, authState.user?.email, users);
-              setUserForm({ name: '', email, password: '', roleId: '', accountId: companyAccountId });
-              fetchAccounts(); fetchRoles(); setShowUserModal(true);
-            }}>
-              <Plus size={14} /> Agent
-            </button>
-          </div>
-        )}
-
-        {/* System health + sign out */}
-        <div className="sidebar-health">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', marginBottom: '8px' }}>
-            {!isSidebarCollapsed && <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)' }}>Status</span>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isConnected ? '#4ade80' : '#f87171', boxShadow: isConnected ? '0 0 8px #4ade80' : 'none' }} />
-              {!isSidebarCollapsed && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isConnected ? '#4ade80' : '#f87171' }}>{isConnected ? 'LIVE' : 'OFFLINE'}</span>}
+          {/* Status + Plan — inside scroll area, below tabs */}
+          {!isSidebarCollapsed && (
+            <div style={{ marginTop: 12, padding: '0 2px' }}>
+              {/* Status row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', marginBottom: 4 }}>
+                <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)' }}>Status</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: isConnected ? '#4ade80' : '#f87171', boxShadow: isConnected ? '0 0 8px #4ade80' : 'none' }} />
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isConnected ? '#4ade80' : '#f87171' }}>{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+                </div>
+              </div>
+              {/* Plan widget */}
+              {!isSuperAdmin && (
+                <div style={{ padding: '0 2px' }}>
+                  <SidebarPlanWidget token={authState.token} collapsed={false} />
+                </div>
+              )}
             </div>
-          </div>
+          )}
+          {isSidebarCollapsed && !isSuperAdmin && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
+              <SidebarPlanWidget token={authState.token} collapsed={true} />
+            </div>
+          )}
+        </div>
+
+        {/* Sign out only */}
+        <div style={{ padding: '10px 0 0', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
           {authState.user && !isSidebarCollapsed && (
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, padding: '0 4px' }}>
               {authState.user.name || authState.user.email}
             </div>
           )}
@@ -1767,75 +1978,89 @@ export default function Admin() {
             {/* ── DASHBOARD ──────────────────────────────────────────────── */}
             {activeTab === 'dashboard' && (
               <>
-                <header className="card mb-8" style={{ background: 'linear-gradient(to right, #ffffff, #f8fafc)', borderLeft: '4px solid var(--vx-accent)', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', minWidth: 0 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <h1 className="font-head" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Operations Control</h1>
-                    <p className="text-dim" style={{ fontSize: '0.85rem' }}>Real-time oversight and system management</p>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', padding: '6px 12px', borderRadius: '12px' }}>
-                      <div className={isConnected ? 'pulse-green' : ''} style={{ width: '8px', height: '8px', borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#059669' : '#dc2626', whiteSpace: 'nowrap' }}>{isConnected ? 'System Live' : 'System Offline'}</span>
-                    </div>
-                    <button className="btn btn-primary" onClick={() => switchTab('leads')}>
-                      <Rocket size={16} style={{ marginRight: '8px' }} />
-                      Import Leads
-                    </button>
-                  </div>
-                </header>
-
-                <div className="dynamic-grid mb-8">
-                  <div className="card stat-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="stat-label">Active Campaigns</span>
-                      <div style={{ background: 'rgba(79, 70, 229, 0.1)', padding: '8px', borderRadius: '10px', color: '#4f46e5' }}>
-                        <Rocket size={20} />
+                {/* ── Hero header ── */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+                  borderRadius: 20, padding: '28px 32px', marginBottom: 24,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  flexWrap: 'wrap', gap: 16, position: 'relative', overflow: 'hidden',
+                }}>
+                  <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'rgba(99,102,241,0.12)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', bottom: -40, left: 200, width: 160, height: 160, borderRadius: '50%', background: 'rgba(139,92,246,0.08)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isConnected ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', padding: '4px 10px', borderRadius: 20, border: `1px solid ${isConnected ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444' }} />
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isConnected ? '#6ee7b7' : '#fca5a5' }}>{isConnected ? 'System Live' : 'Offline'}</span>
                       </div>
+                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                     </div>
-                    <span className="stat-val">{campaigns.filter(c => c.status === 'ACTIVE').length}<span style={{ fontSize: '0.9rem', color: 'var(--text-soft)', fontWeight: 400 }}>/{campaigns.length}</span></span>
+                    <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: '#fff', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
+                      {companyName || 'Operations Control'}
+                    </h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)' }}>Real-time oversight and system management</p>
                   </div>
-                  <div className="card stat-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="stat-label">Fleet Connect Rate</span>
-                      <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '10px', color: '#10b981' }}>
-                        <Zap size={20} />
-                      </div>
-                    </div>
-                    <span className="stat-val" style={{ color: '#10b981' }}>
-                      {Object.values(metrics).length > 0
-                        ? (Object.values(metrics).reduce((acc, m) => acc + parseFloat(m?.connectionRate || 0), 0) / Object.values(metrics).length).toFixed(1)
-                        : '0.0'}%
-                    </span>
-                  </div>
-                  <div className="card stat-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="stat-label">Live Agents</span>
-                      <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '10px', color: '#3b82f6' }}>
-                        <Users size={20} />
-                      </div>
-                    </div>
-                    <span className="stat-val">{users.filter(u => u.status === 'ACTIVE').length}</span>
-                  </div>
-                  <div className="card stat-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="stat-label">Total Revenue</span>
-                      <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '8px', borderRadius: '10px', color: '#f59e0b' }}>
-                        <DollarSign size={20} />
-                      </div>
-                    </div>
-                    <span className="stat-val" style={{ color: '#f59e0b' }}>${(overview?.revenue || 0).toLocaleString()}</span>
-                  </div>
-                  {resetRequests.length > 0 && (
-                    <div className="card stat-card" style={{ borderLeft: '4px solid #f59e0b', cursor: 'pointer' }} onClick={() => switchTab('agents')}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <span className="stat-label">Reset Requests</span>
-                        <span style={{ fontSize: '1.2rem' }}>🔑</span>
-                      </div>
-                      <span className="stat-val" style={{ color: '#f59e0b' }}>{resetRequests.length}</span>
-                      <span style={{ fontSize: '0.7rem', color: '#92400e' }}>Click to view agents</span>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => switchTab('leads')}
+                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, background: '#6366f1', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 22px', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 20px rgba(99,102,241,0.4)', flexShrink: 0 }}
+                  >
+                    <Rocket size={16} /> Import Leads
+                  </button>
                 </div>
+
+                {/* ── 4-col stats row ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
+                  {[
+                    {
+                      label: 'Active Campaigns', icon: <Rocket size={18} />,
+                      value: campaigns.filter(c => c.status === 'ACTIVE').length,
+                      sub: `of ${campaigns.length} total`,
+                      color: '#6366f1', bg: 'rgba(99,102,241,0.08)',
+                    },
+                    {
+                      label: 'Connect Rate', icon: <Zap size={18} />,
+                      value: (Object.values(metrics).length > 0
+                        ? (Object.values(metrics).reduce((acc, m) => acc + parseFloat(m?.connectionRate || 0), 0) / Object.values(metrics).length).toFixed(1)
+                        : '0.0') + '%',
+                      sub: 'fleet average',
+                      color: '#10b981', bg: 'rgba(16,185,129,0.08)',
+                    },
+                    {
+                      label: 'Live Agents', icon: <Users size={18} />,
+                      value: users.filter(u => u.status === 'ACTIVE').length,
+                      sub: `of ${users.length} total`,
+                      color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',
+                    },
+                    {
+                      label: 'Total Revenue', icon: <DollarSign size={18} />,
+                      value: `$${(overview?.revenue || 0).toLocaleString()}`,
+                      sub: 'all time',
+                      color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',
+                    },
+                  ].map(({ label, icon, value, sub, color, bg }) => (
+                    <div key={label} style={{ background: '#fff', borderRadius: 16, padding: '18px 20px', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(15,23,42,0.05)', borderTop: `3px solid ${color}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8' }}>{label}</span>
+                        <div style={{ background: bg, color, padding: '6px', borderRadius: 9, display: 'flex' }}>{icon}</div>
+                      </div>
+                      <div style={{ fontSize: '2rem', fontWeight: 900, color, fontFamily: 'Outfit, sans-serif', lineHeight: 1.1 }}>{value}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 4, fontWeight: 500 }}>{sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {resetRequests.length > 0 && (
+                  <div onClick={() => switchTab('agents')} style={{ background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 14, padding: '12px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <span style={{ fontSize: 20 }}>🔑</span>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#92400e' }}>{resetRequests.length} Password Reset Request{resetRequests.length > 1 ? 's' : ''}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#b45309', marginLeft: 8 }}>Click to review</span>
+                    </div>
+                    <span style={{ color: '#b45309', fontSize: '1rem' }}>→</span>
+                  </div>
+                )}
+
+                {!isSuperAdmin && <DashboardPlanBanner token={authState.token} />}
 
                 <div className="dynamic-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                   <section className="card" id="agents">
@@ -1896,91 +2121,91 @@ export default function Admin() {
             {/* ── ANALYTICS ──────────────────────────────────────────────── */}
             {activeTab === 'analytics' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">Analytics Dashboard</h1>
-                  <button className="btn btn-primary" style={{ fontSize: '0.8rem' }} onClick={handleExportCsv}>⬇️ Export CSV</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>Analytics</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Performance insights across all campaigns</p>
+                  </div>
+                  <button style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }} onClick={handleExportCsv}>
+                    ⬇ Export CSV
+                  </button>
                 </div>
 
                 {overview && (
-                  <div className="dynamic-grid mb-6">
-                    {[
-                      { label: 'Total Calls', val: overview.totalCalls, color: 'var(--vx-accent)' },
-                      { label: "Today's Calls", val: overview.todayCalls, color: '#6366f1' },
-                      { label: 'Connected', val: overview.connected, color: 'var(--emerald-500)' },
-                      { label: 'Connection Rate', val: `${overview.connectionRate}%`, color: 'var(--emerald-500)' },
-                      { label: 'Appointments', val: overview.appointments, color: '#f59e0b' },
-                      { label: 'Appt Rate', val: `${overview.appointmentRate}%`, color: '#f59e0b' },
-                      { label: 'Total Revenue', val: `$${(overview.revenue || 0).toLocaleString()}`, color: 'var(--emerald-500)' },
-                      { label: 'Recordings', val: overview.recordings, color: '#8b5cf6' },
-                    ].map((s, i) => (
-                      <div key={i} className="card stat-card">
-                        <span className="stat-label">{s.label}</span>
-                        <span className="stat-val" style={{ color: s.color }}>{s.val}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 14, marginBottom: 14 }}>
+                      {[
+                        { label: 'Total Calls', val: overview.totalCalls, color: '#6366f1', sub: 'all time' },
+                        { label: "Today's Calls", val: overview.todayCalls, color: '#3b82f6', sub: 'since midnight' },
+                        { label: 'Connected', val: overview.connected, color: '#10b981', sub: 'live answers' },
+                        { label: 'Connection Rate', val: `${overview.connectionRate}%`, color: '#10b981', sub: 'of total calls' },
+                      ].map(({ label, val, color, sub }) => (
+                        <div key={label} style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e8ecf4', borderTop: `3px solid ${color}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+                          <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 10 }}>{label}</div>
+                          <div style={{ fontSize: '1.8rem', fontWeight: 900, color, fontFamily: 'Outfit, sans-serif', lineHeight: 1 }}>{val}</div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: 5 }}>{sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+                      {[
+                        { label: 'Appointments', val: overview.appointments, color: '#f59e0b', sub: 'booked' },
+                        { label: 'Appt Rate', val: `${overview.appointmentRate}%`, color: '#f59e0b', sub: 'of connected' },
+                        { label: 'Total Revenue', val: `$${(overview.revenue || 0).toLocaleString()}`, color: '#10b981', sub: 'all time' },
+                        { label: 'Recordings', val: overview.recordings, color: '#8b5cf6', sub: 'stored' },
+                      ].map(({ label, val, color, sub }) => (
+                        <div key={label} style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e8ecf4', borderTop: `3px solid ${color}`, boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
+                          <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 10 }}>{label}</div>
+                          <div style={{ fontSize: '1.8rem', fontWeight: 900, color, fontFamily: 'Outfit, sans-serif', lineHeight: 1 }}>{val}</div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: 5 }}>{sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 {(() => {
                   const sortedCountries = [...heatmapData].sort((a, b) => (b?.value || 0) - (a?.value || 0));
                   const topCountryStats = sortedCountries.slice(0, 5);
                   const mappedCalls = sortedCountries.reduce((sum, item) => sum + (item?.value || 0), 0);
-
                   return (
-                    <div className="dynamic-grid mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                      <div className="card stat-card">
-                        <span className="stat-label">Active Countries</span>
-                        <span className="stat-val" style={{ color: '#2563eb' }}>{sortedCountries.length}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 2fr', gap: 14, marginBottom: 16 }}>
+                      <div style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e8ecf4', borderTop: '3px solid #2563eb' }}>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 8 }}>Active Countries</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#2563eb', fontFamily: 'Outfit, sans-serif' }}>{sortedCountries.length}</div>
                       </div>
-                      <div className="card stat-card">
-                        <span className="stat-label">Mapped Calls</span>
-                        <span className="stat-val" style={{ color: '#0f766e' }}>{mappedCalls}</span>
+                      <div style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e8ecf4', borderTop: '3px solid #0f766e' }}>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 8 }}>Mapped Calls</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f766e', fontFamily: 'Outfit, sans-serif' }}>{mappedCalls}</div>
                       </div>
-                      <div className="card" style={{ padding: '1rem 1.1rem' }}>
-                        <div className="stat-label" style={{ marginBottom: '0.65rem' }}>Top Countries</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                      <div style={{ background: '#fff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e8ecf4' }}>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 8 }}>Top Countries</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           {topCountryStats.length > 0 ? topCountryStats.map(country => (
-                            <span
-                              key={country.id}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                padding: '0.32rem 0.65rem',
-                                borderRadius: '999px',
-                                background: '#eff6ff',
-                                color: '#1d4ed8',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {COUNTRY_LABELS[country.id] || country.id} {country.value}
+                            <span key={country.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem', fontWeight: 700 }}>
+                              {COUNTRY_LABELS[country.id] || country.id} <b>{country.value}</b>
                             </span>
-                          )) : (
-                            <span className="text-dim" style={{ fontSize: '0.78rem' }}>No country data yet</span>
-                          )}
+                          )) : <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>No country data yet</span>}
                         </div>
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* State Heatmap section */}
-                <section className="card mb-6">
-                  <h2 className="font-head mb-4 text-center">Geographic Density</h2>
+                <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '20px 22px', marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>Geographic Call Density</div>
                   <ProWorldMap data={heatmapData} />
-                  <p className="text-center text-dim mt-2" style={{ fontSize: '0.75rem' }}>Call density by country activity</p>
-                </section>
+                  <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.72rem', marginTop: 8 }}>Call density by country</p>
+                </div>
 
-                <div className="dynamic-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                  <div className="card">
-                    <h3 className="font-head mb-4" style={{ fontSize: '1rem' }}>Calls Per Hour (Today)</h3>
-                    <BarChart data={hourly.filter(h => h.value > 0 || hourly.indexOf(h) > 6 && hourly.indexOf(h) < 22)} labelKey="label" valueKey="value" color="var(--vx-accent)" />
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '20px 22px' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>Calls Per Hour (Today)</div>
+                    <BarChart data={hourly.filter(h => h.value > 0 || hourly.indexOf(h) > 6 && hourly.indexOf(h) < 22)} labelKey="label" valueKey="value" color="#6366f1" />
                   </div>
-
                   {overview && (
-                    <div className="card">
-                      <h3 className="font-head mb-4" style={{ fontSize: '1rem' }}>Call Outcomes</h3>
+                    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '20px 22px' }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>Call Outcomes</div>
                       <PieChart data={[
                         { label: 'Connected', value: overview.connected },
                         { label: 'No Answer', value: Math.max(0, overview.totalCalls - overview.connected) },
@@ -1994,69 +2219,108 @@ export default function Admin() {
 
             {/* ── RECORDINGS ──────────────────────────────────────────────── */}
             {activeTab === 'history' && (
-              <HistoryTab
-                historyFeed={historyFeed}
-                historyStats={historyStats}
-                onRefresh={fetchHistory}
-                loading={historyLoading}
-              />
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>Call History</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Browse and search all past calls</p>
+                  </div>
+                </div>
+                <HistoryTab historyFeed={historyFeed} historyStats={historyStats} onRefresh={fetchHistory} loading={historyLoading} />
+              </div>
             )}
 
             {activeTab === 'recordings' && (
-              <RecordingsTab recordings={recordings} users={users} onFetch={fetchRecordings} apiUrl={API_URL} getToken={getToken} />
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>Call Recordings</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Listen to and review recorded calls</p>
+                  </div>
+                </div>
+                <RecordingsTab recordings={recordings} users={users} onFetch={fetchRecordings} apiUrl={API_URL} getToken={getToken} />
+              </div>
             )}
 
             {/* ── SCORECARDS ──────────────────────────────────────────────── */}
             {activeTab === 'scorecards' && (
               <div>
-                <div className="page-header">
-                  <h1>Agent Scorecards</h1>
-                  <div className="page-actions">
-                    <button className="btn" style={{ fontSize: '0.8rem' }} onClick={fetchScorecards}>🔄 Refresh</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>Agent Scorecards</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Ranked by overall performance score</p>
                   </div>
+                  <button onClick={fetchScorecards} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 16px', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', color: '#475569' }}>
+                    ↻ Refresh
+                  </button>
                 </div>
-                <div className="table-container card">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Agent</th>
-                        <th>Calls</th>
-                        <th>Connected</th>
-                        <th>Appointments</th>
-                        <th>Conv%</th>
-                        <th>Talk Time</th>
-                        <th>Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scorecards.length > 0 ? scorecards.map((a, i) => (
-                        <tr key={a.id}>
-                          <td style={{ fontWeight: 700, color: i === 0 ? '#f59e0b' : 'inherit' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{a.name}</td>
-                          <td>{a.totalCalls}</td>
-                          <td style={{ color: 'var(--emerald-500)' }}>{a.connected}</td>
-                          <td style={{ color: '#f59e0b' }}>{a.appointments}</td>
-                          <td>{a.conversionRate}%</td>
-                          <td>{Math.round(a.totalTalkTime / 60)}min</td>
-                          <td>
-                            <span style={{ fontWeight: 700, background: 'var(--vx-accent-soft)', padding: '2px 8px', borderRadius: '999px', color: 'var(--vx-accent)' }}>{a.score}</span>
-                          </td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan="8" className="text-center py-8 text-dim">No call data yet. Scorecards appear after first calls.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+
+                {scorecards.length === 0 ? (
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '60px 24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a', marginBottom: 6 }}>No scorecards yet</div>
+                    <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Scorecards appear after agents make their first calls</div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Top 3 podium */}
+                    {scorecards.length >= 1 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${Math.min(scorecards.length, 3)}, 1fr)`, gap: 14, marginBottom: 16 }}>
+                        {scorecards.slice(0, 3).map((a, i) => {
+                          const medals = ['🥇', '🥈', '🥉'];
+                          const colors = ['#f59e0b', '#94a3b8', '#cd7c3a'];
+                          const bgs = ['#fffbeb', '#f8fafc', '#fdf6ec'];
+                          return (
+                            <div key={a.id} style={{ background: bgs[i], border: `1.5px solid ${colors[i]}40`, borderRadius: 16, padding: '20px 22px', boxShadow: i === 0 ? `0 4px 20px ${colors[i]}25` : 'none' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <span style={{ fontSize: 28 }}>{medals[i]}</span>
+                                <span style={{ background: `${colors[i]}20`, color: colors[i], fontWeight: 800, fontSize: '1rem', padding: '4px 12px', borderRadius: 8 }}>{a.score}</span>
+                              </div>
+                              <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a', marginBottom: 3 }}>{a.name}</div>
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                                <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>{a.totalCalls} calls</span>
+                                <span style={{ background: '#dcfce7', color: '#16a34a', fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>{a.conversionRate}% conv</span>
+                                <span style={{ background: '#fef3c7', color: '#d97706', fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>{a.appointments} appts</span>
+                                <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>{Math.round(a.totalTalkTime / 60)}min</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Rest */}
+                    {scorecards.length > 3 && (
+                      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
+                        {scorecards.slice(3).map((a, i) => (
+                          <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < scorecards.length - 4 ? '1px solid #f1f5f9' : 'none', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#94a3b8', minWidth: 28 }}>#{i + 4}</span>
+                            <div style={{ flex: 1, minWidth: 120 }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{a.name}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>{a.totalCalls} calls</span>
+                              <span style={{ background: '#dcfce7', color: '#16a34a', fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>{a.conversionRate}% conv</span>
+                              <span style={{ background: '#ede9fe', color: '#6366f1', fontSize: '0.7rem', fontWeight: 800, padding: '3px 9px', borderRadius: 6 }}>Score: {a.score}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
             {/* ── LEADS ──────────────────────────────────────────────────── */}
             {activeTab === 'leads' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">Lead Library <span className="text-dim" style={{ fontSize: '1rem', fontWeight: 400 }}>({leads.length} total)</span></h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
+                      Lead Library <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#94a3b8', background: '#f1f5f9', padding: '2px 10px', borderRadius: 8, marginLeft: 8 }}>{leads.length}</span>
+                    </h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Manage and import your prospect lists</p>
+                  </div>
                   <div className="flex gap-2">
                     <select className="input-field" style={{ width: '160px', padding: '0.5rem' }} value={importForm.accountId} onChange={e => {
                       setImportForm(p => ({ ...p, accountId: e.target.value }));
@@ -2248,11 +2512,16 @@ export default function Admin() {
             {/* ── AGENTS ─────────────────────────────────────────────────── */}
             {activeTab === 'agents' && (
               <div>
-                <div className="page-header">
-                  <h1>Agent Management</h1>
-                  <div className="page-actions">
-                    <button className="btn" style={{ background: 'white', border: '1px solid var(--vx-gray-200)', fontSize: '0.8rem' }} onClick={fetchUsers}>🔄 Refresh</button>
-                    <button className="btn btn-primary" onClick={() => {
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
+                      Agents <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#94a3b8', background: '#f1f5f9', padding: '2px 10px', borderRadius: 8, marginLeft: 8 }}>{users.filter(u => u.role?.name?.toLowerCase() === 'agent').length}</span>
+                    </h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Manage agents, numbers and list assignments</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 16px', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', color: '#475569' }} onClick={fetchUsers}>↻ Refresh</button>
+                    <button style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }} onClick={() => {
                       const { email } = generateAgentId(companyName, authState.user?.email, users);
                       setUserForm({ name: '', email, password: '', roleId: '', accountId: companyAccountId });
                       fetchAccounts(); fetchRoles(); setShowUserModal(true);
@@ -2260,278 +2529,236 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="card table-responsive">
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <colgroup>
-                      <col style={{ width: '20%', minWidth: 150 }} />
-                      <col style={{ width: '22%', minWidth: 160 }} />
-                      <col style={{ width: '30%', minWidth: 200 }} />
-                      <col style={{ width: '12%', minWidth: 80 }} />
-                      <col style={{ width: '10%', minWidth: 80 }} />
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th>Agent</th>
-                        <th>Outbound Number</th>
-                        <th>Assigned Lists</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.filter(u => u.role?.name?.toLowerCase() === 'agent').length === 0 ? (
-                        <tr>
-                          <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--vx-gray-400)' }}>
-                            <div style={{ marginBottom: '0.5rem' }}>👥 No agents found</div>
-                            <div style={{ fontSize: '0.8rem' }}>Click "+ Add Agent" to create one.</div>
-                          </td>
-                        </tr>
-                      ) : users.filter(u => u.role?.name?.toLowerCase() === 'agent').map(u => {
-                        const numberPool = Array.isArray(u.account?.numberPool) ? u.account.numberPool : [];
-                        const assignedListIds = u.AgentList?.map(al => al.listId) || [];
-
-                        return (
-                          <tr key={u.id}>
-                            <td>
-                              <div style={{ fontWeight: 700 }}>
-                                {u.name}
+                {users.filter(u => u.role?.name?.toLowerCase() === 'agent').length === 0 ? (
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '60px 24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a', marginBottom: 6 }}>No agents yet</div>
+                    <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Click "+ Add Agent" to create your first agent</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+                    {users.filter(u => u.role?.name?.toLowerCase() === 'agent').map(u => {
+                      const numberPool = Array.isArray(u.account?.numberPool) ? u.account.numberPool : [];
+                      const assignedListIds = u.AgentList?.map(al => al.listId) || [];
+                      const initials = (u.name || 'A').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                      const avatarColors = ['#6366f1', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444'];
+                      const avatarColor = avatarColors[(u.name || '').charCodeAt(0) % avatarColors.length];
+                      return (
+                        <div key={u.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.05)' }}>
+                          {/* Header */}
+                          <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 12, background: avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.88rem', flexShrink: 0 }}>{initials}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>{u.name}</span>
                                 {resetRequests.some(r => r.id === u.id) && (
-                                  <span style={{ marginLeft: 6, fontSize: '0.65rem', background: '#fef3c7', color: '#92400e', borderRadius: 5, padding: '1px 6px', fontWeight: 700, verticalAlign: 'middle' }}>
-                                    🔑 Reset
-                                  </span>
+                                  <span style={{ fontSize: '0.62rem', background: '#fef3c7', color: '#92400e', borderRadius: 5, padding: '2px 6px', fontWeight: 700 }}>🔑 Reset</span>
                                 )}
                               </div>
-                              <div className="text-dim" style={{ fontSize: '0.75rem' }}>{u.email}</div>
-                            </td>
-                            <td>
-                              {u.callerNumber && (
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ede9fe', color: '#5b21b6', borderRadius: 8, padding: '3px 10px', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace', marginBottom: 6 }}>
-                                  📞 {u.callerNumber}
-                                </div>
-                              )}
-                              {!u.callerNumber && numberPool.length === 0 && (
-                                <div className="text-dim" style={{ fontSize: '0.7rem', marginBottom: 4 }}>No numbers — ask super admin to assign</div>
-                              )}
-                              {numberPool.length > 0 && (
-                              <select
-                                className="input-field"
-                                style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem' }}
-                                value={u.callerNumber || ''}
-                                onChange={async (e) => {
-                                  const val = e.target.value || null;
-                                  await fetchJson(`${API_URL}/users/${u.id}/caller-number`, {
-                                    method: 'PATCH',
-                                    body: JSON.stringify({ callerNumber: val })
-                                  });
-                                  fetchUsers();
-                                }}
-                              >
-                                <option value="">--- Auto ---</option>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: u.status === 'ACTIVE' ? '#dcfce7' : '#fef3c7', color: u.status === 'ACTIVE' ? '#16a34a' : '#d97706', flexShrink: 0 }}>{u.status}</span>
+                          </div>
+                          {/* Number */}
+                          <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 6 }}>📞 Outbound Number</div>
+                            {!u.callerNumber && numberPool.length === 0 ? (
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No numbers assigned — ask super admin</div>
+                            ) : (
+                              <select className="input-field" style={{ padding: '6px 10px', fontSize: '0.8rem', width: '100%' }} value={u.callerNumber || ''} onChange={async (e) => {
+                                const val = e.target.value || null;
+                                await fetchJson(`${API_URL}/users/${u.id}/caller-number`, { method: 'PATCH', body: JSON.stringify({ callerNumber: val }) });
+                                fetchUsers();
+                              }}>
+                                <option value="">— Auto —</option>
                                 {numberPool.map((n, i) => {
                                   const isUsed = users.some(other => other.id !== u.id && other.callerNumber === n.number);
-                                  return (
-                                    <option key={i} value={n.number} disabled={isUsed}>
-                                      {formatCallerOption(n)}{isUsed ? ' [Used]' : ''}
-                                    </option>
-                                  );
+                                  return <option key={i} value={n.number} disabled={isUsed}>{formatCallerOption(n)}{isUsed ? ' [Used]' : ''}</option>;
                                 })}
                               </select>
-                              )}
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '350px', marginBottom: '8px' }}>
-                                {u.AgentList?.map(al => (
-                                  <div
-                                    key={al.listId}
-                                    className="badge"
-                                    style={{
-                                      background: 'var(--vx-accent)',
-                                      color: 'white',
-                                      fontSize: '0.65rem',
-                                      padding: '2px 8px',
-                                      borderRadius: '4px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                    }}
-                                  >
-                                    {al.List?.name}
-                                    <button
-                                      style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '0.8rem', fontWeight: 700 }}
-                                      onClick={async () => {
-                                        const newListIds = assignedListIds.filter(id => id !== al.listId);
-                                        await fetchJson(`${API_URL}/users/${u.id}/lists`, {
-                                          method: 'PUT',
-                                          body: JSON.stringify({ listIds: newListIds })
-                                        });
-                                        fetchUsers();
-                                      }}
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                              <select
-                                className="input-field"
-                                style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', width: '100%' }}
-                                value=""
-                                onChange={async (e) => {
-                                  const listId = e.target.value;
-                                  if (!listId) return;
-                                  const newListIds = [...assignedListIds, listId];
-                                  await fetchJson(`${API_URL}/users/${u.id}/lists`, {
-                                    method: 'PUT',
-                                    body: JSON.stringify({ listIds: newListIds })
-                                  });
-                                  fetchUsers();
-                                }}
-                              >
-                                <option value="">+ Assign List</option>
-                                {availableLists
-                                  .filter(l => l.accountId === u.accountId && !assignedListIds.includes(l.id))
-                                  .map(list => (
-                                    <option key={list.id} value={list.id}>
-                                      {list.name}
-                                    </option>
-                                  ))}
-                              </select>
-                            </td>
-                            <td>
-                              <span className={`badge ${u.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`}>{u.status}</span>
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: 4 }}>
-                                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
-                                  onClick={() => { setEditAgentModal(u); setEditAgentForm({ name: u.name || '', email: u.email || '', password: '' }); }}>
-                                  ✏️
-                                </button>
-                                <button className="btn" style={{ padding: '0.3rem 0.6rem', color: '#f43f5e', fontSize: '0.75rem' }}
-                                  onClick={() => setConfirmModal({
-                                    show: true, title: 'Remove Agent?',
-                                    message: `Remove ${u.name}?`,
-                                    onConfirm: async () => {
-                                      await fetch(`${API_URL}/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
-                                      fetchUsers();
-                                    }
-                                  })}>🗑</button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            )}
+                          </div>
+                          {/* Lists */}
+                          <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 8 }}>📋 Assigned Lists</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                              {u.AgentList?.map(al => (
+                                <div key={al.listId} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#ede9fe', color: '#5b21b6', fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
+                                  {al.List?.name}
+                                  <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: 0, fontWeight: 800, lineHeight: 1 }} onClick={async () => {
+                                    const newListIds = assignedListIds.filter(id => id !== al.listId);
+                                    await fetchJson(`${API_URL}/users/${u.id}/lists`, { method: 'PUT', body: JSON.stringify({ listIds: newListIds }) });
+                                    fetchUsers();
+                                  }}>×</button>
+                                </div>
+                              ))}
+                            </div>
+                            <select className="input-field" style={{ padding: '5px 10px', fontSize: '0.75rem', width: '100%' }} value="" onChange={async (e) => {
+                              const listId = e.target.value;
+                              if (!listId) return;
+                              const newListIds = [...assignedListIds, listId];
+                              await fetchJson(`${API_URL}/users/${u.id}/lists`, { method: 'PUT', body: JSON.stringify({ listIds: newListIds }) });
+                              fetchUsers();
+                            }}>
+                              <option value="">+ Assign List</option>
+                              {availableLists.filter(l => l.accountId === u.accountId && !assignedListIds.includes(l.id)).map(list => (
+                                <option key={list.id} value={list.id}>{list.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          {/* Actions */}
+                          <div style={{ padding: '10px 18px', display: 'flex', gap: 8 }}>
+                            <button style={{ flex: 1, padding: '7px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', color: '#475569' }} onClick={() => { setEditAgentModal(u); setEditAgentForm({ name: u.name || '', email: u.email || '', password: '' }); }}>✏️ Edit</button>
+                            <button style={{ flex: 1, padding: '7px', background: '#fff1f2', border: '1px solid #fecaca', borderRadius: 8, fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', color: '#ef4444' }} onClick={() => setConfirmModal({ show: true, title: 'Remove Agent?', message: `Remove ${u.name}?`, onConfirm: async () => { await fetch(`${API_URL}/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } }); fetchUsers(); } })}>🗑 Remove</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── CAMPAIGNS ──────────────────────────────────────────────── */}
             {activeTab === 'campaigns' && (
               <div>
-                <div className="page-header">
-                  <h1>Campaign Management</h1>
-                  <div className="page-actions">
-                    <button className="btn btn-primary" onClick={() => openCampaignModal()}>+ New Campaign</button>
-                    <button className="btn" onClick={fetchCampaigns}>🔄 Refresh</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
+                      Campaigns <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#94a3b8', background: '#f1f5f9', padding: '2px 10px', borderRadius: 8, marginLeft: 8 }}>{campaigns.length}</span>
+                    </h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Manage dialing campaigns and monitor performance</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 16px', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', color: '#475569' }} onClick={fetchCampaigns}>↻ Refresh</button>
+                    <button style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }} onClick={() => openCampaignModal()}>+ New Campaign</button>
                   </div>
                 </div>
-                <div className="flex flex-col gap-4">
-                  {campaigns.map(c => (
-                    <div key={c.id} className="card" style={{ padding: '1.25rem' }}>
-                      <div className="flex justify-between items-center mb-4">
-                        <div>
-                          <h3 style={{ fontWeight: 700 }}>{c.name}</h3>
-                          <span className="text-dim" style={{ fontSize: '0.8rem' }}>{c.mode} mode • {c.pacing}s pacing</span>
+
+                {campaigns.length === 0 ? (
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '60px 24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a', marginBottom: 6 }}>No campaigns yet</div>
+                    <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Create your first campaign to start dialing</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(400px, 1fr))', gap: 16 }}>
+                    {campaigns.map(c => {
+                      const isActive = c.status === 'ACTIVE';
+                      const accentColor = isActive ? '#10b981' : '#94a3b8';
+                      const calls = metrics[c.id]?.totalCalls || 0;
+                      const connectRate = metrics[c.id]?.connectionRate || '0';
+                      return (
+                        <div key={c.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', borderLeft: `4px solid ${accentColor}`, overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.05)' }}>
+                          <div style={{ padding: '18px 20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a', marginBottom: 4 }}>{c.name}</div>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                  <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6 }}>{c.mode}</span>
+                                  <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6 }}>{c.pacing}s pacing</span>
+                                </div>
+                              </div>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: isActive ? '#dcfce7' : '#f1f5f9', color: isActive ? '#16a34a' : '#64748b', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: accentColor, display: 'inline-block' }} />
+                                {c.status}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                              <div style={{ background: '#f8fafc', borderRadius: 10, padding: '8px 14px', flex: 1, textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 3 }}>Calls</div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif' }}>{calls}</div>
+                              </div>
+                              <div style={{ background: '#f8fafc', borderRadius: 10, padding: '8px 14px', flex: 1, textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 3 }}>Connect%</div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981', fontFamily: 'Outfit, sans-serif' }}>{connectRate}%</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {c.status === 'PAUSED'
+                                ? <button style={{ flex: 1, padding: '8px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }} onClick={() => handleStartCampaign(c.id)}>▶ Start</button>
+                                : <button style={{ flex: 1, padding: '8px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 9, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }} onClick={() => handlePauseCampaign(c.id)}>⏸ Pause</button>
+                              }
+                              <button style={{ padding: '8px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 9, fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', color: '#475569' }} onClick={() => openCampaignModal(c)}>⚙️ Edit</button>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex gap-2 items-center">
-                          <span className={`pill-status ${c.status === 'ACTIVE' ? 'pill-success' : 'pill-error'}`}>{c.status}</span>
-                          {c.status === 'PAUSED'
-                            ? <button className="btn btn-primary" style={{ fontSize: '0.8rem' }} onClick={() => handleStartCampaign(c.id)}>▶ Start</button>
-                            : <button className="btn" style={{ fontSize: '0.8rem' }} onClick={() => handlePauseCampaign(c.id)}>⏸ Pause</button>
-                          }
-                          <button className="btn" style={{ fontSize: '0.8rem', marginLeft: '0.5rem', background: 'var(--vx-gray-100)' }} onClick={() => openCampaignModal(c)}>⚙️ Edit</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {campaigns.length === 0 && <div className="card text-center py-12 text-dim">No campaigns found.</div>}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── ACCOUNTS ───────────────────────────────────────────────── */}
             {activeTab === 'accounts' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h1 className="font-head">{isSuperAdmin ? 'Accounts & Numbers' : 'Company & Numbers'}</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>{isSuperAdmin ? 'Accounts & Numbers' : 'Company & Numbers'}</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>{isSuperAdmin ? 'Manage all accounts and number pools' : 'Your plan, numbers and account settings'}</p>
+                  </div>
                   {isSuperAdmin && (
-                    <button className="btn btn-primary" onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>+ New Account</button>
+                    <button style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }} onClick={() => { setAccountForm({ name: '' }); setShowAccountModal(true); }}>+ New Account</button>
                   )}
                 </div>
+
+                {!isSuperAdmin && <PlanCard token={authState.token} />}
+
                 {!isSuperAdmin && (
-                  <PlanCard token={authState.token} />
-                )}
-                {!isSuperAdmin && (
-                  <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
-                    <div className="flex justify-between items-center" style={{ gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '18px 20px', marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
                       <div>
-                        <h3 style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 4 }}>Voxiq Available Numbers</h3>
-                        <p className="text-dim" style={{ fontSize: '0.8rem' }}>
-                          These Telnyx numbers are available in the Voxiq pool but not yet assigned to your company.
-                        </p>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Phone Numbers</div>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 2 }}>Numbers available in your company pool</div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>
-                          {companyNumberInventory.availableNumbers.length} Available
-                        </span>
-                        <span className="badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
-                          {companyNumberInventory.assignedNumbers.length} Assigned To You
-                        </span>
-                        <button className="btn" style={{ background: 'var(--vx-gray-100)' }} onClick={fetchCompanyNumberInventory}>↻ Refresh</button>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ background: '#dcfce7', color: '#16a34a', fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 8 }}>{companyNumberInventory.availableNumbers.length} Available</span>
+                        <span style={{ background: '#ede9fe', color: '#5b21b6', fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 8 }}>{companyNumberInventory.assignedNumbers.length} Assigned</span>
+                        <button style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 12px', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', color: '#475569' }} onClick={fetchCompanyNumberInventory}>↻</button>
                       </div>
                     </div>
-                    <div style={{ marginTop: '1rem' }}>
-                      {companyNumberInventory.availableNumbers.length === 0 ? (
-                        <div className="text-dim" style={{ fontSize: '0.82rem' }}>
-                          No extra Voxiq numbers are currently available. Ask the super admin to assign one to your company.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
-                          {companyNumberInventory.availableNumbers.map((entry) => (
-                            <div key={entry.number} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.65rem 0.8rem', minWidth: 180 }}>
-                              <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{entry.number}</div>
-                              <div className="text-dim" style={{ fontSize: '0.75rem', marginTop: 3 }}>
-                                {entry.countryCode || 'Unknown region'}{entry.callerName ? ` • ${entry.callerName}` : ''}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    {companyNumberInventory.availableNumbers.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>No numbers available. Ask the super admin to assign numbers to your company.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                        {companyNumberInventory.availableNumbers.map((entry) => (
+                          <div key={entry.number} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', minWidth: 170 }}>
+                            <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{entry.number}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 3 }}>{entry.countryCode || 'Unknown'}{entry.callerName ? ` · ${entry.callerName}` : ''}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
-                <div className="flex flex-col gap-4">
-                  {accounts.map(a => (
-                    <div key={a.id} className="card" style={{ padding: '1.25rem' }}>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 style={{ fontWeight: 700, fontSize: '1.1rem' }}>{a.name}</h3>
-                          <p className="text-dim" style={{ fontSize: '0.8rem' }}>
-                            {users.filter(u => u.accountId === a.id).length} Agents •
-                            {availableLists.filter(l => l.accountId === a.id).length} Lists •
-                            {a.numberPool?.length || 0} Numbers
-                          </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+                  {accounts.map(a => {
+                    const agentCount = users.filter(u => u.accountId === a.id).length;
+                    const listCount = availableLists.filter(l => l.accountId === a.id).length;
+                    const numCount = a.numberPool?.length || 0;
+                    return (
+                      <div key={a.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', padding: '18px 20px', boxShadow: '0 1px 4px rgba(15,23,42,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a', marginBottom: 10 }}>{a.name}</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ background: '#ede9fe', color: '#5b21b6', fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px', borderRadius: 7 }}>👤 {agentCount} agents</span>
+                              <span style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px', borderRadius: 7 }}>📋 {listCount} lists</span>
+                              <span style={{ background: '#dcfce7', color: '#16a34a', fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px', borderRadius: 7 }}>📞 {numCount} numbers</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button className="btn" style={{ background: 'var(--vx-gray-100)' }} onClick={() => setManageAccount({ ...a, numberPool: a.numberPool || [] })}>⚙️ Manage</button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button style={{ flex: 1, padding: '7px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 9, fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', color: '#475569' }} onClick={() => setManageAccount({ ...a, numberPool: a.numberPool || [] })}>⚙️ Manage</button>
                           {isSuperAdmin && (
-                            <button className="btn" style={{ background: '#fee2e2', color: '#b91c1c' }} onClick={() => handleDeleteAccount(a.id)}>🗑️ Delete</button>
+                            <button style={{ padding: '7px 14px', background: '#fff1f2', border: '1px solid #fecaca', borderRadius: 9, fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', color: '#ef4444' }} onClick={() => handleDeleteAccount(a.id)}>🗑</button>
                           )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -2539,60 +2766,90 @@ export default function Admin() {
             {/* ── INTEGRATIONS ──────────────────────────────────────────── */}
             {activeTab === 'integrations' && (
               <div>
-                <h1 className="font-head mb-6">Integrations</h1>
-                <div className="dynamic-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                  <section className="card">
-                    <h2 className="font-head mb-4" style={{ fontSize: '1.05rem' }}>⚡ Zapier / Outbound Webhooks</h2>
-                    <div className="flex flex-col gap-2 mb-4">
-                      <input className="input-field" placeholder="Webhook URL" value={newWebhookUrl} onChange={e => setNewWebhookUrl(e.target.value)} />
-                      <button className="btn btn-primary" onClick={addWebhook}>Add Webhook</button>
-                    </div>
-                    {webhooks.map(w => (
-                      <div key={w.id} className="flex justify-between items-center mb-2 p-2 bg-slate-50 rounded">
-                        <span style={{ fontSize: '0.8rem' }}>{w.url}</span>
-                        <button className="btn" style={{ color: '#f43f5e' }} onClick={() => deleteWebhook(w.id)}>✕</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>Integrations</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Connect your tools and automate workflows</p>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+                  {/* Zapier */}
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #fff7ed, #ffedd5)', padding: '16px 20px', borderBottom: '1px solid #fed7aa', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#fff' }}>⚡</div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>Zapier / Webhooks</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Fire events on call outcomes</div>
                       </div>
-                    ))}
-                  </section>
-
-                  <section className="card">
-                    <h2 className="font-head mb-4" style={{ fontSize: '1.05rem' }}>🔗 GoHighLevel</h2>
-                    <input className="input-field mb-2" type="password" placeholder="API Key" value={ghlKey} onChange={e => setGhlKey(e.target.value)} />
-                    <button className="btn btn-primary" onClick={saveGhlKey}>Save</button>
-                  </section>
-
-                  <section className="card">
-                    <h2 className="font-head mb-4" style={{ fontSize: '1.05rem' }}>💬 SMS Templates</h2>
-                    <div className="flex flex-col gap-2">
-                      <input className="input-field" placeholder="Name" value={newSmsName} onChange={e => setNewSmsName(e.target.value)} />
-                      <textarea className="input-field" placeholder="Message" value={newSmsMsg} onChange={e => setNewSmsMsg(e.target.value)} />
-                      <button className="btn btn-primary" onClick={addSmsTemplate}>Add</button>
                     </div>
-                  </section>
+                    <div style={{ padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        <input className="input-field" style={{ flex: 1 }} placeholder="https://hooks.zapier.com/..." value={newWebhookUrl} onChange={e => setNewWebhookUrl(e.target.value)} />
+                        <button style={{ background: '#f97316', color: '#fff', border: 'none', borderRadius: 9, padding: '0 16px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={addWebhook}>Add</button>
+                      </div>
+                      {webhooks.map(w => (
+                        <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderRadius: 8, padding: '8px 12px', marginBottom: 6 }}>
+                          <span style={{ fontSize: '0.75rem', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{w.url}</span>
+                          <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 700, marginLeft: 8, flexShrink: 0 }} onClick={() => deleteWebhook(w.id)}>✕</button>
+                        </div>
+                      ))}
+                      {webhooks.length === 0 && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No webhooks yet</div>}
+                    </div>
+                  </div>
 
-                  <section className="card">
-                    <h2 className="font-head mb-4" style={{ fontSize: '1.05rem' }}>📬 Voicemail Library</h2>
-                    <p className="text-dim mb-4" style={{ fontSize: '0.82rem' }}>Upload MP3 voicemails.</p>
-                    {accounts.length > 0 && (
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        const fd = new FormData(e.target);
-                        await fetch(`${API_URL}/voicemail/templates`, {
-                          method: 'POST',
-                          headers: { Authorization: `Bearer ${getToken() || ''}` },
-                          body: fd,
-                        });
-                        fetchVmTemplates();
-                      }} className="flex flex-col gap-2">
-                        <input name="name" className="input-field" placeholder="Name" required />
-                        <select name="accountId" className="input-field" required>
-                          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                        </select>
-                        <input name="file" type="file" accept="audio/*" required />
-                        <button className="btn btn-primary">Upload</button>
-                      </form>
-                    )}
-                  </section>
+                  {/* GoHighLevel */}
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', padding: '16px 20px', borderBottom: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#fff' }}>🔗</div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>GoHighLevel</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Sync contacts and activities</div>
+                      </div>
+                    </div>
+                    <div style={{ padding: '16px 20px' }}>
+                      <input className="input-field" style={{ marginBottom: 10 }} type="password" placeholder="GHL API Key" value={ghlKey} onChange={e => setGhlKey(e.target.value)} />
+                      <button style={{ width: '100%', padding: '9px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }} onClick={saveGhlKey}>Save API Key</button>
+                    </div>
+                  </div>
+
+                  {/* SMS Templates */}
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', padding: '16px 20px', borderBottom: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#fff' }}>💬</div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>SMS Templates</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Reusable message templates for agents</div>
+                      </div>
+                    </div>
+                    <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input className="input-field" placeholder="Template name" value={newSmsName} onChange={e => setNewSmsName(e.target.value)} />
+                      <textarea className="input-field" placeholder="Message body..." rows={3} value={newSmsMsg} onChange={e => setNewSmsMsg(e.target.value)} style={{ resize: 'vertical' }} />
+                      <button style={{ padding: '9px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }} onClick={addSmsTemplate}>Save Template</button>
+                    </div>
+                  </div>
+
+                  {/* Voicemail */}
+                  <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #faf5ff, #ede9fe)', padding: '16px 20px', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#fff' }}>📬</div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>Voicemail Library</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Upload MP3 drop-voicemails</div>
+                      </div>
+                    </div>
+                    <div style={{ padding: '16px 20px' }}>
+                      {accounts.length > 0 && (
+                        <form onSubmit={async (e) => { e.preventDefault(); const fd = new FormData(e.target); await fetch(`${API_URL}/voicemail/templates`, { method: 'POST', headers: { Authorization: `Bearer ${getToken() || ''}` }, body: fd }); fetchVmTemplates(); }} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <input name="name" className="input-field" placeholder="Voicemail name" required />
+                          <select name="accountId" className="input-field" required>
+                            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                          </select>
+                          <input name="file" type="file" accept="audio/*" required style={{ fontSize: '0.82rem' }} />
+                          <button style={{ padding: '9px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>Upload Voicemail</button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -2600,16 +2857,25 @@ export default function Admin() {
             {/* ── COMPLIANCE ─────────────────────────────────────────────── */}
             {activeTab === 'compliance' && (
               <div>
-                <h1 className="font-head mb-6">Compliance Guard</h1>
-                <div className="dynamic-grid">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>Compliance Guard</h1>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Regulatory safeguards and audit controls</p>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
                   {[
-                    { label: 'DNC SCRUBBING', value: 'SYSTEM ACTIVE', color: 'var(--vx-accent)' },
-                    { label: 'QUIET HOURS', value: 'ENFORCED', color: 'var(--vx-accent)' },
-                    { label: 'AUDIT TRAIL', value: '100% COMPLIANT', color: 'var(--emerald-500)' },
+                    { icon: '🛡️', label: 'DNC Scrubbing', value: 'Active', desc: 'All leads are automatically checked against the Do Not Call registry before dialing.', color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                    { icon: '🕐', label: 'Quiet Hours', value: 'Enforced', desc: 'Calls are restricted to compliant hours only. No calls before 8AM or after 9PM local time.', color: '#6366f1', bg: '#f5f3ff', border: '#ddd6fe' },
+                    { icon: '📋', label: 'Audit Trail', value: '100% Compliant', desc: 'Every call, message, and agent action is logged and retained for compliance review.', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
                   ].map((item, i) => (
-                    <div key={i} className="card">
-                      <span className="stat-label">{item.label}</span>
-                      <p className="mt-2" style={{ fontWeight: 700, color: item.color }}>{item.value}</p>
+                    <div key={i} style={{ background: item.bg, border: `1.5px solid ${item.border}`, borderRadius: 16, padding: '24px 22px' }}>
+                      <div style={{ fontSize: 32, marginBottom: 14 }}>{item.icon}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>{item.label}</span>
+                        <span style={{ background: item.color, color: '#fff', fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 20 }}>{item.value}</span>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>{item.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -2618,14 +2884,14 @@ export default function Admin() {
 
             {/* ── SMS ──────────────────────────────────────────────────────── */}
             {activeTab === 'sms' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>SMS Conversations</h2>
-                  <select
-                    value={smsAgentFilter}
-                    onChange={e => setSmsAgentFilter(e.target.value)}
-                    style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
-                  >
+              <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', minHeight: 500 }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10, flexShrink: 0 }}>
+                  <div>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>SMS Conversations</h1>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>{smsConversations.length} active thread{smsConversations.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  <select value={smsAgentFilter} onChange={e => setSmsAgentFilter(e.target.value)} style={{ padding: '7px 12px', border: '1.5px solid #e2e8f0', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600, background: '#fff', color: '#475569', cursor: 'pointer' }}>
                     <option value="all">All Agents</option>
                     {[...new Map(smsConversations.filter(c => c.agentId).map(c => [c.agentId, c.agentName])).entries()].map(([id, name]) => (
                       <option key={id} value={id}>{name || id}</option>
@@ -2633,86 +2899,67 @@ export default function Admin() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: isMobile ? 'auto' : '70vh', minHeight: isMobile ? '70vh' : 'unset', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-                  {/* Conversation list */}
-                  <div style={{ width: isMobile ? '100%' : 300, maxHeight: isMobile ? 260 : 'none', borderRight: isMobile ? 'none' : '1px solid #e5e7eb', borderBottom: isMobile ? '1px solid #e5e7eb' : 'none', overflowY: 'auto', background: '#f9fafb', flexShrink: 0 }}>
-                    {smsConversations
-                      .filter(c => smsAgentFilter === 'all' || c.agentId === smsAgentFilter)
-                      .map(c => (
-                        <div
-                          key={c.contactNumber}
-                          onClick={() => { setSmsActiveThread(c.contactNumber); fetchAdminSmsThread(c.contactNumber); }}
-                          style={{
-                            padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
-                            background: smsActiveThread === c.contactNumber ? '#eff6ff' : 'transparent',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                            <span style={{ fontWeight: 600, fontSize: 13 }}>{c.contactNumber}</span>
-                            {c.agentName && (
-                              <span style={{ fontSize: 11, background: '#e0e7ff', color: '#3730a3', padding: '1px 7px', borderRadius: 10 }}>
-                                {c.agentName}
-                              </span>
-                            )}
+                {/* Chat panel */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: '#fff', borderRadius: 16, border: '1px solid #e8ecf4', overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.05)', minHeight: 0 }}>
+                  {/* Left: conversation list */}
+                  <div style={{ width: isMobile ? '100%' : 280, maxHeight: isMobile ? 220 : 'none', borderRight: isMobile ? 'none' : '1px solid #f1f5f9', borderBottom: isMobile ? '1px solid #f1f5f9' : 'none', overflowY: 'auto', background: '#fafbfc', flexShrink: 0 }}>
+                    {smsConversations.filter(c => smsAgentFilter === 'all' || c.agentId === smsAgentFilter).length === 0 ? (
+                      <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>No conversations yet</div>
+                    ) : (
+                      smsConversations.filter(c => smsAgentFilter === 'all' || c.agentId === smsAgentFilter).map(c => (
+                        <div key={c.contactNumber} onClick={() => { setSmsActiveThread(c.contactNumber); fetchAdminSmsThread(c.contactNumber); }}
+                          style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: smsActiveThread === c.contactNumber ? '#eff6ff' : 'transparent', transition: 'background 0.15s' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{c.contactNumber}</span>
+                            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          <div style={{ fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {c.direction === 'outbound' ? 'Agent: ' : '← '}{c.lastMessage}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                            {new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {c.agentName && <span style={{ fontSize: '0.65rem', background: '#ede9fe', color: '#5b21b6', padding: '1px 7px', borderRadius: 10, fontWeight: 600 }}>{c.agentName}</span>}
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.direction === 'outbound' ? '→ ' : '← '}{c.lastMessage}
                           </div>
                         </div>
-                      ))}
-                    {smsConversations.length === 0 && (
-                      <div style={{ padding: 24, color: '#9ca3af', fontSize: 13, textAlign: 'center' }}>No conversations yet</div>
+                      ))
                     )}
                   </div>
 
-                  {/* Thread view */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  {/* Right: thread */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
                     {!smsActiveThread ? (
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>
-                        Select a conversation
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: 8 }}>
+                        <div style={{ fontSize: 36 }}>💬</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>Select a conversation</div>
                       </div>
                     ) : (
                       <>
-                        <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 600, fontSize: 14 }}>
-                          {smsActiveThread}
+                        <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem', fontWeight: 800, color: '#5b21b6' }}>
+                            {smsActiveThread.slice(-2)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{smsActiveThread}</div>
+                            <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{smsMessages.length} messages</div>
+                          </div>
                         </div>
-                        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {smsMessages.map(m => (
                             <div key={m.id} style={{ display: 'flex', justifyContent: m.direction === 'outbound' ? 'flex-end' : 'flex-start' }}>
-                              <div style={{
-                                maxWidth: '70%', padding: '8px 12px', borderRadius: 12,
-                                background: m.direction === 'outbound' ? '#2563eb' : '#f3f4f6',
-                                color: m.direction === 'outbound' ? '#fff' : '#111827',
-                                fontSize: 14,
-                              }}>
+                              <div style={{ maxWidth: '68%', padding: '10px 14px', borderRadius: m.direction === 'outbound' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', background: m.direction === 'outbound' ? '#6366f1' : '#f1f5f9', color: m.direction === 'outbound' ? '#fff' : '#0f172a', fontSize: '0.85rem', lineHeight: 1.5 }}>
                                 {m.direction === 'outbound' && m.agentName && (
-                                  <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 2 }}>{m.agentName}</div>
+                                  <div style={{ fontSize: '0.68rem', opacity: 0.75, marginBottom: 3, fontWeight: 600 }}>{m.agentName}</div>
                                 )}
                                 {m.body}
-                                <div style={{ fontSize: 11, opacity: 0.65, marginTop: 4 }}>
-                                  {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
+                                <div style={{ fontSize: '0.62rem', opacity: 0.6, marginTop: 5, textAlign: 'right' }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                               </div>
                             </div>
                           ))}
                         </div>
-                        <div style={{ padding: 12, borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
-                          <input
-                            value={smsInput}
-                            onChange={e => setSmsInput(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdminSmsMessage(); } }}
-                            placeholder="Type a message..."
-                            style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
-                          />
-                          <button
-                            onClick={sendAdminSmsMessage}
-                            disabled={smsSendingMsg || !smsInput.trim()}
-                            style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            {smsSendingMsg ? '...' : 'Send'}
+                        <div style={{ padding: '12px 16px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 8, flexShrink: 0 }}>
+                          <input value={smsInput} onChange={e => setSmsInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAdminSmsMessage(); } }}
+                            placeholder="Type a message… (Enter to send)"
+                            style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }} />
+                          <button onClick={sendAdminSmsMessage} disabled={smsSendingMsg || !smsInput.trim()}
+                            style={{ padding: '10px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', opacity: smsSendingMsg || !smsInput.trim() ? 0.5 : 1 }}>
+                            {smsSendingMsg ? '...' : 'Send →'}
                           </button>
                         </div>
                       </>
