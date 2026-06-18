@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { PhoneCall, BarChart2, MessageSquare, Mic, Smartphone, Sparkles, Building2, Users, Phone } from 'lucide-react';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import PricingCards from '../components/PricingCards';
@@ -124,32 +125,32 @@ export default function Home() {
 
             <div className="features-grid" style={{ gap: '24px' }}>
               <FeatureCard
-                icon="📞" tag="All Plans" tagColor="#10b981"
+                Icon={PhoneCall} tag="All Plans" tagColor="#10b981"
                 title="Outbound & Inbound Calls"
                 desc="Make and receive unlimited calls directly from your browser. No hardware, no downloads — just click and talk."
               />
               <FeatureCard
-                icon="📊" tag="All Plans" tagColor="#10b981"
+                Icon={BarChart2} tag="All Plans" tagColor="#10b981"
                 title="Call History & Analytics"
                 desc="Live dashboards and full call logs. See who's dialing, who's connecting, and where deals are slipping."
               />
               <FeatureCard
-                icon="💬" tag="Pro+" tagColor="#8b5cf6"
+                Icon={MessageSquare} tag="Pro+" tagColor="#8b5cf6"
                 title="SMS Messaging"
                 desc="Send and receive texts alongside your calls from the same inbox. Reach prospects on their preferred channel."
               />
               <FeatureCard
-                icon="🎙️" tag="Pro+" tagColor="#8b5cf6"
+                Icon={Mic} tag="Pro+" tagColor="#8b5cf6"
                 title="Call Recordings & Transcripts"
                 desc="Every call automatically recorded and transcribed. Review conversations, coach your team, and close the gap."
               />
               <FeatureCard
-                icon="📱" tag="Business+" tagColor="#f59e0b"
+                Icon={Smartphone} tag="Business+" tagColor="#f59e0b"
                 title="WhatsApp Messaging"
                 desc="Connect with customers on WhatsApp without leaving your dashboard. One unified inbox for every channel."
               />
               <FeatureCard
-                icon="🧠" tag="Business+" tagColor="#f59e0b"
+                Icon={Sparkles} tag="Business+" tagColor="#f59e0b"
                 title="AI Call Insights"
                 desc="AI analyzes every call for sentiment, key talking points, and follow-up actions — so you coach smarter, not harder."
               />
@@ -166,9 +167,9 @@ export default function Home() {
             </div>
 
             <div className="steps-grid" style={{ marginTop: '80px' }}>
-              <StepItem num="01" emoji="🏢" title="Register Your Company" desc="Fill in your company details, pick a plan that fits your team, and verify your email — the whole setup takes under 5 minutes." />
-              <StepItem num="02" emoji="📋" title="Import Your Contacts" desc="Upload a CSV, connect Salesforce or HubSpot, or enter contacts manually. Your data syncs instantly and is ready to dial." />
-              <StepItem num="03" emoji="📞" title="Call, Record & Close" desc="Start dialing with a single click. Every call is auto-logged, recorded, transcribed, and analyzed the moment it ends." />
+              <StepItem num="01" Icon={Building2} title="Register Your Company" desc="Fill in your company details, pick a plan that fits your team, and verify your email — the whole setup takes under 5 minutes." />
+              <StepItem num="02" Icon={Users} title="Import Your Contacts" desc="Upload a CSV, connect Salesforce or HubSpot, or enter contacts manually. Your data syncs instantly and is ready to dial." />
+              <StepItem num="03" Icon={Phone} title="Call, Record & Close" desc="Start dialing with a single click. Every call is auto-logged, recorded, transcribed, and analyzed the moment it ends." />
             </div>
           </div>
         </section>
@@ -249,11 +250,13 @@ function TrustItem({ text }) {
   );
 }
 
-function FeatureCard({ icon, title, desc, tag, tagColor = '#3b82f6' }) {
+function FeatureCard({ Icon, title, desc, tag, tagColor = '#3b82f6' }) {
   return (
     <div className="feature-card" style={{ padding: '36px 32px', border: '1px solid var(--vx-gray-100)', background: 'white', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <div style={{ width: '52px', height: '52px', background: `${tagColor}18`, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>{icon}</div>
+        <div className="feature-icon-wrap" style={{ width: '60px', height: '60px', background: `${tagColor}14`, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.3s, transform 0.3s' }}>
+          <Icon size={28} color={tagColor} strokeWidth={1.75} className="feature-icon-svg" />
+        </div>
         {tag && <span style={{ background: `${tagColor}15`, color: tagColor, padding: '4px 10px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'flex-start', marginTop: '4px' }}>{tag}</span>}
       </div>
       <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--vx-primary)', margin: 0 }}>{title}</h3>
@@ -262,13 +265,15 @@ function FeatureCard({ icon, title, desc, tag, tagColor = '#3b82f6' }) {
   );
 }
 
-function StepItem({ num, emoji, title, desc }) {
+function StepItem({ num, Icon, title, desc }) {
   return (
     <div className="step-item" style={{ background: 'rgba(255,255,255,0.09)', padding: '40px 36px', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.12)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
         <span style={{ fontSize: '2.25rem', fontFamily: 'Outfit, sans-serif', fontWeight: 900, color: 'rgba(255,255,255,0.22)', lineHeight: 1 }}>{num}</span>
         <div style={{ width: '1px', height: '36px', background: 'rgba(255,255,255,0.2)' }} />
-        <span style={{ fontSize: '1.5rem' }}>{emoji}</span>
+        <div className="step-icon-wrap" style={{ width: '52px', height: '52px', background: 'rgba(255,255,255,0.12)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={26} color="#ffffff" strokeWidth={1.75} className="step-icon-svg" />
+        </div>
       </div>
       <h3 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 14px' }}>{title}</h3>
       <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', lineHeight: '1.65', margin: 0 }}>{desc}</p>

@@ -1273,3 +1273,49 @@ tr:last-child td {
     border-radius: 12px;
   }
 }
+
+/* ── Feature Card Icon Animations ───────────────────────────── */
+@keyframes iconBounceUp {
+  0%   { transform: translateY(0) scale(1); }
+  30%  { transform: translateY(-6px) scale(1.12); }
+  60%  { transform: translateY(-2px) scale(1.06); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes iconWiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  20%       { transform: rotate(-12deg) scale(1.1); }
+  40%       { transform: rotate(10deg) scale(1.1); }
+  60%       { transform: rotate(-6deg) scale(1.05); }
+  80%       { transform: rotate(4deg) scale(1.05); }
+}
+
+@keyframes stepIconFloat {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.9; }
+  50%       { transform: translateY(-5px) scale(1.12); opacity: 1; }
+}
+
+.feature-card:hover .feature-icon-wrap {
+  transform: scale(1.08);
+  background: rgba(0,0,0,0.04) !important;
+}
+
+.feature-card:hover .feature-icon-svg {
+  animation: iconBounceUp 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.step-icon-svg {
+  animation: stepIconFloat 2.8s ease-in-out infinite;
+}
+
+.step-icon-wrap {
+  transition: background 0.3s;
+}
+
+.step-item:hover .step-icon-wrap {
+  background: rgba(255,255,255,0.22) !important;
+}
+
+.step-item:hover .step-icon-svg {
+  animation: iconWiggle 0.6s ease both;
+}
