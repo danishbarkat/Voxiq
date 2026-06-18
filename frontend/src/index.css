@@ -198,20 +198,19 @@ h1, h2, h3, h4, .font-head {
 /* Feature Grid */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 32px;
 }
 
 .feature-card {
-  padding: 32px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-light);
   transition: all 0.3s ease;
 }
 
 .feature-card:hover {
-  border-color: var(--vx-accent);
+  border-color: var(--vx-accent) !important;
   box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .feature-icon {
@@ -231,12 +230,10 @@ h1, h2, h3, h4, .font-head {
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
+  gap: 28px;
 }
 
 .step-item {
-  padding: 32px;
-  background: var(--vx-gray-50);
   border-radius: var(--radius-lg);
 }
 
@@ -1249,5 +1246,30 @@ tr:last-child td {
 @media (max-width: 860px) {
   .checkout-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Signup Step Containers ──────────────────────────────────── */
+.signup-step-container {
+  width: 100%;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .signup-step-container {
+    padding: 24px 16px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .signup-step-container {
+    padding: 20px 12px;
+    border-radius: 12px;
   }
 }

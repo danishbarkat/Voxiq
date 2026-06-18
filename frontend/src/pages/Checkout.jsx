@@ -77,7 +77,9 @@ export default function Checkout() {
     ? (billing === 'annual' ? plan.price * 0.9 : plan.price)
     : null;
 
-  const totalPrice = perSeatPrice ? (perSeatPrice * seats).toFixed(2) : null;
+  const totalPrice = perSeatPrice
+    ? (billing === 'annual' ? perSeatPrice * seats * 12 : perSeatPrice * seats).toFixed(2)
+    : null;
 
   const handleContinue = () => {
     navigate(`/signup?plan=${plan.id}&seats=${seats}&billing=${billing}`);

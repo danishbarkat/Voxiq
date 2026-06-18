@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import PricingCards from '../components/PricingCards';
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [apiState, setApiState] = useState({
     status: 'checking',
     timestamp: null,
     error: null,
   });
   const [pricingBilling, setPricingBilling] = useState('monthly');
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.slice(1);
+      const el = document.getElementById(id);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      }
+    }
+  }, [location.hash]);
 
   const checkHealth = () => {
     fetchJson(`${API_URL}/health`)
@@ -106,35 +117,41 @@ export default function Home() {
         {/* Features Section */}
         <section className="section" id="products" style={{ background: '#fff' }}>
           <div className="container">
-            <div className="section-head" style={{ marginBottom: '80px' }}>
-              <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--vx-primary)' }}>Everything you need<br />to close more deals</h2>
-              <p style={{ fontSize: '1.25rem' }}>From click-to-call to AI-powered analytics, we've got you covered.</p>
+            <div className="section-head" style={{ marginBottom: '72px' }}>
+              <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--vx-primary)' }}>Every channel your<br />buyers are on</h2>
+              <p style={{ fontSize: '1.25rem' }}>Voice, SMS, WhatsApp, and AI — all in one platform your sales team will actually use.</p>
             </div>
 
-            <div className="features-grid" style={{ gap: '40px' }}>
-              <FeatureCard 
-                title="1-Click Dialing" 
-                desc="Connect with prospects instantly directly from your browser. No hardware required." 
+            <div className="features-grid" style={{ gap: '24px' }}>
+              <FeatureCard
+                icon="📞" tag="All Plans" tagColor="#10b981"
+                title="Outbound & Inbound Calls"
+                desc="Make and receive unlimited calls directly from your browser. No hardware, no downloads — just click and talk."
               />
-              <FeatureCard 
-                title="Global Presence" 
-                desc="Get local numbers in over 100 countries. Appear local, sell global." 
+              <FeatureCard
+                icon="📊" tag="All Plans" tagColor="#10b981"
+                title="Call History & Analytics"
+                desc="Live dashboards and full call logs. See who's dialing, who's connecting, and where deals are slipping."
               />
-              <FeatureCard 
-                title="Live Coach & Monitor" 
-                desc="Jump into active calls to whisper advice or take over. Turn rookies into top performers." 
+              <FeatureCard
+                icon="💬" tag="Pro+" tagColor="#8b5cf6"
+                title="SMS Messaging"
+                desc="Send and receive texts alongside your calls from the same inbox. Reach prospects on their preferred channel."
               />
-              <FeatureCard 
-                title="Call Recording" 
-                desc="Automatically record and transcribe every conversation for QA and training." 
+              <FeatureCard
+                icon="🎙️" tag="Pro+" tagColor="#8b5cf6"
+                title="Call Recordings & Transcripts"
+                desc="Every call automatically recorded and transcribed. Review conversations, coach your team, and close the gap."
               />
-              <FeatureCard 
-                title="CRM Integrations" 
-                desc="Push calls, notes, and metrics directly to Salesforce, Hubspot, and more." 
+              <FeatureCard
+                icon="📱" tag="Business+" tagColor="#f59e0b"
+                title="WhatsApp Messaging"
+                desc="Connect with customers on WhatsApp without leaving your dashboard. One unified inbox for every channel."
               />
-              <FeatureCard 
-                title="Predictive AI" 
-                desc="Let our AI predict the best times to call and score your leads for maximum conversion." 
+              <FeatureCard
+                icon="🧠" tag="Business+" tagColor="#f59e0b"
+                title="AI Call Insights"
+                desc="AI analyzes every call for sentiment, key talking points, and follow-up actions — so you coach smarter, not harder."
               />
             </div>
           </div>
@@ -145,13 +162,13 @@ export default function Home() {
           <div className="container">
             <div className="section-head">
               <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'white' }}>Up and running in<br />under an hour</h2>
-              <p style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.8)' }}>No lengthy implementations or expensive consultants required.</p>
+              <p style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.75)' }}>No IT team. No expensive consultants. Sign up, import, and start closing.</p>
             </div>
 
             <div className="steps-grid" style={{ marginTop: '80px' }}>
-              <StepItem num="01" title="Create Your Profile" desc="Sign up, pick your numbers and invite your team in minutes." />
-              <StepItem num="02" title="Sync Your Leads" desc="Upload CSVs or connect your CRM with a single click." />
-              <StepItem num="03" title="Start Dialing" desc="Hit the phones and watch the analytics populate in real-time." />
+              <StepItem num="01" emoji="🏢" title="Register Your Company" desc="Fill in your company details, pick a plan that fits your team, and verify your email — the whole setup takes under 5 minutes." />
+              <StepItem num="02" emoji="📋" title="Import Your Contacts" desc="Upload a CSV, connect Salesforce or HubSpot, or enter contacts manually. Your data syncs instantly and is ready to dial." />
+              <StepItem num="03" emoji="📞" title="Call, Record & Close" desc="Start dialing with a single click. Every call is auto-logged, recorded, transcribed, and analyzed the moment it ends." />
             </div>
           </div>
         </section>
@@ -232,21 +249,29 @@ function TrustItem({ text }) {
   );
 }
 
-function FeatureCard({ title, desc }) {
+function FeatureCard({ icon, title, desc, tag, tagColor = '#3b82f6' }) {
   return (
-    <div className="feature-card" style={{ padding: '48px', border: '1px solid var(--vx-gray-100)', background: 'white' }}>
-      <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '16px', color: 'var(--vx-primary)' }}>{title}</h3>
-      <p style={{ color: 'var(--vx-gray-500)', fontSize: '1.1rem', lineHeight: '1.6' }}>{desc}</p>
+    <div className="feature-card" style={{ padding: '36px 32px', border: '1px solid var(--vx-gray-100)', background: 'white', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ width: '52px', height: '52px', background: `${tagColor}18`, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>{icon}</div>
+        {tag && <span style={{ background: `${tagColor}15`, color: tagColor, padding: '4px 10px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'flex-start', marginTop: '4px' }}>{tag}</span>}
+      </div>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--vx-primary)', margin: 0 }}>{title}</h3>
+      <p style={{ color: 'var(--vx-gray-500)', fontSize: '0.9375rem', lineHeight: '1.65', margin: 0 }}>{desc}</p>
     </div>
   );
 }
 
-function StepItem({ num, title, desc }) {
+function StepItem({ num, emoji, title, desc }) {
   return (
-    <div className="step-item" style={{ background: 'white', padding: '40px', borderRadius: '24px' }}>
-      <div className="step-num" style={{ color: 'var(--vx-accent)', borderBottom: '2px solid var(--vx-accent-soft)', fontSize: '2.5rem', fontWeight: 900 }}>{num}</div>
-      <h3 style={{ color: 'var(--vx-primary)', fontSize: '1.75rem', fontWeight: 800, margin: '24px 0 16px' }}>{title}</h3>
-      <p style={{ color: 'var(--vx-gray-600)', fontSize: '1.1rem' }}>{desc}</p>
+    <div className="step-item" style={{ background: 'rgba(255,255,255,0.09)', padding: '40px 36px', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+        <span style={{ fontSize: '2.25rem', fontFamily: 'Outfit, sans-serif', fontWeight: 900, color: 'rgba(255,255,255,0.22)', lineHeight: 1 }}>{num}</span>
+        <div style={{ width: '1px', height: '36px', background: 'rgba(255,255,255,0.2)' }} />
+        <span style={{ fontSize: '1.5rem' }}>{emoji}</span>
+      </div>
+      <h3 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 14px' }}>{title}</h3>
+      <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', lineHeight: '1.65', margin: 0 }}>{desc}</p>
     </div>
   );
 }

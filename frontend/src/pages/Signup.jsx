@@ -86,6 +86,7 @@ function StepBar({ step }) {
 
 export default function Signup() {
     const [searchParams] = useSearchParams();
+    const fromCheckout = !!(searchParams.get('plan'));
     const [signupStep, setSignupStep] = useState('form');
     const [verificationCode, setVerificationCode] = useState('');
     const [verificationPreview, setVerificationPreview] = useState('');
@@ -152,7 +153,7 @@ export default function Signup() {
             return;
         }
         setError(null);
-        setSignupStep('pricing');
+        setSignupStep(fromCheckout ? 'checkout' : 'pricing');
     };
 
     const handleSignup = async () => {
@@ -226,8 +227,8 @@ export default function Signup() {
 
     if (signupStep === 'pricing') {
         return (
-            <div className="auth-page" style={{ padding: '24px 16px' }}>
-                <div style={{ maxWidth: '1150px', margin: '0 auto', background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+            <div className="auth-page" style={{ padding: '80px 16px 40px', alignItems: 'flex-start' }}>
+                <div className="signup-step-container" style={{ maxWidth: '1150px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                         <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
                         <div style={{ maxWidth: 360, flex: 1, marginLeft: 32 }}><StepBar step="pricing" /></div>
@@ -273,11 +274,13 @@ export default function Signup() {
     if (signupStep === 'checkout') {
         const plan = PLAN_DETAILS[selectedPackage] || PLAN_DETAILS.Trial;
         const perSeatPrice = plan.price ? (billingCycle === 'annual' ? plan.price * 0.9 : plan.price) : null;
-        const totalPrice = perSeatPrice ? (perSeatPrice * seatCount).toFixed(2) : null;
+        const totalPrice = perSeatPrice
+            ? (billingCycle === 'annual' ? perSeatPrice * seatCount * 12 : perSeatPrice * seatCount).toFixed(2)
+            : null;
 
         return (
-            <div className="auth-page" style={{ padding: '24px 16px' }}>
-                <div style={{ maxWidth: '960px', margin: '0 auto', background: '#fff', borderRadius: '24px', padding: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+            <div className="auth-page" style={{ padding: '80px 16px 40px', alignItems: 'flex-start' }}>
+                <div className="signup-step-container" style={{ maxWidth: '960px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                         <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
                         <div style={{ maxWidth: 480, flex: 1, marginLeft: 32 }}><StepBar step="checkout" /></div>
@@ -592,7 +595,7 @@ export default function Signup() {
 
                         <button type="submit" className="auth-btn-primary" disabled={isLoading || !termsAccepted}
                             style={{ opacity: !termsAccepted ? 0.6 : 1 }}>
-                            {isLoading ? 'Checking…' : 'Next: Choose Plan →'}
+                            {isLoading ? 'Checking…' : fromCheckout ? 'Review Order →' : 'Next: Choose Plan →'}
                         </button>
 
                         <p className="auth-switch">

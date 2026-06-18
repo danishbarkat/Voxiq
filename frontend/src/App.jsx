@@ -48,7 +48,9 @@ function PageWrapper({ children }) {
   const location = useLocation();
   const ref = useRef(null);
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!location.hash) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     const el = ref.current;
     if (el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
   }, [location.pathname]);
