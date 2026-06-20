@@ -2109,6 +2109,7 @@ export default function Agent() {
                   list="country-codes-list"
                   value={dialCountryCode}
                   onChange={(e) => setDialCountryCode(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   style={{ width: isNarrowPhone ? '100%' : '72px', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'monospace', background: '#f8fafc', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
                   placeholder="+92"
                 />
