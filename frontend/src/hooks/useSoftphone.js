@@ -431,12 +431,19 @@ export const useSoftphone = (config) => {
                     setCallState('connecting');
                     break;
 
-                case 'early':
+                case 'early': {
                     // 'early' = SIP 180/183 from the remote carrier — phone is actually ringing
                     setCallState('ringing');
                     callReachedRingingRef.current = true;
                     ensureRecordingStarted(call);
+                    // Attach remote stream so agent hears ringback tone (tring tring)
+                    const earlyAudioEl = document.getElementById(AUDIO_ELEMENT_ID);
+                    if (earlyAudioEl && call.remoteStream) {
+                        earlyAudioEl.srcObject = call.remoteStream;
+                        earlyAudioEl.play().catch(() => {});
+                    }
                     break;
+                }
 
                 case 'active': {
                     const isInbound = call.direction === 'inbound' || !!call.options?.remoteCallerNumber;
