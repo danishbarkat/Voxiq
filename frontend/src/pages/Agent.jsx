@@ -1292,6 +1292,7 @@ export default function Agent() {
   const isMobile = viewportWidth <= 768;
   const isNarrowPhone = viewportWidth <= 560;
   const isCompactDesktop = viewportWidth <= 1380;
+  const isHistoryCompact = viewportWidth <= 1280;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
@@ -1936,7 +1937,7 @@ export default function Agent() {
                     Recall
                   </button>
                 ) : null;
-                if (isTablet) {
+                if (isHistoryCompact) {
                   return (
                     <div key={`${item.type}-${item.id}`} style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4', overflow: 'hidden', minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -1965,7 +1966,7 @@ export default function Agent() {
                   </tr>
                 );
               };
-              if (isTablet) return (
+              if (isHistoryCompact) return (
                 <div style={{ flex: 1, minHeight: 0, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                   {filtered.length === 0
                     ? <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>{historyFeed.length === 0 ? 'No history yet.' : `No ${historyFilter} entries.`}</div>
