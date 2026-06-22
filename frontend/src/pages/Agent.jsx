@@ -1918,7 +1918,7 @@ export default function Agent() {
                     Recall
                   </button>
                 ) : null;
-                if (isMobile) {
+                if (isTablet) {
                   return (
                     <div key={`${item.type}-${item.id}`} style={{ padding: '9px 10px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -1945,8 +1945,8 @@ export default function Agent() {
                   </tr>
                 );
               };
-              if (isMobile) return (
-                <div style={{ flex: 1, minHeight: 0, maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              if (isTablet) return (
+                <div style={{ flex: 1, minHeight: 0, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {filtered.length === 0
                     ? <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>{historyFeed.length === 0 ? 'No history yet.' : `No ${historyFilter} entries.`}</div>
                     : filtered.map(renderRow)}
@@ -2225,7 +2225,7 @@ export default function Agent() {
               : <span style={{ background: 'var(--indigo-50)', color: 'var(--indigo-600)', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 600 }}>🆕 New</span>;
           };
 
-          if (isMobile) {
+          if (isTablet) {
             if (filteredLeads.length === 0) return (
               <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>
                 {leadsLoading ? 'Loading leads...' : leads.length === 0 ? 'No leads found. Upload a CSV from Admin panel.' : 'No leads match your search.'}
