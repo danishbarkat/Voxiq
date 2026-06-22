@@ -105,6 +105,19 @@ function splitPhoneForDialer(input, fallbackCountryCode = '+1') {
   };
 }
 
+function formatHistoryDateTime(value) {
+  if (!value) return '—';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleString([], {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function Agent() {
   const navigate = useNavigate();
   const { socket, isConnected, disconnectForLogout } = useSocket();
@@ -2015,7 +2028,7 @@ export default function Agent() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap', minWidth: 0 }}>
                         <AgentHistoryBadge item={item} />
                         <span style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
-                          {new Date(item.startedAt || item.createdAt).toLocaleDateString()}
+                          {formatHistoryDateTime(item.startedAt || item.createdAt)}
                         </span>
                       </div>
                       <div style={{ fontWeight: 700, fontSize: isMobile ? '0.82rem' : '0.8rem', color: '#1e40af', fontFamily: 'monospace', marginBottom: 6, overflowWrap: 'anywhere' }}>
