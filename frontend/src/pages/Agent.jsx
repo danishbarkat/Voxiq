@@ -1400,7 +1400,7 @@ export default function Agent() {
       </header>
 
       {/* ── PAGE BODY ──────────────────────────────────────────────── */}
-      <div style={{ padding: isMobile ? '1rem' : '1.5rem 2rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.25rem 1.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', background: '#f1f5f9' }}>
         {speakerError && (
           <div style={{
             background: '#fff7ed',
@@ -1616,57 +1616,59 @@ export default function Agent() {
 
         {/* Stats Row + Dialer panels (hidden when SMS tab is active) */}
         {!smsTab && (<>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(0, 1fr))' : '2fr 1fr 1fr 1fr', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isNarrowPhone ? '1fr' : 'repeat(2, 1fr)', gap: '0.75rem' }}>
           {/* Calls — period selector card */}
-          <div className="card" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #6366f1' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span className="stat-label">Calls</span>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                {[
-                  { key: 'today', label: 'Today' },
-                  { key: 'yesterday', label: 'Yesterday' },
-                  { key: 'thisWeek', label: 'This Week' },
-                  { key: 'lastWeek', label: 'Last Week' },
-                  { key: 'thisMonth', label: 'Month' },
-                  { key: 'thisYear', label: 'Year' },
-                ].map(p => (
-                  <button key={p.key} onClick={() => setStatsPeriod(p.key)} style={{
-                    fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                    background: statsPeriod === p.key ? '#6366f1' : '#f1f5f9',
-                    color: statsPeriod === p.key ? 'white' : '#64748b',
-                  }}>{p.label}</button>
-                ))}
-              </div>
+          <div style={{ background: '#fff', borderRadius: 14, padding: '1rem 1.1rem', borderTop: '3px solid #6366f1', boxShadow: '0 1px 4px rgba(15,23,42,0.06)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Calls</span>
+              <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#6366f1', background: '#eff6ff', padding: '2px 7px', borderRadius: 99 }}>{statsPeriod === 'today' ? 'Today' : statsPeriod === 'yesterday' ? 'Yest.' : statsPeriod === 'thisWeek' ? 'Week' : statsPeriod === 'lastWeek' ? 'L.Week' : statsPeriod === 'thisMonth' ? 'Month' : 'Year'}</span>
             </div>
-            <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#0f172a', fontFamily: 'Outfit,sans-serif', letterSpacing: '-0.02em', lineHeight: 1.15, marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 900, color: '#6366f1', fontFamily: 'Outfit,sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {periodStats[statsPeriod] ?? 0}
+            </div>
+            <div style={{ display: 'flex', gap: 3, marginTop: 7, overflowX: 'auto', paddingBottom: 2 }}>
+              {[
+                { key: 'today', label: 'Today' },
+                { key: 'yesterday', label: 'Yest' },
+                { key: 'thisWeek', label: 'Week' },
+                { key: 'lastWeek', label: 'L.Wk' },
+                { key: 'thisMonth', label: 'Mo' },
+                { key: 'thisYear', label: 'Yr' },
+              ].map(p => (
+                <button key={p.key} onClick={() => setStatsPeriod(p.key)} style={{
+                  fontSize: '0.58rem', fontWeight: 700, padding: '2px 6px', borderRadius: 999, border: 'none', cursor: 'pointer', flexShrink: 0,
+                  background: statsPeriod === p.key ? '#6366f1' : '#f1f5f9',
+                  color: statsPeriod === p.key ? 'white' : '#64748b',
+                }}>{p.label}</button>
+              ))}
             </div>
           </div>
           {[
-            { label: 'Appointments', value: stats.appointments, accent: '#10b981' },
-            { label: 'Conversion Rate', value: `${stats.calls > 0 ? ((stats.appointments / stats.calls) * 100).toFixed(1) : '0.0'}%`, accent: '#f59e0b' },
-            { label: 'Leads in Queue', value: leads.length, accent: '#06b6d4' },
-          ].map(({ label, value, accent }) => (
-            <div key={label} className="card" style={{ padding: '1.25rem 1.5rem', borderLeft: `4px solid ${accent}` }}>
-              <span className="stat-label">{label}</span>
-              <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', fontFamily: 'Outfit,sans-serif', letterSpacing: '-0.02em', lineHeight: 1.15, marginTop: '0.4rem' }}>
+            { label: "Today's Appts", value: stats.appointments, accent: '#10b981', sub: 'booked' },
+            { label: 'Conv. Rate', value: `${stats.calls > 0 ? ((stats.appointments / stats.calls) * 100).toFixed(1) : '0.0'}%`, accent: '#f59e0b', sub: 'appt / call' },
+            { label: 'Leads Queue', value: leads.length, accent: '#06b6d4', sub: 'available' },
+          ].map(({ label, value, accent, sub }) => (
+            <div key={label} style={{ background: '#fff', borderRadius: 14, padding: '1rem 1.1rem', borderTop: `3px solid ${accent}`, boxShadow: '0 1px 4px rgba(15,23,42,0.06)', minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: accent, fontFamily: 'Outfit,sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4 }}>
                 {value}
               </div>
+              <div style={{ fontSize: '0.68rem', color: '#cbd5e1', marginTop: 3 }}>{sub}</div>
             </div>
           ))}
         </div>
 
         {/* Main 2-column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 360px', gap: '1.25rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 340px', gap: '0.875rem', alignItems: 'start', minWidth: 0 }}>
 
         {/* ── LEFT COLUMN ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* Lead Profile + Quick SMS — side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isNarrowPhone ? '1fr' : isMobile ? '1fr 1fr' : '1fr 1fr', gap: '0.875rem', alignItems: 'start' }}>
 
             {/* Compact Lead Profile Card */}
-            <section className="card" style={{ minHeight: 240 }}>
+            <section className="card" style={{ minHeight: 240, borderTop: '3px solid #6366f1' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <h2 className="font-head" style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span>👤</span> Lead Profile
@@ -1813,9 +1815,9 @@ export default function Agent() {
             </section>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.15fr) minmax(320px, 0.95fr)', gap: '1.25rem', alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.15fr) minmax(300px, 0.95fr)', gap: '0.875rem', alignItems: 'stretch', minWidth: 0 }}>
           {/* Disposition Card */}
-          <section className="card" style={{ height: '100%' }}>
+          <section className="card" style={{ height: '100%', borderTop: '3px solid #f59e0b' }}>
             <h2 className="font-head mb-4" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📋</span> Disposition
             </h2>
@@ -2190,10 +2192,10 @@ export default function Agent() {
         </div> {/* end RIGHT COLUMN */}
         </div> {/* end main 2-col grid */}
 
-        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '0.875rem', alignItems: 'start', minWidth: 0 }}>
 
         {/* ── LEAD QUEUE ── */}
-        <section className="card" style={{ height: '100%' }}>
+        <section className="card" style={{ height: '100%', borderTop: '3px solid #10b981' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0.75rem' : 0, marginBottom: '1rem' }}>
             <div>
               <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2397,7 +2399,7 @@ export default function Agent() {
         </section>
 
         {/* ── CALENDAR / SCHEDULED CALLBACKS ── */}
-        <section className="card" style={{ height: '100%' }}>
+        <section className="card" style={{ height: '100%', borderTop: '3px solid #6366f1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0.75rem' : 0, marginBottom: '1.25rem' }}>
             <h2 className="font-head" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📅</span> Callback Calendar
