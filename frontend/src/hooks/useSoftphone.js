@@ -98,6 +98,10 @@ export const useSoftphone = (config) => {
     // Timestamp when registration completed — used to enforce a post-registration
     // stabilization window before allowing calls (Telnyx WS session needs ~1-2s to fully initialize)
     const registeredAtRef = useRef(0);
+    const webRtcProgressTimeoutRef = useRef(null);
+    const fallbackInFlightRef = useRef(false);
+    const manualHangupRef = useRef(false);
+    const activeDialRequestRef = useRef(null);
 
     // Attach AudioContext unlock on first mount (safe: runs after React init)
     useEffect(() => {
@@ -331,6 +335,13 @@ export const useSoftphone = (config) => {
         setTimeout(() => recentlyFinishedCallIdsRef.current.delete(id), 30000);
     }, []);
 
+    const clearWebRtcProgressTimeout = useCallback(() => {
+        if (webRtcProgressTimeoutRef.current) {
+            clearTimeout(webRtcProgressTimeoutRef.current);
+            webRtcProgressTimeoutRef.current = null;
+        }
+    }, []);
+
     // ── Init TelnyxRTC ───────────────────────────────────────────────────────
     useEffect(() => {
         const login = config?.login || config?.username;
@@ -433,6 +444,7 @@ export const useSoftphone = (config) => {
 
                 case 'early': {
                     // 'early' = SIP 180/183 from the remote carrier — phone is actually ringing
+                    clearWebRtcProgressTimeout();
                     setCallState('ringing');
                     callReachedRingingRef.current = true;
                     ensureRecordingStarted(call);
@@ -446,6 +458,7 @@ export const useSoftphone = (config) => {
                 }
 
                 case 'active': {
+                    clearWebRtcProgressTimeout();
                     const isInbound = call.direction === 'inbound' || !!call.options?.remoteCallerNumber;
                     if (isInbound) {
                         setCallState('connected');
@@ -538,6 +551,12 @@ export const useSoftphone = (config) => {
                     }
 
                     // Determine call outcome before resetting state
+                    const shouldFallbackToBackend =
+                        !manualHangupRef.current &&
+                        !fallbackInFlightRef.current &&
+                        !callReachedRingingRef.current &&
+                        !callReachedActiveRef.current &&
+                        !!activeDialRequestRef.current;
                     const outcome = callReachedActiveRef.current
                         ? 'answered'
                         : callReachedRingingRef.current
@@ -548,6 +567,7 @@ export const useSoftphone = (config) => {
                     // Reset reach tracking for next call
                     callReachedRingingRef.current = false;
                     callReachedActiveRef.current = false;
+                    clearWebRtcProgressTimeout();
                     rememberFinishedCallId(activeCallLogIdRef.current);
                     rememberFinishedCallId(callControlIdRef.current);
                     rememberFinishedCallId(call?.id);
@@ -568,6 +588,12 @@ export const useSoftphone = (config) => {
                     }, 30000);
                     const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
                     if (audioEl) audioEl.srcObject = null;
+                    if (shouldFallbackToBackend) {
+                        setTimeout(() => {
+                            startBackendFallbackDial('webrtc_hangup_before_progress');
+                        }, 0);
+                    }
+                    manualHangupRef.current = false;
                     break;
                 }
                 default:
@@ -587,11 +613,79 @@ export const useSoftphone = (config) => {
             registeredRef.current = false;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [config?.login, config?.username, config?.password, ensureRecordingStarted, stopCustomRecording, stopMicCapture]);
+    }, [config?.login, config?.username, config?.password, clearWebRtcProgressTimeout, ensureRecordingStarted, stopCustomRecording, stopMicCapture]);
 
     // ── makeCall ─────────────────────────────────────────────────────────────
     const isDialingRef = useRef(false); // Mutex: prevent concurrent newCall() invocations
     const linkedControlIds = useRef(new Set()); // Track already-linked controlIds to skip duplicate PATCH
+
+    const startBackendFallbackDial = useCallback(async (reason = 'webrtc_failed') => {
+        const request = activeDialRequestRef.current;
+        if (!request || fallbackInFlightRef.current) return null;
+
+        fallbackInFlightRef.current = true;
+        clearWebRtcProgressTimeout();
+        isDialingRef.current = false;
+
+        if (activeCallRef.current) {
+            try { activeCallRef.current.hangup(); } catch (_) { }
+            activeCallRef.current = null;
+        }
+
+        stopMicCapture();
+        console.warn(`[Softphone] Falling back to backend dial (${reason}) for ${request.to}`);
+
+        try {
+            const res = await fetch(`${API_BASE}/api/dialer/call/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: request.to,
+                    from: request.from,
+                    callerName: request.callerName,
+                    leadId: request.leadId,
+                    callLogId: request.callLogId,
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error(`Backend dial failed (${res.status})`);
+            }
+
+            const data = await res.json();
+            if (data?.error) {
+                throw new Error(data.message || data.error);
+            }
+
+            if (data.callLogId || request.callLogId) {
+                activeCallLogIdRef.current = data.callLogId || request.callLogId;
+            }
+            setCallControlId(data.callId);
+            callControlIdRef.current = data.callId;
+            setLastError(null);
+            setSipCause(null);
+            setCallOutcome(null);
+            setCallState('ringing');
+
+            setTimeout(() => {
+                if (callControlIdRef.current === data.callId) {
+                    setCallState('disconnected');
+                    setCallControlId(null);
+                    callControlIdRef.current = null;
+                }
+            }, 30000);
+
+            return { callId: data.callId, callLogId: data.callLogId || request.callLogId || null };
+        } catch (err) {
+            console.error('[Softphone] Backend fallback dial failed:', err);
+            setLastError('error');
+            setCallOutcome('invalid');
+            setCallState('failed');
+            return null;
+        } finally {
+            fallbackInFlightRef.current = false;
+        }
+    }, [clearWebRtcProgressTimeout, stopMicCapture]);
 
     const makeCall = useCallback(async (target, leadId, callLogId) => {
         // ── AudioContext unlock ───────────────────────────────────────────────
@@ -620,6 +714,9 @@ export const useSoftphone = (config) => {
             return null;
         }
         isDialingRef.current = true;
+        manualHangupRef.current = false;
+        fallbackInFlightRef.current = false;
+        clearWebRtcProgressTimeout();
         // ─────────────────────────────────────────────────────────────────────
 
         // Force hangup any existing active call before starting a new one
@@ -705,6 +802,7 @@ export const useSoftphone = (config) => {
 
                 const from = config?.callerNumber || '+14422039259';
                 const callerName = config?.callerName || '';
+                activeDialRequestRef.current = { to, from, callerName, leadId, callLogId };
                 console.log('[Softphone] WebRTC newCall:', to, 'logId:', callLogId);
                 const call = clientRef.current.newCall({
                     destinationNumber: to,
@@ -719,6 +817,13 @@ export const useSoftphone = (config) => {
                 });
                 activeCallRef.current = call;
                 setCallState('connecting'); // Stay "DIALING..." until server confirms via 'early'/'active'
+                webRtcProgressTimeoutRef.current = setTimeout(() => {
+                    const currentCall = activeCallRef.current;
+                    if (!currentCall || fallbackInFlightRef.current || manualHangupRef.current) return;
+                    if (callReachedRingingRef.current || callReachedActiveRef.current) return;
+                    console.warn('[Softphone] WebRTC progress timeout reached. Switching to backend dial fallback.');
+                    startBackendFallbackDial('webrtc_progress_timeout');
+                }, 20000);
                 isDialingRef.current = false; // Release mutex after call is set up
                 return { callId: null, callLogId: callLogId || null };
             } catch (err) {
@@ -732,45 +837,8 @@ export const useSoftphone = (config) => {
         }
 
         console.log('[Softphone] WebRTC not available or failed, falling back to backend dial');
-        // Backend fallback (no browser audio)
-        try {
-            const res = await fetch(`${API_BASE}/api/dialer/call/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: digits,
-                    from: config?.callerNumber || '+12623990007',
-                    callerName: config?.callerName || '',
-                    leadId,
-                }),
-            });
-            if (!res.ok) {
-                setLastError('error');
-                setCallOutcome('invalid');
-                setCallState('failed');
-                stopMicCapture();
-                isDialingRef.current = false;
-                return null;
-            }
-            const data = await res.json();
-            setCallControlId(data.callId);
-            callControlIdRef.current = data.callId;
-            setCallState('ringing');
-            setTimeout(() => {
-                if (callControlIdRef.current === data.callId) { setCallState('disconnected'); setCallControlId(null); }
-            }, 30000);
-
-            isDialingRef.current = false; // RELEASE MUTEX
-            return { callId: data.callId, callLogId: data.callLogId };
-        } catch (err) {
-            setLastError('error');
-            setCallOutcome('invalid');
-            setCallState('failed');
-            stopMicCapture();
-            isDialingRef.current = false; // RELEASE MUTEX
-            return null;
-        }
-    }, [config?.callerName, config?.callerNumber, stopMicCapture]);
+        return startBackendFallbackDial('webrtc_unavailable');
+    }, [clearWebRtcProgressTimeout, config?.callerName, config?.callerNumber, startBackendFallbackDial]);
 
     const attachCall = useCallback((callLogId) => {
         console.log('[Softphone] Attaching campaign call, logId:', callLogId);
@@ -786,6 +854,8 @@ export const useSoftphone = (config) => {
     }, []);
 
     const hangup = useCallback(async () => {
+        manualHangupRef.current = true;
+        clearWebRtcProgressTimeout();
         if (activeCallRef.current) {
             try { activeCallRef.current.hangup(); } catch (e) { console.warn(e); }
             activeCallRef.current = null;
@@ -807,7 +877,7 @@ export const useSoftphone = (config) => {
         setCallState('disconnected');
         const audioEl = document.getElementById(AUDIO_ELEMENT_ID);
         if (audioEl) audioEl.srcObject = null;
-    }, [stopCustomRecording, rememberFinishedCallId]);
+    }, [clearWebRtcProgressTimeout, stopCustomRecording, rememberFinishedCallId]);
 
     const answerCall = useCallback(async () => {
         const call = incomingCallRef.current;
@@ -867,6 +937,7 @@ export const useSoftphone = (config) => {
         if (status === 'connected') {
             // Only mark connected if it's our call or we have no active call tracked yet
             if (isOurCall || (!activeLogId && !activeCtrlId)) {
+                clearWebRtcProgressTimeout();
                 setCallState('connected');
                 setLastError(null);
                 callReachedActiveRef.current = true;
@@ -885,7 +956,7 @@ export const useSoftphone = (config) => {
             stopCustomRecording();
             activeCallLogIdRef.current = null;
         }
-    }, [ensureRecordingStarted, stopCustomRecording]);
+    }, [clearWebRtcProgressTimeout, ensureRecordingStarted, stopCustomRecording]);
 
     return {
         registered,

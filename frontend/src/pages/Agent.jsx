@@ -1288,9 +1288,10 @@ export default function Agent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isTablet = viewportWidth <= 1100;
+  const isTablet = viewportWidth <= 1024;
   const isMobile = viewportWidth <= 768;
   const isNarrowPhone = viewportWidth <= 560;
+  const isCompactDesktop = viewportWidth <= 1380;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
@@ -1658,16 +1659,16 @@ export default function Agent() {
         </div>
 
         {/* Main 2-column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 340px', gap: '0.875rem', alignItems: 'start', minWidth: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isCompactDesktop ? '1fr' : 'minmax(0, 1fr) minmax(320px, 340px)', gap: '0.875rem', alignItems: 'start', minWidth: 0 }}>
 
         {/* ── LEFT COLUMN ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
 
           {/* Lead Profile + Quick SMS — side by side on desktop, stacked on mobile */}
-          <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isCompactDesktop ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.75rem', alignItems: 'start', minWidth: 0 }}>
 
             {/* Compact Lead Profile Card */}
-            <section className="card" style={{ minHeight: 240, borderTop: '3px solid #6366f1' }}>
+            <section className="card" style={{ minHeight: 240, borderTop: '3px solid #6366f1', minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <h2 className="font-head" style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span>👤</span> Lead Profile
@@ -1732,7 +1733,7 @@ export default function Agent() {
             </section>
 
             {/* Quick SMS Panel */}
-            <section className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: 240, padding: '0.875rem' }}>
+            <section className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: 240, padding: '0.875rem', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <h2 className="font-head" style={{ fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span>💬</span> Quick SMS
@@ -1814,9 +1815,9 @@ export default function Agent() {
             </section>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.15fr) minmax(300px, 0.95fr)', gap: '0.875rem', alignItems: 'stretch', minWidth: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isCompactDesktop ? '1fr' : 'minmax(0, 1.15fr) minmax(280px, 0.95fr)', gap: '0.875rem', alignItems: 'stretch', minWidth: 0 }}>
           {/* Disposition Card */}
-          <section className="card" style={{ height: '100%', borderTop: '3px solid #f59e0b' }}>
+          <section className="card" style={{ height: '100%', borderTop: '3px solid #f59e0b', minWidth: 0 }}>
             <h2 className="font-head mb-4" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📋</span> Disposition
             </h2>
@@ -1881,8 +1882,8 @@ export default function Agent() {
             )}
           </section>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
-          <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: isMobile ? 'auto' : 494, maxHeight: isMobile ? 'none' : 494 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', minWidth: 0 }}>
+          <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: isMobile ? 'auto' : 494, maxHeight: isMobile ? 'none' : 494, minWidth: 0 }}>
             {/* Header row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
               <h2 className="font-head" style={{ fontSize: '1rem', margin: 0 }}>Call &amp; SMS History</h2>
@@ -1989,10 +1990,10 @@ export default function Agent() {
         </div> {/* end LEFT COLUMN */}
 
         {/* ── RIGHT COLUMN ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
 
           {/* Call Control / Softphone */}
-          <section className="card" style={{ background: 'linear-gradient(160deg, #0f172a 0%, #1b2050 100%)', border: 'none', padding: '1.5rem' }}>
+          <section className="card" style={{ background: 'linear-gradient(160deg, #0f172a 0%, #1b2050 100%)', border: 'none', padding: '1.5rem', minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, color: 'white', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2050,7 +2051,7 @@ export default function Agent() {
           </section>
 
           {/* ── MANUAL DIAL CARD (dedicated) ── */}
-          <section className="card" style={{ border: '1.5px solid #e0e7ff' }}>
+          <section className="card" style={{ border: '1.5px solid #e0e7ff', minWidth: 0 }}>
             {/* Header row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

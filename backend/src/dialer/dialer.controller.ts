@@ -69,7 +69,7 @@ export class DialerController {
     @SetMetadata('isPublic', true)
     @Post('call/start')
     async startCall(
-        @Body() body: { to: string; from?: string; callerName?: string; leadId?: string; agentId?: string },
+        @Body() body: { to: string; from?: string; callerName?: string; leadId?: string; agentId?: string; callLogId?: string },
     ) {
         const to = this.normalizeToE164(body.to);
         const from = this.normalizeToE164(
@@ -102,6 +102,10 @@ export class DialerController {
                 select: { id: true, callStatus: true, callControlId: true, startedAt: true },
             });
             if (activeCallLog) {
+                const sameCallLogRetry = body.callLogId && activeCallLog.id === body.callLogId;
+                if (sameCallLogRetry) {
+                    console.log(`[Dialer] Reusing active call log ${activeCallLog.id} for fallback retry to ${to}`);
+                } else
                 if (await this.clearOrphanedRingingCall(activeCallLog)) {
                     // Stale pre-dial lock cleared; allow this new attempt through.
                 } else {
@@ -147,7 +151,25 @@ export class DialerController {
 
         // Create call log if leadId provided (optional - don't block call if DB fails)
         let callLogId: string | null = null;
-        if (body.leadId) {
+        if (body.callLogId) {
+            try {
+                const updated = await this.prisma.callLog.update({
+                    where: { id: body.callLogId },
+                    data: {
+                        callControlId: result.callId,
+                        callStatus: CallStatus.RINGING,
+                        endedAt: null,
+                        disposition: null,
+                        toNumber: to,
+                        fromNumber: from,
+                    },
+                    select: { id: true },
+                });
+                callLogId = updated.id;
+            } catch (logErr) {
+                console.warn('callLog update skipped:', logErr?.message);
+            }
+        } else if (body.leadId) {
             try {
                 const user = await this.prisma.user.findFirst({ select: { id: true } });
                 // Find or use a default campaign to satisfy FK constraint
