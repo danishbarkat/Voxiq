@@ -1292,7 +1292,7 @@ export default function Agent() {
   const isMobile = viewportWidth <= 768;
   const isNarrowPhone = viewportWidth <= 560;
   const isCompactDesktop = viewportWidth <= 1380;
-  const isHistoryCompact = viewportWidth <= 1280;
+  const isHistoryCompact = true;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
