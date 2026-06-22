@@ -68,6 +68,43 @@ function normalizeSmsPhone(input, fallbackCountryCode = '+1') {
   return `${fallbackCountryCode}${digits}`;
 }
 
+function splitPhoneForDialer(input, fallbackCountryCode = '+1') {
+  const raw = `${input || ''}`.trim();
+  if (!raw) {
+    return { countryCode: fallbackCountryCode, localNumber: '' };
+  }
+
+  if (!raw.startsWith('+')) {
+    return {
+      countryCode: fallbackCountryCode,
+      localNumber: raw.replace(/[^\d*#\s-]/g, ''),
+    };
+  }
+
+  const normalized = `+${raw.slice(1).replace(/\D/g, '')}`;
+  const normalizedCountries = countries
+    .map(({ code }) => ({
+      original: code,
+      normalized: `+${String(code || '').replace(/\D/g, '')}`,
+    }))
+    .filter((entry) => entry.normalized.length > 1)
+    .sort((a, b) => b.normalized.length - a.normalized.length);
+
+  const matched = normalizedCountries.find((entry) => normalized.startsWith(entry.normalized));
+  if (matched) {
+    return {
+      countryCode: matched.original,
+      localNumber: normalized.slice(matched.normalized.length),
+    };
+  }
+
+  const genericCode = normalized.slice(0, Math.min(4, normalized.length));
+  return {
+    countryCode: genericCode.length > 1 ? genericCode : fallbackCountryCode,
+    localNumber: normalized.slice(genericCode.length),
+  };
+}
+
 export default function Agent() {
   const navigate = useNavigate();
   const { socket, isConnected, disconnectForLogout } = useSocket();
@@ -1935,9 +1972,10 @@ export default function Agent() {
                   <button
                     disabled={callActive}
                     onClick={() => {
-                      const num = displayNumber.replace(/\D/g, '');
-                      setDialNumber(num);
-                      setDialName(contactName || num);
+                      const { countryCode, localNumber } = splitPhoneForDialer(displayNumber, dialCountryCode);
+                      setDialCountryCode(countryCode);
+                      setDialNumber(localNumber);
+                      setDialName(contactName || displayNumber);
                       setShowDialpad(true);
                     }}
                     style={{
