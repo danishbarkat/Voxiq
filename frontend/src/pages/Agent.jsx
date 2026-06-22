@@ -1896,87 +1896,74 @@ export default function Agent() {
               })}
             </div>
 
-            <div className="table-container" style={{ flex: 1, minHeight: 0, maxHeight: 320, overflowY: 'auto', overflowX: 'auto' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Lead / Contact</th>
-                    <th>Number Dialed</th>
-                    <th>Time</th>
-                    <th>Duration</th>
-                    <th>Disposition</th>
-                    <th></th>
+            {(() => {
+              const filtered = historyFeed.filter((item) => {
+                if (historyFilter === 'all') return true;
+                if (historyFilter === 'sms') return item.type === 'sms';
+                return item.type === 'call' && item.category === historyFilter;
+              });
+              const renderRow = (item) => {
+                const contactName = (item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '') || item.agent?.name || '';
+                const displayNumber = item.type === 'call'
+                  ? (item.direction === 'inbound' ? (item.fromNumber || item.lead?.phone || '—') : (item.toNumber || item.lead?.phone || item.fromNumber || '—'))
+                  : (item.toNumber || item.fromNumber || '—');
+                const rawDur = item.durationSeconds;
+                const durSec = rawDur != null && rawDur > 86400 ? Math.round(rawDur / 1000) : rawDur;
+                const durDisplay = durSec != null
+                  ? durSec >= 60 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : `${Math.round(durSec)}s`
+                  : item.type === 'call' ? '—' : '';
+                const callbackBtn = item.type === 'call' && displayNumber !== '—' ? (
+                  <button disabled={callActive} onClick={() => { const num = displayNumber.replace(/\D/g, ''); setDialNumber(num); setDialName(contactName || num); setShowDialpad(true); }}
+                    style={{ background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)', color: callActive ? '#94a3b8' : '#fff', border: 'none', borderRadius: 7, padding: '4px 9px', fontSize: '0.68rem', cursor: callActive ? 'not-allowed' : 'pointer', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    Recall
+                  </button>
+                ) : null;
+                if (isMobile) {
+                  return (
+                    <div key={`${item.type}-${item.id}`} style={{ padding: '9px 10px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <AgentHistoryBadge item={item} />
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: 'auto' }}>{new Date(item.startedAt || item.createdAt).toLocaleDateString()}</span>
+                        {callbackBtn}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#1e40af', fontFamily: 'monospace' }}>{displayNumber}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>
+                        {contactName || 'Unknown'}{durDisplay ? ` · ${durDisplay}` : ''}{(item.type === 'call' ? item.disposition : item.body) ? ` · ${item.type === 'call' ? item.disposition : item.body}` : ''}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <tr key={`${item.type}-${item.id}`}>
+                    <td><AgentHistoryBadge item={item} /></td>
+                    <td style={{ fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contactName || <span style={{ color: '#94a3b8', fontWeight: 400 }}>Unknown</span>}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#1e40af', fontWeight: 600 }}>{displayNumber}</td>
+                    <td style={{ color: '#94a3b8', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{new Date(item.startedAt || item.createdAt).toLocaleString()}</td>
+                    <td style={{ fontSize: '0.78rem', color: '#475569' }}>{durDisplay}</td>
+                    <td style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.type === 'call' ? (item.disposition || '—') : (item.body || '')}</td>
+                    <td>{callbackBtn}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const filtered = historyFeed.filter((item) => {
-                      if (historyFilter === 'all') return true;
-                      if (historyFilter === 'sms') return item.type === 'sms';
-                      return item.type === 'call' && item.category === historyFilter;
-                    });
-                    if (filtered.length === 0) return (
-                      <tr>
-                        <td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>
-                          {historyFeed.length === 0 ? 'No history yet — calls will appear here after they complete.' : `No ${historyFilter} entries found.`}
-                        </td>
-                      </tr>
-                    );
-                    return filtered.map((item) => {
-                      const contactName = (item.lead ? `${item.lead.firstName || ''} ${item.lead.lastName || ''}`.trim() : '') || item.agent?.name || '';
-                      // For outbound calls: toNumber is the dialed number. For inbound: fromNumber is the caller.
-                      const displayNumber = item.type === 'call'
-                        ? (item.direction === 'inbound' ? (item.fromNumber || item.lead?.phone || '—') : (item.toNumber || item.lead?.phone || item.fromNumber || '—'))
-                        : (item.toNumber || item.fromNumber || '—');
-                      const durSec = item.durationSeconds;
-                      const durDisplay = durSec != null
-                        ? durSec >= 60 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : `${Math.round(durSec)}s`
-                        : item.type === 'call' ? '—' : '';
-                      return (
-                        <tr key={`${item.type}-${item.id}`}>
-                          <td><AgentHistoryBadge item={item} /></td>
-                          <td style={{ fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {contactName || <span style={{ color: '#94a3b8', fontWeight: 400 }}>Unknown</span>}
-                          </td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#1e40af', fontWeight: 600 }}>
-                            {displayNumber}
-                          </td>
-                          <td style={{ color: '#94a3b8', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                            {new Date(item.startedAt || item.createdAt).toLocaleString()}
-                          </td>
-                          <td style={{ fontSize: '0.78rem', color: '#475569' }}>{durDisplay}</td>
-                          <td style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.type === 'call' ? (item.disposition || '—') : (item.body || '')}
-                          </td>
-                          <td>
-                            {item.type === 'call' && displayNumber !== '—' && (
-                              <button
-                                disabled={callActive}
-                                onClick={() => {
-                                  const num = displayNumber.replace(/\D/g, '');
-                                  setDialNumber(num);
-                                  setDialName(contactName || num);
-                                  setShowDialpad(true);
-                                }}
-                                style={{
-                                  background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
-                                  color: callActive ? '#94a3b8' : '#fff',
-                                  border: 'none', borderRadius: 8,
-                                  padding: '4px 10px', fontSize: '0.72rem',
-                                  cursor: callActive ? 'not-allowed' : 'pointer',
-                                  fontWeight: 700, whiteSpace: 'nowrap',
-                                }}
-                              >Call Back</button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
+                );
+              };
+              if (isMobile) return (
+                <div style={{ flex: 1, minHeight: 0, maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {filtered.length === 0
+                    ? <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>{historyFeed.length === 0 ? 'No history yet.' : `No ${historyFilter} entries.`}</div>
+                    : filtered.map(renderRow)}
+                </div>
+              );
+              return (
+                <div className="table-container" style={{ flex: 1, minHeight: 0, maxHeight: 320, overflowY: 'auto', overflowX: 'auto' }}>
+                  <table><thead><tr><th>Type</th><th>Lead / Contact</th><th>Number Dialed</th><th>Time</th><th>Duration</th><th>Disposition</th><th></th></tr></thead>
+                    <tbody>
+                      {filtered.length === 0
+                        ? <tr><td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.85rem' }}>{historyFeed.length === 0 ? 'No history yet — calls will appear here after they complete.' : `No ${historyFilter} entries found.`}</td></tr>
+                        : filtered.map(renderRow)}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </section>
           </div>
           </div>
@@ -2214,6 +2201,69 @@ export default function Agent() {
               </button>
             </div>
           </div>
+        {(() => {
+          const sharedLeadRow = (lead) => {
+            const isCurrentAutoDial = autoDial && autoDialLeadsRef.current[autoDialIndexRef.current]?.id === lead.id;
+            const outcome = leadStatuses[lead.id];
+            const isVoicemail = outcome === 'voicemail' || lead._outcome === 'voicemail';
+            const isCallback = outcome === 'callback' || lead._outcome === 'callback' || lead.status === 'CALLBACK';
+            const isUnreachable = outcome === 'invalid' || lead._outcome === 'invalid' || lead.status === 'UNREACHABLE';
+            const isNoAnswer = !isVoicemail && !isCallback && !isUnreachable && (outcome === 'no_answer' || lead._outcome === 'no_answer' || lead.status === 'NO_ANSWER');
+            const isAnswered = outcome === 'answered' || lead._outcome === 'answered' || lead.status === 'CONTACTED' || lead.status === 'BOOKED';
+            const isInvalid = false;
+            return { isCurrentAutoDial, isVoicemail, isCallback, isUnreachable, isNoAnswer, isAnswered, isInvalid };
+          };
+          const statusBadgeEl = (lead) => {
+            const { isCurrentAutoDial, isVoicemail, isCallback, isUnreachable, isNoAnswer, isAnswered, isInvalid } = sharedLeadRow(lead);
+            return isCurrentAutoDial ? <span style={{ background: '#10b981', color: 'white', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 800 }}>📞 Dialing</span>
+              : isInvalid ? <span style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid #fca5a5' }}>❌ Invalid</span>
+              : isVoicemail ? <span style={{ background: '#f5f3ff', color: '#7c3aed', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid #c4b5fd' }}>📭 Voicemail</span>
+              : isCallback ? <span style={{ background: '#eff6ff', color: '#1d4ed8', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid #93c5fd' }}>📅 Callback</span>
+              : isUnreachable ? <span style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid #fca5a5' }}>🚫 Unreach.</span>
+              : isNoAnswer ? <span style={{ background: '#fffbeb', color: '#b45309', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid #fcd34d' }}>🔕 No Ans</span>
+              : isAnswered ? <span style={{ background: '#f0fdf4', color: '#15803d', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 700, border: '1px solid #86efac' }}>✅ Answered</span>
+              : <span style={{ background: 'var(--indigo-50)', color: 'var(--indigo-600)', borderRadius: 6, padding: '2px 7px', fontSize: '0.65rem', fontWeight: 600 }}>🆕 New</span>;
+          };
+
+          if (isMobile) {
+            if (filteredLeads.length === 0) return (
+              <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>
+                {leadsLoading ? 'Loading leads...' : leads.length === 0 ? 'No leads found. Upload a CSV from Admin panel.' : 'No leads match your search.'}
+              </div>
+            );
+            let seenDiv = { noAnswer: false, voicemail: false, callback: false, unreachable: false };
+            const mobileItems = [];
+            filteredLeads.forEach((lead) => {
+              const { isCurrentAutoDial, isVoicemail, isCallback, isUnreachable, isNoAnswer, isInvalid } = sharedLeadRow(lead);
+              const divStyle = (bg, border, color, text) => (
+                <div key={`div-${text}`} style={{ padding: '5px 10px', background: bg, borderTop: `2px solid ${border}`, borderBottom: `2px solid ${border}`, fontSize: '0.68rem', fontWeight: 700, color, letterSpacing: '0.05em', marginTop: 4 }}>{text}</div>
+              );
+              if (isNoAnswer && !seenDiv.noAnswer) { seenDiv.noAnswer = true; mobileItems.push(divStyle('rgba(251,191,36,0.08)', 'rgba(251,191,36,0.3)', '#b45309', '🔕 NO ANSWER')); }
+              if (isVoicemail && !seenDiv.voicemail) { seenDiv.voicemail = true; mobileItems.push(divStyle('rgba(124,58,237,0.08)', 'rgba(124,58,237,0.3)', '#6d28d9', '📭 VOICEMAIL')); }
+              if (isCallback && !seenDiv.callback) { seenDiv.callback = true; mobileItems.push(divStyle('rgba(59,130,246,0.08)', 'rgba(59,130,246,0.3)', '#1d4ed8', '📅 CALLBACK')); }
+              if (isUnreachable && !seenDiv.unreachable) { seenDiv.unreachable = true; mobileItems.push(divStyle('rgba(239,68,68,0.08)', 'rgba(239,68,68,0.3)', '#b91c1c', '🚫 UNREACHABLE')); }
+              mobileItems.push(
+                <div key={lead.id} style={{ padding: '9px 10px', background: isCurrentAutoDial ? 'rgba(16,185,129,0.07)' : '#f8fafc', borderRadius: 10, border: isCurrentAutoDial ? '2px solid #10b981' : '1px solid #e8ecf4', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {isCurrentAutoDial && <span style={{ color: '#10b981', marginRight: 4 }}>▶</span>}{lead.firstName} {lead.lastName}
+                    </div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#1e40af', fontWeight: 600 }}>{lead.phone}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
+                      {statusBadgeEl(lead)}
+                      {lead.list?.name && <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>{lead.list.name}</span>}
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" style={{ padding: '0.35rem 0.7rem', fontSize: '0.72rem', flexShrink: 0, opacity: isInvalid ? 0.5 : 1 }}
+                    onClick={() => handleDialLead(lead)} disabled={callActive || autoDial}>📞</button>
+                </div>
+              );
+            });
+            return <div style={{ overflowY: 'auto', maxHeight: 420, display: 'flex', flexDirection: 'column', gap: 4 }}>{mobileItems}</div>;
+          }
+
+          // Desktop table view
+          return (
         <div className="table-container">
           <table>
             <thead>
@@ -2378,6 +2428,8 @@ export default function Agent() {
             </tbody>
           </table>
         </div>
+          ); // end desktop table return
+        })()} {/* end isMobile conditional */}
         </section>
 
         {/* ── CALENDAR / SCHEDULED CALLBACKS ── */}
