@@ -1646,8 +1646,8 @@ export default function Agent() {
         {/* ── LEFT COLUMN ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-          {/* Lead Profile + Quick SMS — side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
+          {/* Lead Profile + Quick SMS — side by side on desktop, stacked on mobile */}
+          <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
 
             {/* Compact Lead Profile Card */}
             <section className="card" style={{ minHeight: 240, borderTop: '3px solid #6366f1' }}>
@@ -1920,15 +1920,17 @@ export default function Agent() {
                 ) : null;
                 if (isTablet) {
                   return (
-                    <div key={`${item.type}-${item.id}`} style={{ padding: '9px 10px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <div key={`${item.type}-${item.id}`} style={{ padding: '9px 10px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                         <AgentHistoryBadge item={item} />
                         <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: 'auto' }}>{new Date(item.startedAt || item.createdAt).toLocaleDateString()}</span>
-                        {callbackBtn}
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#1e40af', fontFamily: 'monospace' }}>{displayNumber}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>
-                        {contactName || 'Unknown'}{durDisplay ? ` · ${durDisplay}` : ''}{(item.type === 'call' ? item.disposition : item.body) ? ` · ${item.type === 'call' ? item.disposition : item.body}` : ''}
+                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#1e40af', fontFamily: 'monospace', marginBottom: 2 }}>{displayNumber}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {contactName || 'Unknown'}{durDisplay ? ` · ${durDisplay}` : ''}{(item.type === 'call' ? item.disposition : item.body) ? ` · ${item.type === 'call' ? item.disposition : item.body}` : ''}
+                        </div>
+                        {callbackBtn}
                       </div>
                     </div>
                   );
