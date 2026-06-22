@@ -1281,13 +1281,13 @@ export default function Agent() {
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1b2050 100%)',
-        padding: isMobile ? '0.75rem 1rem' : '0 2rem',
+        padding: isMobile ? '0.6rem 0.875rem' : '0 2rem',
         minHeight: isMobile ? 'auto' : '64px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: isMobile ? 'wrap' : 'nowrap',
-        gap: isMobile ? '0.75rem' : 0,
+        gap: isMobile ? '0.5rem' : 0,
         position: 'sticky',
         top: 0,
         zIndex: 100,
@@ -1314,89 +1314,71 @@ export default function Agent() {
           </div>
         </div>
         {/* Right: info pills + sign out */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', justifyContent: isMobile ? 'flex-start' : 'flex-end', width: isMobile ? '100%' : 'auto' }}>
-          {profile && (
-            <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', minWidth: isMobile ? 'calc(50% - 0.4rem)' : 'auto' }}>
-              <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agent</div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'white' }}>{profile.name || 'Agent'}</div>
+        {isMobile ? (
+          /* ── MOBILE HEADER: compact single row ── */
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', overflowX: 'auto', flexWrap: 'nowrap' }}>
+            {profile && (
+              <div style={{ padding: '4px 9px', borderRadius: 7, background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.12)', flexShrink: 0 }}>
+                <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Agent</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'white', whiteSpace: 'nowrap' }}>{profile.name || 'Agent'}</div>
+              </div>
+            )}
+            <div style={{ padding: '4px 9px', borderRadius: 7, background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.12)', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Caller ID</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{profile?.callerNumber || '---'}</div>
             </div>
-          )}
-          <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', minWidth: isMobile ? 'calc(50% - 0.4rem)' : 'auto' }}>
-            <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Caller ID</div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace' }}>
-              {profile?.callerNumber || '---'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 7, background: isConnected ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${isConnected ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, flexShrink: 0 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444' }} />
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isConnected ? '#34d399' : '#fca5a5', whiteSpace: 'nowrap' }}>{isConnected ? 'Live' : 'Off'}</span>
+            </div>
+            <div style={{ padding: '6px 9px', borderRadius: 7, background: registered ? 'rgba(16,185,129,0.1)' : 'rgba(251,191,36,0.1)', border: `1px solid ${registered ? 'rgba(16,185,129,0.25)' : 'rgba(251,191,36,0.25)'}`, fontSize: '0.68rem', fontWeight: 700, color: registered ? '#34d399' : '#fbbf24', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              {registered ? '✓ SIP' : '⚠ SIP'}
+            </div>
+            <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+              <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'linear-gradient(135deg, #dc2626, #991b1b)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Out
+              </button>
             </div>
           </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '6px 14px', borderRadius: 8,
-            background: isConnected ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-            border: `1px solid ${isConnected ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
-          }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', boxShadow: isConnected ? '0 0 8px rgba(16,185,129,0.8)' : '0 0 8px rgba(239,68,68,0.8)' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#34d399' : '#fca5a5' }}>
-              {isConnected ? 'Online' : 'Offline'}
-            </span>
+        ) : (
+          /* ── DESKTOP HEADER: full pills ── */
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {profile && (
+              <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agent</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'white' }}>{profile.name || 'Agent'}</div>
+              </div>
+            )}
+            <div style={{ padding: '4px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Caller ID</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontFamily: 'monospace' }}>{profile?.callerNumber || '---'}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: 8, background: isConnected ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${isConnected ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444', boxShadow: isConnected ? '0 0 8px rgba(16,185,129,0.8)' : '0 0 8px rgba(239,68,68,0.8)' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isConnected ? '#34d399' : '#fca5a5' }}>{isConnected ? 'Online' : 'Offline'}</span>
+            </div>
+            <div style={{ padding: '6px 12px', borderRadius: 8, background: registered ? 'rgba(16,185,129,0.1)' : 'rgba(251,191,36,0.1)', border: `1px solid ${registered ? 'rgba(16,185,129,0.25)' : 'rgba(251,191,36,0.25)'}`, fontSize: '0.73rem', fontWeight: 700, color: registered ? '#34d399' : '#fbbf24' }}>
+              {registered ? '✓ SIP Ready' : '⚠ SIP...'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <span style={{ fontSize: '0.9rem' }}>🔊</span>
+              <select value={speakerDeviceId || 'default'} onChange={(e) => setSpeakerDevice(e.target.value)} onClick={() => refreshSpeakerDevices?.()} disabled={!speakerSupported}
+                style={{ background: 'transparent', color: 'white', border: 'none', outline: 'none', fontSize: '0.72rem', fontWeight: 700, maxWidth: 170, cursor: speakerSupported ? 'pointer' : 'not-allowed' }}
+                title={speakerSupported ? 'Choose call speaker output' : 'Speaker selection not supported in this browser'}>
+                <option value="default" style={{ color: '#111827' }}>Default Speaker</option>
+                {speakerDevices.map((device) => (
+                  <option key={device.deviceId} value={device.deviceId} style={{ color: '#111827' }}>{device.label}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.73rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{status}</div>
+            <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', color: 'white', border: '1px solid rgba(220,38,38,0.5)', borderRadius: 9, fontWeight: 700, fontSize: '0.85rem', fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.4)', letterSpacing: '0.01em' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign Out
+            </button>
           </div>
-          <div style={{
-            padding: '6px 12px', borderRadius: 8,
-            background: registered ? 'rgba(16,185,129,0.1)' : 'rgba(251,191,36,0.1)',
-            border: `1px solid ${registered ? 'rgba(16,185,129,0.25)' : 'rgba(251,191,36,0.25)'}`,
-            fontSize: '0.73rem', fontWeight: 700,
-            color: registered ? '#34d399' : '#fbbf24',
-          }}>
-            {registered ? '✓ SIP Ready' : '⚠ SIP...'}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '6px 10px',
-            borderRadius: 10,
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            <span style={{ fontSize: '0.9rem' }}>🔊</span>
-            <select
-              value={speakerDeviceId || 'default'}
-              onChange={(e) => setSpeakerDevice(e.target.value)}
-              onClick={() => refreshSpeakerDevices?.()}
-              disabled={!speakerSupported}
-              style={{
-                background: 'transparent',
-                color: 'white',
-                border: 'none',
-                outline: 'none',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                maxWidth: isMobile ? 120 : 170,
-                cursor: speakerSupported ? 'pointer' : 'not-allowed',
-              }}
-              title={speakerSupported ? 'Choose call speaker output' : 'Speaker selection not supported in this browser'}
-            >
-              <option value="default" style={{ color: '#111827' }}>Default Speaker</option>
-              {speakerDevices.map((device) => (
-                <option key={device.deviceId} value={device.deviceId} style={{ color: '#111827' }}>
-                  {device.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.73rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {status}
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', color: 'white', border: '1px solid rgba(220,38,38,0.5)', borderRadius: 9, fontWeight: 700, fontSize: '0.85rem', fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.4)', letterSpacing: '0.01em', width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            Sign Out
-          </button>
-        </div>
+        )}
       </header>
 
       {/* ── PAGE BODY ──────────────────────────────────────────────── */}
@@ -1665,7 +1647,7 @@ export default function Agent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* Lead Profile + Quick SMS — side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: isNarrowPhone ? '1fr' : isMobile ? '1fr 1fr' : '1fr 1fr', gap: '0.875rem', alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
 
             {/* Compact Lead Profile Card */}
             <section className="card" style={{ minHeight: 240, borderTop: '3px solid #6366f1' }}>
@@ -2103,7 +2085,7 @@ export default function Agent() {
             />
 
             {/* Number display + call button */}
-            <div style={{ display: 'flex', flexDirection: isNarrowPhone ? 'column' : 'row', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.4rem', marginBottom: '0.5rem' }}>
               {/* Country code — manually typeable with datalist suggestions */}
               <div style={{ position: 'relative' }}>
                 <input
@@ -2112,7 +2094,7 @@ export default function Agent() {
                   value={dialCountryCode}
                   onChange={(e) => setDialCountryCode(e.target.value)}
                   onFocus={(e) => e.target.select()}
-                  style={{ width: isNarrowPhone ? '100%' : '72px', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'monospace', background: '#f8fafc', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '64px', flexShrink: 0, height: '48px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'monospace', background: '#f8fafc', color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
                   placeholder="+92"
                 />
                 <datalist id="country-codes-list">
@@ -2128,10 +2110,10 @@ export default function Agent() {
                 value={dialNumber}
                 onChange={(e) => setDialNumber(e.target.value.replace(/[^\d\s\-]/g, ''))}
                 onKeyDown={(e) => e.key === 'Enter' && handleManualInputDial()}
-                style={{ flex: 1, fontSize: '1.1rem', height: '52px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, letterSpacing: '0.06em', fontFamily: 'monospace' }}
+                style={{ flex: 1, minWidth: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', height: '48px', borderRadius: 10, border: '2px solid #e0e7ff', textAlign: 'center', fontWeight: 700, letterSpacing: '0.04em', fontFamily: 'monospace' }}
               />
               <button
-                style={{ height: '52px', padding: '0 1.25rem', fontSize: '1.3rem', borderRadius: 10, minWidth: isNarrowPhone ? '100%' : '54px', border: 'none', cursor: callActive ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: dialNumber && !callActive ? 'linear-gradient(135deg,#10b981,#059669)' : '#f1f5f9', color: dialNumber && !callActive ? 'white' : '#94a3b8', boxShadow: dialNumber && !callActive ? '0 4px 14px rgba(16,185,129,0.4)' : 'none', transition: 'all 0.2s' }}
+                style={{ height: '48px', padding: '0 1rem', fontSize: '1.2rem', borderRadius: 10, flexShrink: 0, border: 'none', cursor: callActive ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: dialNumber && !callActive ? 'linear-gradient(135deg,#10b981,#059669)' : '#f1f5f9', color: dialNumber && !callActive ? 'white' : '#94a3b8', boxShadow: dialNumber && !callActive ? '0 4px 14px rgba(16,185,129,0.4)' : 'none', transition: 'all 0.2s' }}
                 onClick={() => handleManualInputDial()}
                 disabled={!dialNumber || callActive}
                 title="Call (Enter)"
