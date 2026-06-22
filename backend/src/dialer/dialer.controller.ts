@@ -203,6 +203,17 @@ export class DialerController {
         return { message: 'Call terminated' };
     }
 
+    @SetMetadata('isPublic', true)
+    @Get('call/:id/status')
+    async getCallStatus(@Param('id') id: string) {
+        const remote = await this.voipService.getCallStatus(id);
+        return {
+            callId: id,
+            status: String(remote?.status || '').toLowerCase(),
+            raw: remote,
+        };
+    }
+
     @Roles('Admin', 'Manager')
     @Post('campaign/:id/start')
     async startCampaign(@Param('id') id: string) {
