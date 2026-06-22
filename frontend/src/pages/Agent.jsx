@@ -1616,7 +1616,7 @@ export default function Agent() {
 
         {/* Stats Row + Dialer panels (hidden when SMS tab is active) */}
         {!smsTab && (<>
-        <div style={{ display: 'grid', gridTemplateColumns: isNarrowPhone ? '1fr' : 'repeat(2, 1fr)', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
           {/* Calls — period selector card */}
           <div style={{ background: '#fff', borderRadius: 14, padding: '1rem 1.1rem', borderTop: '3px solid #6366f1', boxShadow: '0 1px 4px rgba(15,23,42,0.06)', minWidth: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -1821,13 +1821,13 @@ export default function Agent() {
             <h2 className="font-head mb-4" style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>📋</span> Disposition
             </h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-              <button className="btn btn-primary" onClick={() => submitDisposition('Interested')} style={{ fontSize: '0.82rem' }}>✅ Interested <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4, background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: 3 }}>F1</kbd></button>
-              <button className="btn" onClick={() => submitDisposition('Callback')} style={{ background: '#eff6ff', color: '#3730a3', border: '1px solid #c7d2fe', fontSize: '0.82rem' }}>📅 Callback <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F2</kbd></button>
-              <button className="btn" onClick={() => submitDisposition('Voicemail')} style={{ background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', fontSize: '0.82rem' }}>📭 Voicemail <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F3</kbd></button>
-              <button className="btn" onClick={() => submitDisposition('No Answer')} style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d', fontSize: '0.82rem' }}>🔕 No Answer <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F4</kbd></button>
-              <button className="btn" onClick={() => submitDisposition('Unreachable')} style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5', fontSize: '0.82rem' }}>🚫 Unreachable <kbd style={{ opacity: 0.55, fontSize: '0.65rem', marginLeft: 4 }}>F5</kbd></button>
-              <button className="btn" onClick={() => submitDisposition('DNC')} style={{ background: '#0f172a', color: 'white', border: 'none', fontSize: '0.82rem' }}>⛔ DNC</button>
+            <div style={{ display: 'grid', gridTemplateColumns: isNarrowPhone ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.4rem', marginBottom: '1rem' }}>
+              <button className="btn btn-primary" onClick={() => submitDisposition('Interested')} style={{ fontSize: '0.75rem', padding: '0.45rem 0.5rem', justifyContent: 'center' }}>✅ Interested</button>
+              <button className="btn" onClick={() => submitDisposition('Callback')} style={{ background: '#eff6ff', color: '#3730a3', border: '1px solid #c7d2fe', fontSize: '0.75rem', padding: '0.45rem 0.5rem' }}>📅 Callback</button>
+              <button className="btn" onClick={() => submitDisposition('Voicemail')} style={{ background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', fontSize: '0.75rem', padding: '0.45rem 0.5rem' }}>📭 Voicemail</button>
+              <button className="btn" onClick={() => submitDisposition('No Answer')} style={{ background: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d', fontSize: '0.75rem', padding: '0.45rem 0.5rem' }}>🔕 No Ans</button>
+              <button className="btn" onClick={() => submitDisposition('Unreachable')} style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5', fontSize: '0.75rem', padding: '0.45rem 0.5rem' }}>🚫 Unreach.</button>
+              <button className="btn" onClick={() => submitDisposition('DNC')} style={{ background: '#0f172a', color: 'white', border: 'none', fontSize: '0.75rem', padding: '0.45rem 0.5rem' }}>⛔ DNC</button>
             </div>
             <textarea
               className="input-field mb-3"
@@ -1893,7 +1893,7 @@ export default function Agent() {
             </div>
 
             {/* Filter capsule tabs */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: '1rem', paddingBottom: 2, flexShrink: 0 }}>
               {[
                 { key: 'all',      label: `All (${historyFeed.length})`,                                        bg: '#f1f5f9', activeBg: '#1d4ed8', color: '#475569', activeColor: '#fff' },
                 { key: 'dialed',   label: `Dialed (${historyStats.dialedCalls})`,                               bg: '#dbeafe', activeBg: '#1d4ed8', color: '#1d4ed8', activeColor: '#fff' },
@@ -1904,8 +1904,8 @@ export default function Agent() {
                 const isActive = historyFilter === key;
                 return (
                   <button key={key} onClick={() => setHistoryFilter(key)} style={{
-                    padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                    fontSize: '0.78rem', fontWeight: 700,
+                    padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    fontSize: '0.75rem', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap',
                     background: isActive ? activeBg : bg,
                     color: isActive ? activeColor : color,
                     transition: 'all 0.15s',
