@@ -1932,25 +1932,70 @@ export default function Agent() {
                   ? durSec >= 60 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : `${Math.round(durSec)}s`
                   : item.type === 'call' ? '—' : '';
                 const callbackBtn = item.type === 'call' && displayNumber !== '—' ? (
-                  <button disabled={callActive} onClick={() => { const num = displayNumber.replace(/\D/g, ''); setDialNumber(num); setDialName(contactName || num); setShowDialpad(true); }}
-                    style={{ background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)', color: callActive ? '#94a3b8' : '#fff', border: 'none', borderRadius: 7, padding: '4px 9px', fontSize: '0.68rem', cursor: callActive ? 'not-allowed' : 'pointer', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <button
+                    disabled={callActive}
+                    onClick={() => {
+                      const num = displayNumber.replace(/\D/g, '');
+                      setDialNumber(num);
+                      setDialName(contactName || num);
+                      setShowDialpad(true);
+                    }}
+                    style={{
+                      background: callActive ? '#f1f5f9' : 'linear-gradient(135deg,#10b981,#059669)',
+                      color: callActive ? '#94a3b8' : '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: isMobile ? '8px 10px' : '6px 10px',
+                      fontSize: '0.7rem',
+                      cursor: callActive ? 'not-allowed' : 'pointer',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      width: isMobile ? '100%' : 'auto',
+                    }}
+                  >
                     Recall
                   </button>
                 ) : null;
                 if (isHistoryCompact) {
+                  const detailText = [
+                    durDisplay || '',
+                    item.type === 'call' ? (item.disposition || '') : (item.body || ''),
+                  ].filter(Boolean).join(' • ');
                   return (
-                    <div key={`${item.type}-${item.id}`} style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4', overflow: 'hidden', minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      style={{
+                        padding: isMobile ? '12px' : '11px 12px',
+                        background: '#f8fafc',
+                        borderRadius: 12,
+                        border: '1px solid #e8ecf4',
+                        minWidth: 0,
+                        overflow: 'visible',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap', minWidth: 0 }}>
                         <AgentHistoryBadge item={item} />
-                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: isMobile ? 0 : 'auto' }}>{new Date(item.startedAt || item.createdAt).toLocaleDateString()}</span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                          {new Date(item.startedAt || item.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#1e40af', fontFamily: 'monospace', marginBottom: 4, wordBreak: 'break-all' }}>{displayNumber}</div>
-                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', minWidth: 0, lineHeight: 1.45, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                          {contactName || 'Unknown'}{durDisplay ? ` · ${durDisplay}` : ''}{(item.type === 'call' ? item.disposition : item.body) ? ` · ${item.type === 'call' ? item.disposition : item.body}` : ''}
+                      <div style={{ fontWeight: 700, fontSize: isMobile ? '0.82rem' : '0.8rem', color: '#1e40af', fontFamily: 'monospace', marginBottom: 6, overflowWrap: 'anywhere' }}>
+                        {displayNumber}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#334155', fontWeight: 600, marginBottom: detailText ? 4 : 8, overflowWrap: 'anywhere' }}>
+                        {contactName || 'Unknown'}
+                      </div>
+                      {detailText && (
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45, marginBottom: callbackBtn ? 10 : 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+                          {detailText}
                         </div>
-                        {callbackBtn}
-                      </div>
+                      )}
+                      {callbackBtn && (
+                        <div style={{ marginTop: detailText ? 0 : 4 }}>
+                          {callbackBtn}
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -1967,7 +2012,7 @@ export default function Agent() {
                 );
               };
               if (isHistoryCompact) return (
-                <div style={{ flex: 1, minHeight: 0, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <div style={{ flex: 1, minHeight: 0, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, paddingRight: 2 }}>
                   {filtered.length === 0
                     ? <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>{historyFeed.length === 0 ? 'No history yet.' : `No ${historyFilter} entries.`}</div>
                     : filtered.map(renderRow)}
