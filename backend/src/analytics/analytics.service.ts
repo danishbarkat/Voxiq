@@ -361,10 +361,7 @@ export class AnalyticsService {
         const smsWhere = requesterRole === 'agent'
             ? {
                 accountId: requester?.accountId,
-                OR: [
-                    { agentId: requester?.userId },
-                    { direction: 'inbound' },
-                ],
+                agentId: requester?.userId,
             }
             : this.buildSmsWhereForRequester(requester);
         const [calls, smsMessages] = await Promise.all([

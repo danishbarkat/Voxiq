@@ -24,7 +24,9 @@ export class SmsController {
   @Get('conversations/:number')
   async getThread(@Param('number') number: string, @Req() req: any, @Query('channel') channel?: string) {
     const accountId: string = req.user.accountId;
-    return this.smsService.getThread(number, accountId, channel);
+    const role: string = (req.user.role || '').toLowerCase();
+    const agentId = (role === 'admin' || role === 'superadmin') ? undefined : req.user.userId;
+    return this.smsService.getThread(number, accountId, channel, agentId);
   }
 
   @Delete('conversations/:number')

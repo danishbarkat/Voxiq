@@ -117,7 +117,7 @@ export class SmsService {
   async getConversations(accountId: string, agentId?: string, channel?: string) {
     const where: any = { accountId };
     if (channel) where.channel = channel;
-    if (agentId) where.OR = [{ agentId }, { direction: 'inbound' }];
+    if (agentId) where.agentId = agentId;
 
     const messages = await this.prisma.smsMessage.findMany({
       where,
@@ -147,7 +147,7 @@ export class SmsService {
     );
   }
 
-  async getThread(contactNumber: string, accountId: string, channel?: string) {
+  async getThread(contactNumber: string, accountId: string, channel?: string, agentId?: string) {
     const formatted = contactNumber.startsWith('+')
       ? contactNumber
       : `+1${contactNumber.replace(/\D/g, '').slice(-10)}`;
@@ -157,6 +157,7 @@ export class SmsService {
       OR: [{ toNumber: formatted }, { fromNumber: formatted }],
     };
     if (channel) where.channel = channel;
+    if (agentId) where.agentId = agentId;
 
     const messages = await this.prisma.smsMessage.findMany({
       where,
