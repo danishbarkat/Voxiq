@@ -1885,15 +1885,15 @@ export default function Agent() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%', minWidth: 0 }}>
           <section className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: isMobile ? 'auto' : 494, maxHeight: isMobile ? 'none' : 494, minWidth: 0 }}>
             {/* Header row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', flexDirection: isMobile ? 'column' : 'row', marginBottom: '1rem', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
               <h2 className="font-head" style={{ fontSize: '1rem', margin: 0 }}>Call &amp; SMS History</h2>
-              <button className="btn" style={{ fontSize: '0.75rem', background: '#f8fafc' }} onClick={fetchHistory} disabled={historyLoading}>
+              <button className="btn" style={{ fontSize: '0.75rem', background: '#f8fafc', width: isMobile ? '100%' : 'auto' }} onClick={fetchHistory} disabled={historyLoading}>
                 {historyLoading ? 'Loading...' : 'Refresh'}
               </button>
             </div>
 
             {/* Filter capsule tabs */}
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: '1rem', paddingBottom: 2, flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 6, overflowX: isMobile ? 'visible' : 'auto', flexWrap: isMobile ? 'wrap' : 'nowrap', marginBottom: '1rem', paddingBottom: 2, flexShrink: 0, minWidth: 0 }}>
               {[
                 { key: 'all',      label: `All (${historyFeed.length})`,                                        bg: '#f1f5f9', activeBg: '#1d4ed8', color: '#475569', activeColor: '#fff' },
                 { key: 'dialed',   label: `Dialed (${historyStats.dialedCalls})`,                               bg: '#dbeafe', activeBg: '#1d4ed8', color: '#1d4ed8', activeColor: '#fff' },
@@ -1938,14 +1938,14 @@ export default function Agent() {
                 ) : null;
                 if (isTablet) {
                   return (
-                    <div key={`${item.type}-${item.id}`} style={{ padding: '9px 10px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4', overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <div key={`${item.type}-${item.id}`} style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e8ecf4', overflow: 'hidden', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                         <AgentHistoryBadge item={item} />
-                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: 'auto' }}>{new Date(item.startedAt || item.createdAt).toLocaleDateString()}</span>
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: isMobile ? 0 : 'auto' }}>{new Date(item.startedAt || item.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#1e40af', fontFamily: 'monospace', marginBottom: 2 }}>{displayNumber}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#1e40af', fontFamily: 'monospace', marginBottom: 4, wordBreak: 'break-all' }}>{displayNumber}</div>
+                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', minWidth: 0, lineHeight: 1.45, whiteSpace: 'normal', wordBreak: 'break-word' }}>
                           {contactName || 'Unknown'}{durDisplay ? ` · ${durDisplay}` : ''}{(item.type === 'call' ? item.disposition : item.body) ? ` · ${item.type === 'call' ? item.disposition : item.body}` : ''}
                         </div>
                         {callbackBtn}
@@ -1966,7 +1966,7 @@ export default function Agent() {
                 );
               };
               if (isTablet) return (
-                <div style={{ flex: 1, minHeight: 0, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ flex: 1, minHeight: 0, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                   {filtered.length === 0
                     ? <div style={{ textAlign: 'center', padding: '1.5rem 0', color: '#94a3b8', fontSize: '0.82rem' }}>{historyFeed.length === 0 ? 'No history yet.' : `No ${historyFilter} entries.`}</div>
                     : filtered.map(renderRow)}
