@@ -134,7 +134,7 @@ export class WebsocketGateway
         this.agentSessions.set(resolvedAgentId, {
             socketId: client.id,
             agentId: resolvedAgentId,
-            status: 'available',
+            status: 'paused',
         });
 
         client.emit('agent:registered', { success: true });

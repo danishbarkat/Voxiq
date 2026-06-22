@@ -117,10 +117,14 @@ export default function Agent() {
   const hasDialedRef = useRef(false);  // prevent triggering on first mount
   const dialedIdsRef = useRef(new Set()); // Track already-dialed lead IDs to prevent duplicates
   const finalizedCallLogsRef = useRef(new Set());
+  const [campaignDialingActive, setCampaignDialingActive] = useState(false);
+  const campaignDialingActiveRef = useRef(false);
+  const agentWsStatusRef = useRef('paused');
 
   useEffect(() => { autoDialRef.current = autoDial; }, [autoDial]);
   useEffect(() => { autoDialIndexRef.current = autoDialIndex; }, [autoDialIndex]);
   useEffect(() => { callLogIdRef.current = callLogId; }, [callLogId]);
+  useEffect(() => { campaignDialingActiveRef.current = campaignDialingActive; }, [campaignDialingActive]);
 
   // SMS & Voicemail
   const [vmTemplates, setVmTemplates] = useState([]);
@@ -198,6 +202,13 @@ export default function Agent() {
     refreshSpeakerDevices,
   } = useSoftphoneContext();
 
+  const emitAgentStatus = useCallback((nextStatus) => {
+    agentWsStatusRef.current = nextStatus;
+    if (socket && agentId) {
+      socket.emit('agent:status', { agentId, status: nextStatus });
+    }
+  }, [socket, agentId]);
+
   // Track inbound calls in recentCalls
   const prevIncomingCallRef = useRef(null);
   useEffect(() => {
@@ -239,9 +250,9 @@ export default function Agent() {
         setCurrentLead(null);
         currentLeadRef.current = null;
         setCallLogId(null);
-        setStatus('Idle');
+        setStatus(campaignDialingActiveRef.current ? 'Waiting for Lead...' : 'Idle');
         autoSkipRef.current = false;
-        if (socket && agentId) socket.emit('agent:status', { agentId, status: 'available' });
+        emitAgentStatus(campaignDialingActiveRef.current ? 'available' : 'paused');
       }, 2500);
       return () => clearTimeout(t);
     }
@@ -249,7 +260,7 @@ export default function Agent() {
     // later in the component and including them in deps here causes a TDZ crash at render time.
     // finalizeCallLog has [] deps so its reference is stable; callLogIdRef is a ref (stable).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callState, lastError, agentId, socket]);
+  }, [callState, lastError, emitAgentStatus]);
 
   // Fetch leads + VM templates + SMS templates
   const fetchLeads = useCallback(async (currentAgentId) => {
@@ -361,10 +372,10 @@ export default function Agent() {
   useEffect(() => {
     if (socket && isConnected && agentId) {
       socket.emit('agent:register', { agentId });
-      socket.emit('agent:status', { agentId, status: 'available' });
+      emitAgentStatus('paused');
 
       const heartbeat = setInterval(() => {
-        socket.emit('agent:status', { agentId, status: 'available' });
+        socket.emit('agent:status', { agentId, status: agentWsStatusRef.current });
       }, HEARTBEAT_MS);
 
       // Autodialer assigned a call to this agent
@@ -374,6 +385,7 @@ export default function Agent() {
         setCallLogId(data.callLogId);
         setLocalCallActive(true);
         setStatus('Dialing Lead');
+        agentWsStatusRef.current = 'on_call';
         attachCall(data.callLogId);
       });
 
@@ -384,9 +396,12 @@ export default function Agent() {
         if (data.status === 'connected') {
           setStatus('On Call');
           setLocalCallActive(true);
+          agentWsStatusRef.current = 'on_call';
         } else if (data.status === 'completed' || data.status === 'hangup') {
-          setStatus('Idle');
+          const nextStatus = campaignDialingActiveRef.current ? 'available' : 'paused';
+          setStatus(campaignDialingActiveRef.current ? 'Waiting for Lead...' : 'Idle');
           setLocalCallActive(false);
+          emitAgentStatus(nextStatus);
           fetchHistory();
         }
       });
@@ -419,7 +434,7 @@ export default function Agent() {
         socket.off(`sms:received:${profile?.accountId}`);
       };
     }
-  }, [socket, isConnected, agentId, attachCall, handleWebSocketCallUpdate, profile, fetchHistory]);
+  }, [socket, isConnected, agentId, attachCall, handleWebSocketCallUpdate, profile, fetchHistory, emitAgentStatus]);
 
   // Effect to fetch full lead details (with list) if missing
   useEffect(() => {
@@ -435,13 +450,15 @@ export default function Agent() {
   }, [currentLead?.id]);
 
   const handleStartDialing = () => {
+    setCampaignDialingActive(true);
     setStatus('Waiting for Lead...');
-    if (socket && agentId) socket.emit('agent:status', { agentId, status: 'available' });
+    emitAgentStatus('available');
   };
 
   const handlePause = () => {
+    setCampaignDialingActive(false);
     setStatus('Paused');
-    if (socket && agentId) socket.emit('agent:status', { agentId, status: 'paused' });
+    emitAgentStatus('paused');
   };
 
   // Manually dial a lead from the queue
@@ -1040,8 +1057,8 @@ export default function Agent() {
     setStatus('Idle');
     setShowVmDrop(false);
     setShowSmsPanel(false);
-    if (socket && agentId) socket.emit('agent:status', { agentId, status: 'available' });
-  }, [callState, finalizeCallLog, hangup, agentId, socket]);
+    emitAgentStatus(campaignDialingActiveRef.current ? 'available' : 'paused');
+  }, [callState, finalizeCallLog, hangup, emitAgentStatus]);
 
   const handleLogout = () => {
     disconnectForLogout();
