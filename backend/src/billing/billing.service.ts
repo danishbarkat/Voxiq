@@ -50,7 +50,6 @@ export class BillingService {
             custom: { accountId, packageName, billingCycle, seats: String(seats) },
           },
           product_options: { redirect_url: successUrl },
-          checkout_options: { quantity: false },
         },
         relationships: {
           store:   { data: { type: 'stores',  id: this.storeId } },
