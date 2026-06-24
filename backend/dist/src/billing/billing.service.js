@@ -44,6 +44,7 @@ let BillingService = class BillingService {
                 attributes: {
                     checkout_data: {
                         email,
+                        quantity: seats,
                         custom: { accountId, packageName, billingCycle, seats: String(seats) },
                     },
                     product_options: { redirect_url: successUrl },
