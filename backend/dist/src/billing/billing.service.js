@@ -14,6 +14,11 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("../prisma/prisma.service");
 const crypto_1 = require("crypto");
+const PLAN_PRICES = {
+    Basic: { monthly: 2499, annual: 26989 },
+    Pro: { monthly: 3999, annual: 43189 },
+    Business: { monthly: 6999, annual: 75589 },
+};
 const PLAN_FEATURES = {
     Basic: { canOutboundCall: true, canInboundCall: true, canSendSms: false, canRecord: false, canSendWhatsapp: false, canAiInsights: false },
     Pro: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, canSendWhatsapp: false, canAiInsights: false },
@@ -38,10 +43,13 @@ let BillingService = class BillingService {
     }
     async createCheckout(accountId, packageName, billingCycle, seats, email, successUrl, cancelUrl) {
         const variantId = this.getVariantId(packageName, billingCycle);
+        const pricePerSeat = PLAN_PRICES[packageName]?.[billingCycle.toLowerCase()];
+        const customPrice = pricePerSeat ? pricePerSeat * seats : undefined;
         const body = {
             data: {
                 type: 'checkouts',
                 attributes: {
+                    ...(customPrice ? { custom_price: customPrice } : {}),
                     checkout_data: {
                         email,
                         custom: { accountId, packageName, billingCycle, seats: String(seats) },

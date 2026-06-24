@@ -3,6 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { createHmac } from 'crypto';
 
+// Per-seat prices in cents (must match LS variant prices)
+const PLAN_PRICES: Record<string, Record<string, number>> = {
+  Basic:    { monthly: 2499,  annual: 26989 },
+  Pro:      { monthly: 3999,  annual: 43189 },
+  Business: { monthly: 6999,  annual: 75589 },
+};
+
 const PLAN_FEATURES: Record<string, {
   canOutboundCall: boolean; canInboundCall: boolean; canSendSms: boolean;
   canRecord: boolean; canSendWhatsapp: boolean; canAiInsights: boolean;
@@ -40,11 +47,14 @@ export class BillingService {
     cancelUrl: string,
   ): Promise<string> {
     const variantId = this.getVariantId(packageName, billingCycle);
+    const pricePerSeat = PLAN_PRICES[packageName]?.[billingCycle.toLowerCase()];
+    const customPrice = pricePerSeat ? pricePerSeat * seats : undefined;
 
     const body = {
       data: {
         type: 'checkouts',
         attributes: {
+          ...(customPrice ? { custom_price: customPrice } : {}),
           checkout_data: {
             email,
             custom: { accountId, packageName, billingCycle, seats: String(seats) },
