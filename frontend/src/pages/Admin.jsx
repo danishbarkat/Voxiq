@@ -2598,7 +2598,7 @@ export default function Admin() {
                           <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9' }}>
                             <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: 6 }}>📞 Outbound Number</div>
                             {!u.callerNumber && numberPool.length === 0 ? (
-                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No numbers assigned — ask super admin</div>
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No numbers assigned — contact Voxiq support</div>
                             ) : (
                               <select className="input-field" style={{ padding: '6px 10px', fontSize: '0.8rem', width: '100%' }} value={u.callerNumber || ''} onChange={async (e) => {
                                 const val = e.target.value || null;
