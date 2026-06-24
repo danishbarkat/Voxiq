@@ -1931,9 +1931,9 @@ function SearchBuyNumbers({ onPurchased, messagingReady }) {
   const handleBuy = async (phoneNumber) => {
     const feats = getFeatures(phoneNumber);
     const featureList = Object.entries(feats).filter(([, v]) => v).map(([k]) => k);
-    const wantsSms = feats.sms || feats.mms;
+    const wantsSms = feats.sms || feats.mms || feats.whatsapp;
     if (wantsSms && !messagingReady) {
-      if (!window.confirm(`SMS/MMS selected but no messaging profile configured — order will proceed for voice only.\n\nContinue?`)) return;
+      if (!window.confirm(`SMS/MMS/WhatsApp selected but no messaging profile configured — order will proceed for voice only.\n\nContinue?`)) return;
     }
     if (!window.confirm(`Buy ${phoneNumber}?\nFeatures: ${featureList.join(', ')}\n\nThis will charge your Telnyx account.`)) return;
     setBuying(phoneNumber);
@@ -1942,8 +1942,11 @@ function SearchBuyNumbers({ onPurchased, messagingReady }) {
         method: 'POST',
         body: JSON.stringify({ phoneNumber, features: featureList }),
       });
-      const smsDone = res.messagingEnabled ? ' + SMS enabled' : '';
-      showToast(`✓ ${phoneNumber} ordered! Status: ${res.status}${smsDone}`, true);
+      const extras = [];
+      if (res.messagingEnabled) extras.push('SMS');
+      if (res.whatsappEnabled) extras.push('WhatsApp');
+      const extrasStr = extras.length ? ` + ${extras.join(' & ')} enabled` : '';
+      showToast(`✓ ${phoneNumber} ordered! Status: ${res.status}${extrasStr}`, true);
       setResults(prev => prev ? prev.filter(r => r.phoneNumber !== phoneNumber) : prev);
       onPurchased();
     } catch (err) {
@@ -2040,21 +2043,22 @@ function SearchBuyNumbers({ onPurchased, messagingReady }) {
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                         {[
-                          { key: 'voice', label: '📞 Voice', locked: true },
-                          { key: 'sms', label: '💬 SMS', locked: false },
-                          { key: 'mms', label: '🖼 MMS', locked: false },
-                        ].map(({ key, label, locked }) => (
-                          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: locked ? 'default' : 'pointer', background: feats[key] ? '#ede9fe' : '#f1f5f9', border: `1px solid ${feats[key] ? '#6366f1' : '#e2e8f0'}`, borderRadius: 7, padding: '5px 11px', userSelect: 'none' }}>
+                          { key: 'voice',     label: '📞 Voice',     locked: true,  color: '#6366f1' },
+                          { key: 'sms',       label: '💬 SMS',       locked: false, color: '#6366f1' },
+                          { key: 'mms',       label: '🖼 MMS',       locked: false, color: '#6366f1' },
+                          { key: 'whatsapp',  label: '🟢 WhatsApp',  locked: false, color: '#25d366' },
+                        ].map(({ key, label, locked, color }) => (
+                          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: locked ? 'default' : 'pointer', background: feats[key] ? (key === 'whatsapp' ? '#dcfce7' : '#ede9fe') : '#f1f5f9', border: `1px solid ${feats[key] ? color : '#e2e8f0'}`, borderRadius: 7, padding: '5px 11px', userSelect: 'none' }}>
                             <input
                               type="checkbox"
-                              checked={feats[key]}
+                              checked={!!feats[key]}
                               disabled={locked}
                               onChange={() => !locked && toggleFeature(r.phoneNumber, key)}
-                              style={{ accentColor: '#6366f1', cursor: locked ? 'default' : 'pointer' }}
+                              style={{ accentColor: color, cursor: locked ? 'default' : 'pointer' }}
                             />
-                            <span style={{ fontSize: 12, fontWeight: 600, color: feats[key] ? '#4f46e5' : '#6b7280' }}>{label}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: feats[key] ? (key === 'whatsapp' ? '#15803d' : '#4f46e5') : '#6b7280' }}>{label}</span>
                             {locked && <span style={{ fontSize: 10, color: '#9ca3af' }}>(always)</span>}
-                            {!locked && !messagingReady && <span style={{ fontSize: 10, color: '#f59e0b' }}>⚠</span>}
+                            {!locked && (key === 'sms' || key === 'mms' || key === 'whatsapp') && !messagingReady && <span style={{ fontSize: 10, color: '#f59e0b' }}>⚠</span>}
                           </label>
                         ))}
                       </div>

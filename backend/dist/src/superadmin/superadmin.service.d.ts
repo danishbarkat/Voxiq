@@ -540,6 +540,7 @@ export declare class SuperAdminService {
         status: any;
         features: string[];
         messagingEnabled: boolean;
+        whatsappEnabled: boolean;
     }>;
     createMessagingProfile(name?: string): Promise<{
         success: boolean;

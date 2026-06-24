@@ -1006,10 +1006,12 @@ let SuperAdminService = class SuperAdminService {
         if (!apiKey)
             throw new common_1.BadRequestException('Telnyx API key not configured');
         const wantsSms = features.some(f => ['sms', 'mms', 'messaging'].includes(f.toLowerCase()));
+        const wantsWhatsapp = features.some(f => f.toLowerCase() === 'whatsapp');
+        const needsMessaging = wantsSms || wantsWhatsapp;
         const body = { phone_numbers: [{ phone_number: phoneNumber }] };
         if (connectionId)
             body.connection_id = connectionId;
-        if (wantsSms && messagingProfileId)
+        if (needsMessaging && messagingProfileId)
             body.messaging_profile_id = messagingProfileId;
         const res = await fetch('https://api.telnyx.com/v2/number_orders', {
             method: 'POST',
@@ -1020,12 +1022,14 @@ let SuperAdminService = class SuperAdminService {
         if (!res.ok) {
             throw new common_1.BadRequestException(json?.errors?.[0]?.detail || 'Failed to order number');
         }
+        const messagingEnabled = needsMessaging && !!messagingProfileId;
         return {
             success: true,
             phoneNumber,
             status: json.data?.status || 'submitted',
             features,
-            messagingEnabled: wantsSms && !!messagingProfileId,
+            messagingEnabled,
+            whatsappEnabled: wantsWhatsapp && messagingEnabled,
         };
     }
     async createMessagingProfile(name) {
