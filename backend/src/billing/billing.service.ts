@@ -47,7 +47,6 @@ export class BillingService {
         attributes: {
           checkout_data: {
             email,
-            quantity: seats,
             custom: { accountId, packageName, billingCycle, seats: String(seats) },
           },
           product_options: { redirect_url: successUrl },
@@ -75,7 +74,9 @@ export class BillingService {
     }
 
     const data = await res.json();
-    return data.data.attributes.url;
+    const checkoutUrl = new URL(data.data.attributes.url);
+    checkoutUrl.searchParams.set('checkout[quantity]', String(seats));
+    return checkoutUrl.toString();
   }
 
   async activateAccount(
