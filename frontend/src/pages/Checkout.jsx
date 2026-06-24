@@ -4,23 +4,13 @@ import { getToken } from '../lib/auth';
 import { API_URL } from '../config/env';
 
 const PLANS = {
-  Trial: {
-    id: 'Trial',
-    name: '7-Day Free Trial',
-    tagline: 'Try before you buy',
-    price: 0,
-    color: '#6366f1',
-    features: ['Outbound Calls', '1 Agent Seat', '7 Days Free', 'No credit card required'],
-    popular: false,
-    contactSales: false,
-  },
   Basic: {
     id: 'Basic',
     name: 'Basic',
     tagline: 'Unlimited calling per seat',
     price: 24.99,
     color: '#3b82f6',
-    features: ['Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'],
+    features: ['7-Day Free Trial Included', 'Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'],
     popular: false,
     contactSales: false,
   },
@@ -30,7 +20,7 @@ const PLANS = {
     tagline: 'Calls + SMS + Recordings',
     price: 39.99,
     color: '#8b5cf6',
-    features: ['Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'],
+    features: ['7-Day Free Trial Included', 'Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'],
     popular: true,
     contactSales: false,
   },
@@ -40,7 +30,7 @@ const PLANS = {
     tagline: 'Full-featured platform',
     price: 69.99,
     color: '#f59e0b',
-    features: ['Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'],
+    features: ['7-Day Free Trial Included', 'Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'],
     popular: false,
     contactSales: false,
   },
@@ -162,11 +152,6 @@ export default function Checkout() {
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom Pricing</div>
                 <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.875rem', marginTop: '4px' }}>Tailored to your team's size and needs</p>
               </div>
-            ) : plan.price === 0 ? (
-              <div style={{ marginBottom: '28px' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Free</div>
-                <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.875rem', marginTop: '4px' }}>7 days, no credit card required</p>
-              </div>
             ) : (
               <div style={{ marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
@@ -175,6 +160,9 @@ export default function Checkout() {
                 </div>
                 <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem' }}>
                   {billing === 'annual' ? `10% annual discount applied` : 'Standard monthly rate'}
+                </p>
+                <p style={{ color: '#16a34a', fontSize: '0.8rem', fontWeight: 700, marginTop: '4px' }}>
+                  7-day free trial · cancel before day 8, pay nothing
                 </p>
               </div>
             )}
@@ -251,9 +239,7 @@ export default function Checkout() {
               <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '14px', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <span style={{ fontWeight: 800, color: 'var(--vx-primary)', fontSize: '0.9375rem' }}>Total due today</span>
                 <div style={{ textAlign: 'right' }}>
-                  {plan.price === 0 ? (
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>$0</div>
-                  ) : plan.contactSales ? (
+                  {plan.contactSales ? (
                     <div style={{ fontSize: '1.2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom</div>
                   ) : (
                     <>

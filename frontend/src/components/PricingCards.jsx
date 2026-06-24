@@ -2,26 +2,14 @@ import { useState } from 'react';
 
 const PACKAGES = [
   {
-    id: 'Trial',
-    name: '7-Day Free Trial',
-    tagline: 'Try before you buy',
-    priceMonthly: 0,
-    color: '#6366f1',
-    features: ['Outbound Calls', '1 Agent Seat', '7 Days Free', 'No credit card required'],
-    notIncluded: ['Inbound Calls', 'SMS', 'Call Recordings', 'WhatsApp', 'AI Insights'],
-    cta: 'Start Free Trial',
-    popular: false,
-    contactSales: false,
-  },
-  {
     id: 'Basic',
     name: 'Basic',
     tagline: 'Unlimited calling per seat',
     priceMonthly: 24.99,
     color: '#3b82f6',
-    features: ['Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'],
+    features: ['7-Day Free Trial Included', 'Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'],
     notIncluded: ['SMS', 'Call Recordings', 'WhatsApp', 'AI Insights'],
-    cta: 'Get Started',
+    cta: 'Start Free Trial',
     popular: false,
     contactSales: false,
   },
@@ -31,9 +19,9 @@ const PACKAGES = [
     tagline: 'Calls + SMS + Recordings',
     priceMonthly: 39.99,
     color: '#8b5cf6',
-    features: ['Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'],
+    features: ['7-Day Free Trial Included', 'Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'],
     notIncluded: ['WhatsApp', 'AI Insights'],
-    cta: 'Get Pro',
+    cta: 'Start Free Trial',
     popular: true,
     contactSales: false,
   },
@@ -43,9 +31,9 @@ const PACKAGES = [
     tagline: 'Full-featured platform',
     priceMonthly: 69.99,
     color: '#f59e0b',
-    features: ['Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'],
+    features: ['7-Day Free Trial Included', 'Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'],
     notIncluded: [],
-    cta: 'Get Business',
+    cta: 'Start Free Trial',
     popular: false,
     contactSales: false,
   },
@@ -151,8 +139,6 @@ export default function PricingCards({ onSelect, selectedPackage, selectedBillin
               <div style={{ marginBottom: '14px' }}>
                 {pkg.contactSales ? (
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: pkg.color }}>Talk to Sales</div>
-                ) : pkg.priceMonthly === 0 ? (
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: pkg.color }}>Free</div>
                 ) : (
                   <>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: pkg.color }}>
@@ -163,6 +149,9 @@ export default function PricingCards({ onSelect, selectedPackage, selectedBillin
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
                       {perSeatLabel} × {getSeatCount(pkg.id)} seat{getSeatCount(pkg.id) > 1 ? 's' : ''}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700, marginTop: '4px' }}>
+                      7-day free trial · cancel anytime
                     </div>
                   </>
                 )}
