@@ -31,7 +31,12 @@ export async function fetchJson(url, options = {}) {
       return;
     }
     const text = await res.text();
-    throw new Error(`Request failed (${res.status}): ${text || res.statusText}`);
+    let message = res.statusText || 'Something went wrong.';
+    try {
+      const json = JSON.parse(text);
+      message = json.message || message;
+    } catch { message = text || message; }
+    throw new Error(message);
   }
 
   const contentType = res.headers.get('content-type') || '';
