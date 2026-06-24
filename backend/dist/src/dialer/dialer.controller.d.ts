@@ -11,15 +11,18 @@ export declare class DialerController {
     private config;
     private readonly ringingLockWindowMs;
     private readonly connectedLockWindowMs;
+    private readonly orphanedRingingGraceMs;
     constructor(dialerService: DialerService, voipService: VoipService, prisma: PrismaService, config: ConfigService);
     private getDefaultCallerName;
     private normalizeComparablePhone;
+    private clearOrphanedRingingCall;
     startCall(body: {
         to: string;
         from?: string;
         callerName?: string;
         leadId?: string;
         agentId?: string;
+        callLogId?: string;
     }): Promise<{
         error: string;
         message: string;
@@ -46,6 +49,11 @@ export declare class DialerController {
         callId: string;
     }): Promise<{
         message: string;
+    }>;
+    getCallStatus(id: string): Promise<{
+        callId: string;
+        status: string;
+        raw: any;
     }>;
     startCampaign(id: string): Promise<{
         message: string;

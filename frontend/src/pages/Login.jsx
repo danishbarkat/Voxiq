@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
-import { setToken } from '../lib/auth';
+import { setToken, getLogoutReason, clearLogoutReason } from '../lib/auth';
 import { useSocket } from '../context/SocketContext';
 
 export default function Login() {
@@ -24,6 +24,11 @@ export default function Login() {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [logoutNotice] = useState(() => {
+        const r = getLogoutReason();
+        if (r) clearLogoutReason();
+        return r;
+    });
     const [showForgotForm, setShowForgotForm] = useState(false);
     const [forgotEmail, setForgotEmail] = useState('');
     const [forgotSent, setForgotSent] = useState(false);
@@ -76,6 +81,8 @@ export default function Login() {
               setError('🔐 First admin login requires the company access code shared by the Voxiq super admin.');
             } else if (msg.includes('deactivated')) {
               setError('🚫 Your account has been deactivated. Contact support.');
+            } else if (msg.includes('trial_expired') || msg.includes('trial expired') || msg.includes('trial has expired')) {
+              setError('⏰ Your free trial has expired. Contact your Voxiq admin to upgrade your plan.');
             } else if (msg.includes('500') || msg.includes('internal server') || msg.includes('unauthorized') || msg.includes('invalid') || msg.includes('incorrect') || msg.includes('not found')) {
               setError('Invalid email or password. Please try again.');
             } else {
@@ -149,6 +156,21 @@ export default function Login() {
                             : 'Sign in with your email and password to access your workspace.'}
                     </p>
 
+                    {logoutNotice && (
+                        <div style={{
+                            background: logoutNotice.toLowerCase().includes('trial') ? 'linear-gradient(135deg,#fef2f2,#fee2e2)' : '#fef3c7',
+                            border: `1.5px solid ${logoutNotice.toLowerCase().includes('trial') ? '#fca5a5' : '#fcd34d'}`,
+                            borderRadius: 10,
+                            padding: '12px 16px',
+                            marginBottom: 14,
+                            fontSize: 13,
+                            color: logoutNotice.toLowerCase().includes('trial') ? '#991b1b' : '#92400e',
+                            fontWeight: 600,
+                            lineHeight: 1.5,
+                        }}>
+                            {logoutNotice}
+                        </div>
+                    )}
                     {error && <div className="auth-error">{error}</div>}
 
                     {!mfaState ? (

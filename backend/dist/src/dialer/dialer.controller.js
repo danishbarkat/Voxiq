@@ -27,6 +27,7 @@ let DialerController = class DialerController {
     config;
     ringingLockWindowMs = 90 * 1000;
     connectedLockWindowMs = 2 * 60 * 60 * 1000;
+    orphanedRingingGraceMs = 15 * 1000;
     constructor(dialerService, voipService, prisma, config) {
         this.dialerService = dialerService;
         this.voipService = voipService;
@@ -41,6 +42,29 @@ let DialerController = class DialerController {
         if (!digits)
             return null;
         return digits.length > 10 ? digits.slice(-10) : digits;
+    }
+    async clearOrphanedRingingCall(callLog) {
+        if (!callLog)
+            return false;
+        if (callLog.callStatus !== client_1.CallStatus.RINGING)
+            return false;
+        if (callLog.callControlId)
+            return false;
+        if (!callLog.startedAt)
+            return false;
+        const ageMs = Date.now() - new Date(callLog.startedAt).getTime();
+        if (ageMs < this.orphanedRingingGraceMs)
+            return false;
+        await this.prisma.callLog.update({
+            where: { id: callLog.id },
+            data: {
+                callStatus: client_1.CallStatus.FAILED,
+                endedAt: new Date(),
+                disposition: 'Unreachable',
+            },
+        });
+        console.warn(`[Dialer] Cleared orphaned ringing call ${callLog.id} after ${ageMs}ms without callControlId`);
+        return true;
     }
     async startCall(body) {
         const to = this.normalizeToE164(body.to);
@@ -65,24 +89,38 @@ let DialerController = class DialerController {
                         },
                     ],
                 },
-                select: { id: true, callStatus: true },
+                select: { id: true, callStatus: true, callControlId: true, startedAt: true },
             });
             if (activeCallLog) {
-                console.warn(`[Dialer] DUPLICATE CALL BLOCKED: ${to} already has an active call (log: ${activeCallLog.id}, status: ${activeCallLog.callStatus})`);
-                return {
-                    error: 'duplicate_call',
-                    message: `This number (${to}) is already in an active call. Duplicate call blocked.`,
-                    existingCallLogId: activeCallLog.id,
-                };
+                const sameCallLogRetry = body.callLogId && activeCallLog.id === body.callLogId;
+                if (sameCallLogRetry) {
+                    console.log(`[Dialer] Reusing active call log ${activeCallLog.id} for fallback retry to ${to}`);
+                }
+                else if (await this.clearOrphanedRingingCall(activeCallLog)) {
+                }
+                else {
+                    console.warn(`[Dialer] DUPLICATE CALL BLOCKED: ${to} already has an active call (log: ${activeCallLog.id}, status: ${activeCallLog.callStatus})`);
+                    return {
+                        error: 'duplicate_call',
+                        message: `This number (${to}) is already in an active call. Duplicate call blocked.`,
+                        existingCallLogId: activeCallLog.id,
+                    };
+                }
             }
         }
         if (body.agentId) {
             const agent = await this.prisma.user.findUnique({
                 where: { id: body.agentId },
-                select: { account: { select: { canCallInternational: true, canOutboundCall: true } } },
+                select: { account: { select: { canCallInternational: true, canOutboundCall: true, isTrial: true, trialEndsAt: true } } },
             });
             if (agent?.account && !agent.account.canOutboundCall) {
                 return { error: 'not_permitted', message: 'Outbound calling is not enabled for your account.' };
+            }
+            if (agent?.account &&
+                agent.account.isTrial &&
+                agent.account.trialEndsAt &&
+                new Date(agent.account.trialEndsAt) < new Date()) {
+                return { error: 'trial_expired', message: 'Your free trial has expired. Please contact your admin to upgrade.' };
             }
             if (agent?.account && !agent.account.canCallInternational) {
                 const isUS = to.startsWith('+1') && to.replace(/\D/g, '').length === 11;
@@ -102,7 +140,27 @@ let DialerController = class DialerController {
             recordingChannels: 'dual',
         });
         let callLogId = null;
-        if (body.leadId) {
+        if (body.callLogId) {
+            try {
+                const updated = await this.prisma.callLog.update({
+                    where: { id: body.callLogId },
+                    data: {
+                        callControlId: result.callId,
+                        callStatus: client_1.CallStatus.RINGING,
+                        endedAt: null,
+                        disposition: null,
+                        toNumber: to,
+                        fromNumber: from,
+                    },
+                    select: { id: true },
+                });
+                callLogId = updated.id;
+            }
+            catch (logErr) {
+                console.warn('callLog update skipped:', logErr?.message);
+            }
+        }
+        else if (body.leadId) {
             try {
                 const user = await this.prisma.user.findFirst({ select: { id: true } });
                 const campaign = await this.prisma.campaign.findFirst({ select: { id: true } });
@@ -129,6 +187,14 @@ let DialerController = class DialerController {
     async hangupCall(body) {
         await this.voipService.terminateCall(body.callId);
         return { message: 'Call terminated' };
+    }
+    async getCallStatus(id) {
+        const remote = await this.voipService.getCallStatus(id);
+        return {
+            callId: id,
+            status: String(remote?.status || '').toLowerCase(),
+            raw: remote,
+        };
     }
     async startCampaign(id) {
         await this.dialerService.startCampaign(id);
@@ -193,19 +259,23 @@ let DialerController = class DialerController {
                     },
                 ],
             },
-            select: { id: true, agentId: true },
+            select: { id: true, agentId: true, callStatus: true, callControlId: true, startedAt: true },
         });
         if (existing) {
-            const lockedBySelf = existing.agentId === agentId;
-            if (lockedBySelf) {
-                console.log(`[Dialer] LOCK RE-ACQUIRED: phone ${targetPhone} already locked by SAME agent ${agentId}`);
-                return { locked: true, callLogId: existing.id };
+            if (await this.clearOrphanedRingingCall(existing)) {
             }
-            console.warn(`[Dialer] LOCK DENIED: phone ${targetPhone} already locked by agent ${existing.agentId}`);
-            return {
-                locked: false,
-                reason: 'already_dialing_other_agent',
-            };
+            else {
+                const lockedBySelf = existing.agentId === agentId;
+                if (lockedBySelf) {
+                    console.log(`[Dialer] LOCK RE-ACQUIRED: phone ${targetPhone} already locked by SAME agent ${agentId}`);
+                    return { locked: true, callLogId: existing.id };
+                }
+                console.warn(`[Dialer] LOCK DENIED: phone ${targetPhone} already locked by agent ${existing.agentId}`);
+                return {
+                    locked: false,
+                    reason: 'already_dialing_other_agent',
+                };
+            }
         }
         try {
             const callLog = await this.dialerService.logCall({
@@ -342,6 +412,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], DialerController.prototype, "hangupCall", null);
+__decorate([
+    (0, common_1.SetMetadata)('isPublic', true),
+    (0, common_1.Get)('call/:id/status'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], DialerController.prototype, "getCallStatus", null);
 __decorate([
     (0, roles_decorator_1.Roles)('Admin', 'Manager'),
     (0, common_1.Post)('campaign/:id/start'),

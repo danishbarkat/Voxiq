@@ -13,6 +13,7 @@ export declare class AuthController {
     }>;
     verifySignup(email: string, code: string): Promise<{
         message: string;
+        accountId: string;
     }>;
     login(dto: LoginDto): Promise<{
         access_token: string;
@@ -52,13 +53,18 @@ export declare class AuthController {
     getMyPlan(req: any): Promise<{
         trialExpired: boolean;
         trialDaysLeft: number;
+        status: import("@prisma/client").$Enums.AccountStatus;
         agentLimit: number | null;
         packageName: string | null;
         isTrial: boolean;
         trialEndsAt: Date | null;
+        billingCycle: string | null;
+        seatCount: number | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;

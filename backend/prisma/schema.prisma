@@ -35,6 +35,10 @@ model Account {
   requestedPackage    String?
   billingCycle        String?             @default("monthly")
   seatCount           Int?                @default(1)
+  lsSubscriptionId    String?
+  lsCustomerId        String?
+  lsVariantId         String?
+  lsCurrentPeriodEnd  DateTime?
   canAiInsights          Boolean             @default(false)
   canOutboundCall        Boolean             @default(true)
   canInboundCall         Boolean             @default(true)

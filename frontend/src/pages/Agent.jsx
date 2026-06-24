@@ -648,6 +648,15 @@ export default function Agent() {
         }
       } catch (e) {
         console.warn('Manual dial process failed:', e);
+        const errMsg = (e?.message || '').toLowerCase();
+        if (errMsg.includes('trial') || errMsg.includes('trial_expired')) {
+          setStatus('Error');
+          setLocalCallActive(false);
+          setCurrentLead(null);
+          currentLeadRef.current = null;
+          alert('Your free trial has expired. Please contact your admin to upgrade your plan.');
+          return;
+        }
         const result = await makeCall(originalNumber);
         if (result) {
           setDialNumber('');

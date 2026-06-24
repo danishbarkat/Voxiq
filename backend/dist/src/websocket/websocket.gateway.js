@@ -105,7 +105,7 @@ let WebsocketGateway = WebsocketGateway_1 = class WebsocketGateway {
         this.agentSessions.set(resolvedAgentId, {
             socketId: client.id,
             agentId: resolvedAgentId,
-            status: 'available',
+            status: 'paused',
         });
         client.emit('agent:registered', { success: true });
         this.broadcastAgentStatus();

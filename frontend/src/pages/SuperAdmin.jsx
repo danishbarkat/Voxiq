@@ -1,10 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart3, Building2, ClipboardList, Headphones, LayoutDashboard, LogOut, Phone, WalletCards } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { API_URL } from '../config/env';
 import { fetchJson } from '../lib/api';
 import { clearToken } from '../lib/auth';
-import ProWorldMap from '../components/ProWorldMap';
+import BetterMultiCompanyLineChart from '../components/BetterMultiCompanyLineChart';
+
+const NAV_ITEMS_V2 = [
+  { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard'  },
+  { key: 'requests',  icon: ClipboardList, label: 'Requests'   },
+  { key: 'companies', icon: Building2, label: 'Companies'  },
+  { key: 'numbers',   icon: Phone, label: 'Numbers'    },
+  { key: 'recordings', icon: Headphones, label: 'Recordings' },
+  { key: 'analytics', icon: BarChart3, label: 'Analytics'  },
+  { key: 'billing',   icon: WalletCards, label: 'Billing'    },
+];
+
+const ProWorldMap = lazy(() => import('../components/ProWorldMap'));
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -23,6 +36,19 @@ const NAV_ITEMS = [
   { key: 'analytics', icon: '📊', label: 'Analytics'  },
   { key: 'billing',   icon: '💰', label: 'Billing'    },
 ];
+
+// ─── in-memory cache (survives tab switches, clears on page refresh) ─────────
+const _cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cachePut(key, data) { _cache.set(key, { data, at: Date.now() }); }
+
+function cacheGet(key) {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.at > CACHE_TTL) { _cache.delete(key); return null; }
+  return entry.data;
+}
 
 // ─── tiny primitives ──────────────────────────────────────────────────────────
 
@@ -57,27 +83,44 @@ function sanitizeDurationSeconds(value) {
 }
 
 function StatCard({ label, value, sub, accent }) {
+  const accentColor = accent || '#6b7280';
   return (
-    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: accent || '#111827', lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#6b7280' }}>{sub}</div>}
+    <div style={{
+      background: `linear-gradient(135deg, ${accentColor}0d 0%, #ffffff 60%)`,
+      borderRadius: 18,
+      border: `1.5px solid ${accentColor}30`,
+      padding: '22px 24px 18px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      boxShadow: `0 2px 12px ${accentColor}18, 0 1px 3px rgba(0,0,0,0.04)`,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 4, background: accentColor, borderRadius: '18px 0 0 18px' }} />
+      <div style={{ fontSize: 10, fontWeight: 700, color: `${accentColor}cc`, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{label}</div>
+      <div style={{ fontSize: 32, fontWeight: 900, color: accentColor, lineHeight: 1, letterSpacing: '-0.03em', marginTop: 4 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
 
 function MiniBars({ data, valueKey = 'calls', labelKey = 'label', color = '#6366f1' }) {
   const max = Math.max(...data.map(d => d[valueKey] || 0), 1);
+  const BAR_MAX_PX = 80;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100 }}>
-      {data.map(item => (
-        <div key={`${item[labelKey]}-${item[valueKey]}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <div title={`${item[labelKey]}: ${item[valueKey]}`}
-            style={{ width: '100%', borderRadius: '6px 6px 3px 3px', background: color, opacity: item[valueKey] ? 1 : 0.18,
-              height: `${Math.max(6, Math.round(((item[valueKey] || 0) / max) * 86))}%` }} />
-          <div style={{ fontSize: 10, color: '#6b7280', textAlign: 'center', lineHeight: 1.2 }}>{item[labelKey]}</div>
-        </div>
-      ))}
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5 }}>
+      {data.map(item => {
+        const val = item[valueKey] || 0;
+        const barH = Math.max(4, Math.round((val / max) * BAR_MAX_PX));
+        return (
+          <div key={`${item[labelKey]}-${val}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div title={`${item[labelKey]}: ${val}`}
+              style={{ width: '100%', borderRadius: '5px 5px 2px 2px', background: color, opacity: val ? 1 : 0.18, height: `${barH}px` }} />
+            <div style={{ fontSize: 9, color: '#6b7280', textAlign: 'center', lineHeight: 1.2 }}>{item[labelKey]}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -412,32 +455,80 @@ function RejectModal({ company, onClose, onRejected }) {
 // ─── chart helpers ────────────────────────────────────────────────────────────
 
 function BarChart({ data = [], valueKey = 'value', labelKey = 'label', color = '#6366f1', height = 160 }) {
-  const max = Math.max(...data.map(d => d[valueKey] || 0), 1);
-  const W = 100, barW = W / data.length;
+  const maxRaw = Math.max(...data.map(d => d[valueKey] || 0), 1);
+  const max = Math.max(4, Math.ceil(maxRaw / 4) * 4);
+  const W = Math.max(260, data.length * 56);
+  const H = height;
+  const padding = { top: 18, right: 10, bottom: 34, left: 34 };
+  const baseY = H - padding.bottom;
+  const chartTop = padding.top;
+  const chartHeight = baseY - chartTop;
+  const barGap = 10;
+  const barW = data.length ? (W - padding.left - padding.right - barGap * (data.length - 1)) / data.length : W;
+  const ticks = Array.from({ length: 4 }, (_, idx) => Math.round((max / 3) * idx));
+  const gradientId = `bar-gradient-${color.replace('#', '')}`;
   return (
-    <svg viewBox={`0 0 100 ${height}`} style={{ width: '100%' }} preserveAspectRatio="none">
-      {data.map((d, i) => {
-        const val = d[valueKey] || 0;
-        const barH = (val / max) * (height - 20);
-        const x = i * barW + barW * 0.15;
-        const w = barW * 0.7;
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ width: '100%', height: `${height}px`, display: 'block' }}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.95" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.72" />
+        </linearGradient>
+      </defs>
+
+      {ticks.map((tick, idx) => {
+        const y = baseY - (tick / max) * chartHeight;
         return (
-          <g key={i}>
-            <rect x={x} y={height - 20 - barH} width={w} height={barH} fill={color} rx="1" opacity="0.85" />
-            {barW > 8 && (
-              <text x={x + w / 2} y={height - 4} textAnchor="middle" fontSize="3.5" fill="#6b7280">
-                {String(d[labelKey] || '').slice(0, 4)}
+          <g key={idx}>
+            <line x1={padding.left} y1={y} x2={W - padding.right} y2={y} stroke="#e7eef7" strokeDasharray="4 5" strokeWidth="1" />
+            {idx > 0 && (
+              <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="11" fontWeight="600" fill="#94a3b8">
+                {tick}
               </text>
             )}
+          </g>
+        );
+      })}
+
+      {data.map((d, i) => {
+        const val = d[valueKey] || 0;
+        const barH = (val / max) * chartHeight;
+        const x = padding.left + i * (barW + barGap);
+        const label = String(d[labelKey] || '');
+        return (
+          <g key={i}>
+            <rect
+              x={x}
+              y={baseY - barH}
+              width={barW}
+              height={barH}
+              fill={`url(#${gradientId})`}
+              rx="8"
+            />
+            <rect
+              x={x}
+              y={baseY - barH}
+              width={barW}
+              height={Math.min(barH, 14)}
+              fill="#ffffff22"
+              rx="8"
+            />
+            <text x={x + barW / 2} y={H - 10} textAnchor="middle" fontSize="12" fill="#64748b" fontWeight="700">
+              {label.length > 6 ? `${label.slice(0, 6)}…` : label}
+            </text>
             {barH > 10 && (
-              <text x={x + w / 2} y={height - 22 - barH} textAnchor="middle" fontSize="3.5" fill={color} fontWeight="700">
+              <text x={x + barW / 2} y={baseY - barH - 8} textAnchor="middle" fontSize="13" fill={color} fontWeight="800">
                 {val}
               </text>
             )}
           </g>
         );
       })}
-      <line x1={0} y1={height - 20} x2={100} y2={height - 20} stroke="#e5e7eb" strokeWidth="0.5" />
+      <line x1={padding.left} y1={baseY} x2={W - padding.right} y2={baseY} stroke="#cfd8e3" strokeWidth="1.2" />
     </svg>
   );
 }
@@ -445,7 +536,7 @@ function BarChart({ data = [], valueKey = 'value', labelKey = 'label', color = '
 function DonutChart({ segments = [], size = 120 }) {
   const total = segments.reduce((s, seg) => s + (seg.value || 0), 0);
   if (total === 0) return <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 12, padding: 20 }}>No data</div>;
-  const cx = size / 2, cy = size / 2, r = size * 0.38, ir = size * 0.24;
+  const cx = size / 2, cy = size / 2, r = size * 0.39, ir = size * 0.27;
   let angle = -Math.PI / 2;
   const paths = segments.map(seg => {
     const pct = seg.value / total;
@@ -460,18 +551,31 @@ function DonutChart({ segments = [], size = 120 }) {
     return { d, color: seg.color, label: seg.label, value: seg.value, pct: Math.round(pct * 100) };
   });
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <svg width={size} height={size} style={{ flexShrink: 0 }}>
-        {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} stroke="#fff" strokeWidth="1" />)}
-        <text x={cx} y={cy - 4} textAnchor="middle" fontSize={size * 0.12} fontWeight="800" fill="#111827">{total.toLocaleString()}</text>
-        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={size * 0.08} fill="#6b7280">total</text>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, width: '100%' }}>
+      <svg width={size} height={size} style={{ flexShrink: 0, overflow: 'visible' }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eaf0f6" strokeWidth={size * 0.12} />
+        {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} stroke="#fff" strokeWidth="1.5" />)}
+        <circle cx={cx} cy={cy} r={ir} fill="#ffffff" />
+        <text x={cx} y={cy - 2} textAnchor="middle" fontSize={size * 0.2} fontWeight="900" fill="#0f172a">{total.toLocaleString()}</text>
+        <text x={cx} y={cy + 16} textAnchor="middle" fontSize={size * 0.085} fill="#64748b" fontWeight="700">Total calls</text>
       </svg>
-      <div style={{ display: 'grid', gap: 6 }}>
+      <div style={{ display: 'grid', gap: 10, minWidth: 200, flex: 1 }}>
         {paths.map((p, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 3, background: p.color, flexShrink: 0 }} />
-            <span style={{ color: '#374151', fontWeight: 600 }}>{p.label}</span>
-            <span style={{ color: '#6b7280', marginLeft: 'auto', paddingLeft: 8 }}>{p.value} ({p.pct}%)</span>
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              fontSize: 12,
+              padding: '0 0 6px',
+              borderBottom: i === paths.length - 1 ? 'none' : '1px solid #edf2f7',
+            }}
+          >
+            <div style={{ width: 12, height: 12, borderRadius: 999, background: p.color, flexShrink: 0 }} />
+            <span style={{ color: '#334155', fontWeight: 700, flex: 1 }}>{p.label}</span>
+            <span style={{ color: '#0f172a', fontWeight: 800 }}>{p.value}</span>
+            <span style={{ color: '#64748b', fontWeight: 700, minWidth: 42, textAlign: 'right' }}>{p.pct}%</span>
           </div>
         ))}
       </div>
@@ -487,7 +591,7 @@ const CAMPAIGN_MODE_COLORS = {
   PREVIEW:    { bg: '#d1fae5', color: '#065f46', label: 'Preview' },
 };
 
-function DashboardTab({ overview, overviewLoading }) {
+function DashboardTab({ overview, overviewLoading, isMobile = false, isPhone = false }) {
   const topCompanies  = overview?.topCompanies || [];
   const topStates     = (overview?.topStates || []).map(s => ({ id: s.state, value: s.calls, label: s.state }));
   const topCountries  = (overview?.topCountries || []).map(c => ({ id: c.id, value: c.calls }));
@@ -506,43 +610,48 @@ function DashboardTab({ overview, overviewLoading }) {
   }, []);
 
   const isTablet = viewportWidth <= 1100;
-  const isMobile = viewportWidth <= 768;
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
       {/* ── Stat Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, 1fr)', gap: isPhone ? 12 : 16 }}>
         {overviewLoading || !overview ? (
           Array.from({ length: 8 }).map((_, i) => <StatCard key={i} label="Loading" value="…" />)
         ) : (
           <>
             <StatCard label="Companies"     value={overview.totalCompanies}  sub={`${overview.activeCompanies} active`} accent="#6366f1" />
             <StatCard label="Open Requests" value={overview.pendingCompanies + (overview.reactivationRequests || 0)} sub="pending review" accent="#f59e0b" />
-            <StatCard label="Agents"        value={overview.totalAgents}     sub={`${overview.totalAdmins} admins`} />
-            <StatCard label="Leads"         value={overview.totalLeads}      sub={`${overview.totalLists} lists`} />
-            <StatCard label="Calls"         value={overview.totalCalls}      sub={`${overview.connectionRate}% connected`} />
-            <StatCard label="Minutes"       value={formatMinutesValue(overview.totalMinutes)}    sub={`${overview.inboundCalls} in / ${overview.outboundCalls} out`} />
+            <StatCard label="Agents"        value={overview.totalAgents}     sub={`${overview.totalAdmins} admins`} accent="#3b82f6" />
+            <StatCard label="Leads"         value={overview.totalLeads}      sub={`${overview.totalLists} lists`} accent="#8b5cf6" />
+            <StatCard label="Calls"         value={overview.totalCalls}      sub={`${overview.connectionRate}% connected`} accent="#ef4444" />
+            <StatCard label="Minutes"       value={formatMinutesValue(overview.totalMinutes)}    sub={`${overview.inboundCalls} in / ${overview.outboundCalls} out`} accent="#0ea5e9" />
             <StatCard label="Revenue"       value={`$${Math.round(overview.totalRevenue || 0).toLocaleString()}`} sub={`${overview.recordings} recordings`} accent="#059669" />
-            <StatCard label="Numbers"       value={overview.totalNumbers}    sub={`${overview.totalCampaigns} campaigns`} />
+            <StatCard label="Numbers"       value={overview.totalNumbers}    sub={`${overview.totalCampaigns} campaigns`} accent="#14b8a6" />
           </>
         )}
       </div>
 
       {/* ── World Call Heatmap ── */}
-      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: '#111827' }}>World Call Activity Map — All Companies</div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', padding: '22px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4, color: '#111827' }}>World Call Activity Map — All Companies</div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 16 }}>
           Explore every country even with no dial data. Hover for flag + name, drag to pan, and scroll to zoom.
         </div>
-        <ProWorldMap data={topCountries} />
+        <Suspense fallback={
+          <div style={{ height: 360, background: '#f8fafc', borderRadius: 12, display: 'grid', placeItems: 'center' }}>
+            <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 600 }}>Loading map…</div>
+          </div>
+        }>
+          <ProWorldMap data={topCountries} compact={isMobile} />
+        </Suspense>
       </div>
 
-      {/* ── Graphs row ── */}
+      {/* ── Graphs ── */}
       {!overviewLoading && overview && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(0, 1fr))' : '1.55fr 1fr 1fr', gap: 18 }}>
-
-          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gap: 18 }}>
+          {/* Company Call Trends — full width */}
+          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', padding: '22px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Company Call Trends</div>
                 <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>Daily, weekly, and monthly performance by company</div>
@@ -570,54 +679,84 @@ function DashboardTab({ overview, overviewLoading }) {
               </div>
             </div>
             {trendSeries.length > 0
-              ? <MultiCompanyLineChart series={trendSeries} />
+              ? <BetterMultiCompanyLineChart series={trendSeries} />
               : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', padding: '80px 0' }}>No trend data yet</div>
             }
           </div>
 
-          {/* Companies by calls bar chart */}
-          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#111827' }}>Companies by Calls</div>
-            {topCompanies.length > 0
-              ? <BarChart data={topCompanies.map(c => ({ label: c.companyName?.slice(0, 8), value: c.totalCalls }))} color="#6366f1" height={140} />
-              : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>No data yet</div>
-            }
-          </div>
+          {/* 3 smaller charts in an even row */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 18, alignItems: 'start' }}>
+            {/* Companies by calls bar chart */}
+            <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #e5edf6', padding: '16px 16px 14px', boxShadow: '0 8px 20px rgba(15,23,42,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>Companies by Calls</div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Top performers across the current view</div>
+              </div>
+              <div style={{ height: 176, display: 'flex', alignItems: 'flex-end' }}>
+                {topCompanies.length > 0
+                  ? <BarChart data={topCompanies.map(c => ({ label: c.companyName?.slice(0, 8), value: c.totalCalls }))} color="#6366f1" height={176} />
+                  : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', width: '100%' }}>No data yet</div>
+                }
+              </div>
+              <div style={{ paddingTop: 10, borderTop: '1px solid #eef2f7', fontSize: 11, color: '#64748b' }}>
+                {topCompanies[0] ? `${topCompanies[0].companyName} leads this period.` : 'Waiting for call activity.'}
+              </div>
+            </div>
 
-          {/* Call status donut */}
-          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#111827' }}>Call Status</div>
-            <DonutChart segments={[
-              { label: 'Connected', value: overview.connectedCalls || 0,  color: '#10b981' },
-              { label: 'Missed',    value: Math.max(0, (overview.totalCalls || 0) - (overview.connectedCalls || 0) - (overview.inboundCalls || 0)), color: '#f59e0b' },
-              { label: 'Inbound',   value: overview.inboundCalls || 0,   color: '#6366f1' },
-            ]} size={110} />
-          </div>
+            {/* Call status donut */}
+            <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #e5edf6', padding: '16px 16px 14px', boxShadow: '0 8px 20px rgba(15,23,42,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>Call Status</div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Connected, missed, and inbound breakdown</div>
+              </div>
+              <div style={{ minHeight: 176, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DonutChart segments={[
+                  { label: 'Connected', value: overview.connectedCalls || 0,  color: '#10b981' },
+                  { label: 'Missed',    value: Math.max(0, (overview.totalCalls || 0) - (overview.connectedCalls || 0) - (overview.inboundCalls || 0)), color: '#f59e0b' },
+                  { label: 'Inbound',   value: overview.inboundCalls || 0,   color: '#6366f1' },
+                ]} size={106} />
+              </div>
+              <div style={{ paddingTop: 10, borderTop: '1px solid #eef2f7', fontSize: 11, color: '#64748b' }}>
+                {overview.connectionRate}% of calls connected successfully.
+              </div>
+            </div>
 
-          {/* Top states bar chart */}
-          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#111827' }}>Top States Called</div>
-            {topStates.length > 0
-              ? <BarChart data={topStates.slice(0, 10).map(s => ({ label: s.id, value: s.value }))} color="#0f766e" height={140} />
-              : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>No data yet</div>
-            }
+            {/* Top states bar chart */}
+            <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #e5edf6', padding: '16px 16px 14px', boxShadow: '0 8px 20px rgba(15,23,42,0.05)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>Top States Called</div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Regional call demand snapshot</div>
+              </div>
+              <div style={{ height: 176, display: 'flex', alignItems: 'flex-end' }}>
+                {topStates.length > 0
+                  ? <BarChart data={topStates.slice(0, 8).map(s => ({ label: s.id, value: s.value }))} color="#0f766e" height={176} />
+                  : <div style={{ color: '#9ca3af', fontSize: 12, textAlign: 'center', width: '100%' }}>No data yet</div>
+                }
+              </div>
+              <div style={{ paddingTop: 10, borderTop: '1px solid #eef2f7', fontSize: 11, color: '#64748b' }}>
+                {topStates[0] ? `${topStates[0].id} is the most active state right now.` : 'Waiting for geo activity.'}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Companies + State breakdown ── */}
       <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: 18 }}>
-        <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, color: '#111827' }}>Top Companies by Calls</div>
+        <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #e5edf6', padding: '22px 24px', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Top Companies by Calls</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Best performers ranked by current call volume</div>
+          </div>
           <div style={{ display: 'grid', gap: 10 }}>
             {topCompanies.length === 0
               ? <div style={{ color: '#9ca3af', fontSize: 13 }}>No activity yet.</div>
               : topCompanies.map((c, i) => (
-                <div key={c.accountId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '11px 14px', background: '#f9fafb', borderRadius: 12 }}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 8, background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{c.companyName}</div>
+                <div key={c.accountId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', borderRadius: 14, border: '1px solid #edf2f7' }}>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 12, background: i === 0 ? '#ede9fe' : '#f1f5f9', color: i === 0 ? '#6d28d9' : '#475569', fontSize: 13, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.companyName}</div>
                       <div style={{ color: '#6b7280', fontSize: 12 }}>{formatMinutesValue(c.totalMinutes)} min • ${Math.round(c.revenue || 0).toLocaleString()}</div>
                       {c.topStates?.slice(0, 3).length > 0 && (
                         <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
@@ -630,26 +769,54 @@ function DashboardTab({ overview, overviewLoading }) {
                       )}
                     </div>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>{c.totalCalls}</div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{c.totalCalls}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>calls</div>
+                  </div>
                 </div>
               ))
             }
           </div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, color: '#111827' }}>Top Calling States</div>
-          {topStates.length > 0
-            ? <MiniBars data={topStates} valueKey="value" labelKey="id" color="#0f766e" />
-            : <div style={{ color: '#9ca3af', fontSize: 13 }}>No geo data yet.</div>
-          }
+        <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #e5edf6', padding: '22px 24px', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Top Calling States</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Readable regional ranking with call share</div>
+          </div>
+          {topStates.length > 0 ? (
+            <div style={{ display: 'grid', gap: 12 }}>
+              {(() => {
+                const maxStateCalls = Math.max(...topStates.map(s => s.value || 0), 1);
+                return topStates.slice(0, 8).map((s, i) => (
+                  <div key={s.id} style={{ display: 'grid', gap: 6 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr auto', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: i === 0 ? '#d1fae5' : '#f1f5f9', color: i === 0 ? '#047857' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900 }}>
+                        {s.id}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{s.id}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>Rank #{i + 1}</div>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: '#0f172a' }}>{s.value}</div>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 999, background: '#edf2f7', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.max(8, (s.value / maxStateCalls) * 100)}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #0f766e 0%, #2dd4bf 100%)' }} />
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          ) : (
+            <div style={{ color: '#9ca3af', fontSize: 13 }}>No geo data yet.</div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRegenerate }) {
+function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRegenerate, isMobile = false }) {
   const pending = companies.filter(c => c.status === 'PENDING');
   const reactivation = companies.filter(c => c.reactivationRequested);
 
@@ -701,7 +868,8 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
             <div style={{ padding: '10px 16px', background: '#fffbeb', fontSize: 12, color: '#92400e', borderBottom: '1px solid #fde68a' }}>
               Use `New OTP` to email a fresh 24-hour verification code to the pending signup.
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: isMobile ? 760 : '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f9fafb' }}>
                 {['Company', 'Email', 'Phone', 'OTP Code', 'Status', 'Email Activity', 'Action'].map(h => (
@@ -751,6 +919,7 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -779,7 +948,8 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
         <div>
           <SectionHeader icon="📋" title="New Company Signups" count={pending.length} countBg="#ede9fe" countColor="#5b21b6" />
           <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', marginTop: 10 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: isMobile ? 720 : '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f9fafb' }}>
                   {['Company', 'Admin', 'Request', 'Phone', 'Date', 'Actions'].map(h => (
@@ -828,6 +998,7 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -835,25 +1006,12 @@ function RequestsTab({ companies, loading, onApprove, onReject, onActivate, onRe
   );
 }
 
-function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) {
+function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete, isMobile = false, isPhone = false }) {
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth : 1440,
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const handleResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const isTablet = viewportWidth <= 1100;
 
   const loadDetail = useCallback(async (id) => {
     if (!id) return;
@@ -877,7 +1035,7 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
   if (loading) return <Placeholder>Loading companies…</Placeholder>;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: selectedId && !isTablet ? 'minmax(0,1.3fr) minmax(320px,0.8fr)' : '1fr', gap: 18, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gap: 18 }}>
       <div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
           <input
@@ -895,7 +1053,98 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
         </div>
 
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {isMobile ? (
+            <div style={{ display: 'grid', gap: 10, padding: 12 }}>
+              {filtered.length === 0 && (
+                <div style={{ padding: 16, color: '#9ca3af', fontSize: 13 }}>No companies match your filter.</div>
+              )}
+              {filtered.map((c) => {
+                const pkgColor = { Trial:'#6366f1', Basic:'#3b82f6', Pro:'#8b5cf6', Business:'#f59e0b', Enterprise:'#10b981' }[c.packageName] || '#9ca3af';
+                const trialExpired = c.isTrial && c.trialEndsAt && new Date(c.trialEndsAt) < new Date();
+                const trialDaysLeft = c.isTrial && c.trialEndsAt && !trialExpired
+                  ? Math.ceil((new Date(c.trialEndsAt) - new Date()) / (1000*60*60*24)) : null;
+                const isSelected = selectedId === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedId(prev => prev === c.id ? null : c.id)}
+                    style={{
+                      background: isSelected ? '#f5faff' : '#fff',
+                      border: `1px solid ${isSelected ? '#bfdbfe' : '#e5e7eb'}`,
+                      borderRadius: 14,
+                      padding: 14,
+                      boxShadow: isSelected ? '0 8px 20px rgba(59,130,246,0.10)' : '0 2px 8px rgba(15,23,42,0.04)',
+                      display: 'grid',
+                      gap: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 15, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, overflowWrap: 'anywhere' }}>{c.adminEmail || 'No admin'}</div>
+                      </div>
+                      <StatusBadge status={c.status} />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {c.packageName ? (
+                        <>
+                          <span style={{ background: `${pkgColor}18`, color: pkgColor, border: `1px solid ${pkgColor}40`, borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800 }}>
+                            {c.packageName}
+                          </span>
+                          {c.isTrial && !trialExpired && trialDaysLeft !== null && (
+                            <span style={{ fontSize: 11, color: trialDaysLeft <= 2 ? '#ef4444' : '#64748b', fontWeight: 700 }}>
+                              {trialDaysLeft}d left
+                            </span>
+                          )}
+                          {trialExpired && (
+                            <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 800 }}>Expired</span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: 12 }}>No package</span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                      <div style={{ background: '#f8fafc', borderRadius: 12, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Team</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{c.agentCount} agents</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{c.leadCount} leads</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', borderRadius: 12, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Calls</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{c.totalCalls}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{formatMinutesValue(c.totalMinutes)} min</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Revenue</div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 4 }}>${Math.round(c.revenue || 0).toLocaleString()}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                        {c.status !== 'PENDING' && (
+                          <button onClick={() => onToggle(c)}
+                            style={{ ...btnPrimary(c.status === 'ACTIVE' ? '#f59e0b' : '#10b981'), padding: '8px 12px', fontSize: 11 }}>
+                            {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                          </button>
+                        )}
+                        <button onClick={() => onDelete(c)}
+                          style={{ ...btnPrimary('#ef4444'), padding: '8px 12px', fontSize: 11 }}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: isMobile ? 780 : '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
                 {['Company', 'Package', 'Status', 'Team', 'Calls', 'Revenue', 'Actions'].map(h => (
@@ -970,15 +1219,17 @@ function CompaniesTab({ companies, loading, onToggle, onRegenerate, onDelete }) 
               })}
             </tbody>
           </table>
+          </div>
+          )}
         </div>
       </div>
 
       {selectedId && (
-        <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 20, display: 'grid', gap: 18 }}>
+        <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #6366f120', padding: isPhone ? '18px 16px' : '24px 28px', display: 'grid', gap: 18, boxShadow: '0 2px 12px rgba(99,102,241,0.08)' }}>
           {detailLoading
             ? <Placeholder>Loading details…</Placeholder>
             : detail
-            ? <CompanyDetail detail={detail} onRegenerate={onRegenerate} onRefresh={() => loadDetail(selectedId)} />
+            ? <CompanyDetail detail={detail} onRegenerate={onRegenerate} onRefresh={() => loadDetail(selectedId)} isMobile={isMobile} isPhone={isPhone} />
             : null
           }
         </div>
@@ -995,7 +1246,7 @@ const PACKAGES = [
   { name: 'Enterprise', price: 'Custom',        agents: 100, color: '#10b981', features: { out: true,  in: true,  sms: true,  rec: true,  wp: true,  ai: true  } },
 ];
 
-function PackageSection({ detail, onRefresh }) {
+function PackageSection({ detail, onRefresh, isPhone = false }) {
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState(null);
   const [toggling, setToggling] = useState(null);
@@ -1126,7 +1377,7 @@ function PackageSection({ detail, onRefresh }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           Assign Package
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : 'repeat(3, 1fr)', gap: 6 }}>
           {PACKAGES.map(pkg => {
             const isActive = (usage?.packageName || detail.packageName) === pkg.name;
             const f = pkg.features;
@@ -1160,7 +1411,7 @@ function PackageSection({ detail, onRefresh }) {
   );
 }
 
-function CompanyDetail({ detail, onRegenerate, onRefresh }) {
+function CompanyDetail({ detail, onRegenerate, onRefresh, isMobile = false, isPhone = false }) {
   const [unassigning, setUnassigning] = useState(null);
   const [showAssignPicker, setShowAssignPicker] = useState(false);
   const [availableNumbers, setAvailableNumbers] = useState([]);
@@ -1271,7 +1522,7 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
         </div>
 
         {/* NTN + Contact info row */}
-        <div style={{ display: 'grid', gridTemplateColumns: detail.ntn ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 2 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : detail.ntn ? '1fr 1fr' : '1fr', gap: 10, marginBottom: 2 }}>
           {detail.ntn && (
             <div style={{ background: detail.ntn ? '#eff6ff' : '#fef3c7', border: `1.5px solid ${detail.ntn ? '#bfdbfe' : '#fcd34d'}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1 }}>
@@ -1379,9 +1630,9 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
         ))}
       </div>
 
-      <PackageSection detail={detail} onRefresh={onRefresh} />
+      <PackageSection detail={detail} onRefresh={onRefresh} isPhone={isPhone} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : 'repeat(2, 1fr)', gap: 10 }}>
         <StatCard label="Calls"     value={detail.stats.totalCalls}    sub={`${detail.stats.inboundCalls} in / ${detail.stats.outboundCalls} out`} />
         <StatCard label="Revenue"   value={`$${Math.round(detail.stats.revenue || 0).toLocaleString()}`} sub={`${detail.stats.recordings} recordings`} />
         <StatCard label="Minutes"   value={formatMinutesValue(detail.stats.totalMinutes)}  sub={`${detail.stats.avgDuration}s avg`} />
@@ -1390,7 +1641,7 @@ function CompanyDetail({ detail, onRegenerate, onRefresh }) {
 
       <div>
         <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>World Call Map</div>
-        <ProWorldMap data={(detail.topCountries || []).map(c => ({ id: c.id, value: c.calls }))} />
+        <ProWorldMap data={(detail.topCountries || []).map(c => ({ id: c.id, value: c.calls }))} compact={isMobile} />
       </div>
 
       {detail.campaigns?.length > 0 && (
@@ -1819,27 +2070,29 @@ function SearchBuyNumbers({ onPurchased, messagingReady }) {
   );
 }
 
-function NumbersTab() {
-  const [numbers, setNumbers] = useState([]);
-  const [companies, setCompanies] = useState([]);
-  const [loading, setLoading] = useState(true);
+function NumbersTab({ isMobile = false, isPhone = false }) {
+  const cached = cacheGet('tab:numbers');
+  const [numbers, setNumbers] = useState(cached?.numbers || []);
+  const [companies, setCompanies] = useState(cached?.companies || []);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [assignTarget, setAssignTarget] = useState(null);
-  const [messagingReady, setMessagingReady] = useState(false);
+  const [messagingReady, setMessagingReady] = useState(cached?.messagingReady ?? false);
 
   const load = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true); else setLoading(true);
+    if (isRefresh) setRefreshing(true); else if (!cacheGet('tab:numbers')) setLoading(true);
     try {
       const [numsResult, compsResult, msgResult] = await Promise.allSettled([
         fetchJson(`${API_URL}/superadmin/numbers`),
         fetchJson(`${API_URL}/superadmin/companies`),
         fetchJson(`${API_URL}/superadmin/messaging/profile`),
       ]);
-      const nums = numsResult.status === 'fulfilled' ? numsResult.value : [];
-      const comps = compsResult.status === 'fulfilled' ? compsResult.value : [];
+      const nums = numsResult.status === 'fulfilled' ? (Array.isArray(numsResult.value) ? numsResult.value : []) : [];
+      const comps = compsResult.status === 'fulfilled' ? (Array.isArray(compsResult.value) ? compsResult.value : []) : [];
       const msg = msgResult.status === 'fulfilled' ? msgResult.value : null;
-      setNumbers(Array.isArray(nums) ? nums : []);
-      setCompanies(Array.isArray(comps) ? comps : []);
+      cachePut('tab:numbers', { numbers: nums, companies: comps, messagingReady: !!msg?.hasConfigured });
+      setNumbers(nums);
+      setCompanies(comps);
       setMessagingReady(!!msg?.hasConfigured);
     } finally {
       setLoading(false);
@@ -1847,13 +2100,13 @@ function NumbersTab() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!cacheGet('tab:numbers')) load(); }, [load]);
 
   const free = numbers.filter(n => !n.assigned);
   const assigned = numbers.filter(n => n.assigned);
 
   return (
-    <div style={{ display: 'grid', gap: 18, maxWidth: 860 }}>
+    <div style={{ display: 'grid', gap: 18, maxWidth: isMobile ? '100%' : 860 }}>
       {assignTarget && (
         <AssignNumberModal
           number={assignTarget}
@@ -1866,7 +2119,7 @@ function NumbersTab() {
       <MessagingSetup />
       <SearchBuyNumbers onPurchased={() => setTimeout(() => load(true), 3000)} messagingReady={messagingReady} />
 
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#1d4ed8', display: 'flex', alignItems: isPhone ? 'flex-start' : 'center', flexDirection: isPhone ? 'column' : 'row', gap: 10 }}>
         <span style={{ fontSize: 18 }}>📞</span>
         Your purchased Telnyx numbers — assign them to companies below.
         <button onClick={() => load(true)} disabled={refreshing}
@@ -1893,7 +2146,8 @@ function NumbersTab() {
             <span style={{ fontSize: 12 }}>Purchase numbers on Telnyx then click Refresh.</span>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: isMobile ? 560 : '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
                 {['Number', 'Country', 'Status', 'Action'].map(h => (
@@ -1935,13 +2189,14 @@ function NumbersTab() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function AnalyticsTab({ analytics, loading }) {
+function AnalyticsTab({ analytics, loading, isPhone = false }) {
   const [period, setPeriod] = useState('daily');
 
   const cards = useMemo(() => analytics
@@ -1961,7 +2216,7 @@ function AnalyticsTab({ analytics, loading }) {
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {['daily', 'weekly', 'monthly'].map(p => (
           <button key={p} onClick={() => setPeriod(p)}
             style={{ padding: '9px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
@@ -1977,7 +2232,7 @@ function AnalyticsTab({ analytics, loading }) {
         : cards.length === 0
         ? <Placeholder>No analytics data yet.</Placeholder>
         : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isPhone ? 220 : 290}px, 1fr))`, gap: 16 }}>
             {cards.map(c => (
               <div key={c.name} style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 18 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -2068,7 +2323,7 @@ function SectionHeader({ icon, title, count, countBg, countColor }) {
   );
 }
 
-function RecordingsTab() {
+function RecordingsTab({ isPhone = false }) {
   const [data, setData] = useState({ items: [], companies: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ accountId: '', search: '', from: '', to: '' });
@@ -2332,12 +2587,12 @@ function RecordingsTab() {
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 5 }}>From</div>
             <input type="date" value={filters.from} onChange={(e) => setFilters((p) => ({ ...p, from: e.target.value }))}
-              style={{ ...inputStyle, width: 145, marginBottom: 0 }} />
+              style={{ ...inputStyle, width: isPhone ? '100%' : 145, marginBottom: 0 }} />
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 5 }}>To</div>
             <input type="date" value={filters.to} onChange={(e) => setFilters((p) => ({ ...p, to: e.target.value }))}
-              style={{ ...inputStyle, width: 145, marginBottom: 0 }} />
+              style={{ ...inputStyle, width: isPhone ? '100%' : 145, marginBottom: 0 }} />
           </div>
           <button onClick={loadRecordings} style={{ ...btnPrimary('#4f46e5'), padding: '10px 18px' }}>Refresh</button>
           <button onClick={handleBulkDownload} disabled={!visibleDownloads.length}
@@ -2449,18 +2704,20 @@ function CountryBreakdown({ breakdown }) {
   );
 }
 
-function BillingTab() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+function BillingTab({ isMobile = false, isPhone = false }) {
+  const [data, setData] = useState(() => cacheGet('tab:billing'));
+  const [loading, setLoading] = useState(!cacheGet('tab:billing'));
   const [expanded, setExpanded] = useState({});
 
-  const load = () => {
-    setLoading(true);
+  const load = useCallback((isRefresh = false) => {
+    if (isRefresh || !cacheGet('tab:billing')) setLoading(true);
     fetchJson(`${API_URL}/superadmin/billing-summary`)
-      .then(setData).catch(() => {}).finally(() => setLoading(false));
-  };
+      .then(d => { cachePut('tab:billing', d); setData(d); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (!cacheGet('tab:billing')) load(); }, [load]);
 
   if (loading) return <Placeholder>Loading billing data…</Placeholder>;
   if (!data) return <Placeholder>Failed to load billing data.</Placeholder>;
@@ -2480,7 +2737,7 @@ function BillingTab() {
     <div style={{ display: 'grid', gap: 20 }}>
 
       {/* Month header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: isPhone ? 'flex-start' : 'center', justifyContent: 'space-between', flexDirection: isPhone ? 'column' : 'row', gap: 12 }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 18, color: '#111827' }}>Billing Summary — {month}</div>
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
@@ -2495,7 +2752,7 @@ function BillingTab() {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           📦 Flat Package Revenue
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
           <SummaryCard label="Package Revenue" value={`$${summary.totalRevenue.toLocaleString()}`}
             sub={`${companies.length} active companies`} color="#059669" bg="#f0fdf4" />
           <SummaryCard label="Telnyx Cost" value={`$${summary.totalTelnyxCost.toFixed(2)}`}
@@ -2511,7 +2768,7 @@ function BillingTab() {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>
           ⏱ Per-Minute Usage Billing (if charged per-use)
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isPhone ? '1fr' : isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
           <SummaryCard label="Usage Bill Total" value={`$${summary.totalUsageBill?.toFixed(2) || '0.00'}`}
             sub="Sum of per-minute charges" color="#2563eb" bg="#eff6ff" />
           <SummaryCard label="Telnyx Cost" value={`$${summary.totalTelnyxCost.toFixed(2)}`}
@@ -2680,52 +2937,52 @@ export default function SuperAdmin() {
     typeof window !== 'undefined' ? window.innerWidth : 1440,
   );
   const [tab, setTab] = useState('dashboard');
-  const [companies, setCompanies] = useState([]);
-  const [overview, setOverview] = useState(null);
-  const [analytics, setAnalytics] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [companies, setCompanies] = useState(() => cacheGet('main:companies') || []);
+  const [overview, setOverview] = useState(() => cacheGet('main:overview'));
+  const [analytics, setAnalytics] = useState(() => cacheGet('main:analytics') || []);
+  const [loading, setLoading] = useState(!cacheGet('main:companies'));
+  const [overviewLoading, setOverviewLoading] = useState(!cacheGet('main:overview'));
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [approveModal, setApproveModal] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
 
-  const loadCompanies = useCallback(async () => {
-    setLoading(true);
+  const loadDashboard = useCallback(async () => {
+    const hasCompanies = !!cacheGet('main:companies');
+    const hasOverview = !!cacheGet('main:overview');
+    if (!hasCompanies) setLoading(true);
+    if (!hasOverview) setOverviewLoading(true);
     try {
-      const d = await fetchJson(`${API_URL}/superadmin/companies`);
-      setCompanies(Array.isArray(d) ? d : []);
+      const d = await fetchJson(`${API_URL}/superadmin/dashboard`);
+      const result = Array.isArray(d.companies) ? d.companies : [];
+      cachePut('main:companies', result);
+      cachePut('main:overview', d.overview);
+      setCompanies(result);
+      setOverview(d.overview);
       setLoadError('');
     } catch (error) {
-      console.error('Failed to load super admin companies', error);
-      setCompanies([]);
+      console.error('Failed to load super admin dashboard', error);
+      if (!cacheGet('main:companies')) setCompanies([]);
       setLoadError('Super Admin data is temporarily unavailable. Please refresh in a moment.');
+    } finally {
+      setLoading(false);
+      setOverviewLoading(false);
     }
-    finally { setLoading(false); }
-  }, []);
-
-  const loadOverview = useCallback(async () => {
-    setOverviewLoading(true);
-    try {
-      const d = await fetchJson(`${API_URL}/superadmin/overview`);
-      setOverview(d);
-      setLoadError('');
-    } catch (error) {
-      console.error('Failed to load super admin overview', error);
-      setOverview(null);
-      setLoadError('Super Admin data is temporarily unavailable. Please refresh in a moment.');
-    }
-    finally { setOverviewLoading(false); }
   }, []);
 
   const loadAnalytics = useCallback(async () => {
-    setAnalyticsLoading(true);
-    try { const d = await fetchJson(`${API_URL}/superadmin/analytics`); setAnalytics(Array.isArray(d) ? d : []); }
+    if (!cacheGet('main:analytics')) setAnalyticsLoading(true);
+    try {
+      const d = await fetchJson(`${API_URL}/superadmin/analytics`);
+      const result = Array.isArray(d) ? d : [];
+      cachePut('main:analytics', result);
+      setAnalytics(result);
+    }
     finally { setAnalyticsLoading(false); }
   }, []);
 
-  useEffect(() => { loadCompanies(); loadOverview(); }, [loadCompanies, loadOverview]);
-  useEffect(() => { if (tab === 'analytics') loadAnalytics(); }, [tab, loadAnalytics]);
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+  useEffect(() => { if (tab === 'analytics' && !cacheGet('main:analytics')) loadAnalytics(); }, [tab, loadAnalytics]);
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
@@ -2737,7 +2994,7 @@ export default function SuperAdmin() {
   const handleToggle = async (company) => {
     const ep = company.status === 'ACTIVE' ? 'deactivate' : 'activate';
     await fetchJson(`${API_URL}/superadmin/companies/${company.id}/${ep}`, { method: 'POST' });
-    await Promise.all([loadCompanies(), loadOverview()]);
+    await loadDashboard();
   };
 
   const handleDelete = async (company) => {
@@ -2747,7 +3004,7 @@ export default function SuperAdmin() {
     if (!confirmed) return;
     try {
       await fetchJson(`${API_URL}/superadmin/companies/${company.id}/delete`, { method: 'POST' });
-      await Promise.all([loadCompanies(), loadOverview()]);
+      await loadDashboard();
     } catch (err) {
       alert(`Delete failed: ${err.message}`);
     }
@@ -2756,7 +3013,7 @@ export default function SuperAdmin() {
   const handleRegenerate = async (companyId) => {
     const result = await fetchJson(`${API_URL}/superadmin/companies/${companyId}/access-code/regenerate`, { method: 'POST' });
     alert(`New access code: ${result.accessCode}`);
-    await Promise.all([loadCompanies(), loadOverview()]);
+    await loadDashboard();
   };
 
   const pendingCount = companies.filter(c => c.status === 'PENDING').length;
@@ -2764,31 +3021,50 @@ export default function SuperAdmin() {
   const openRequests = pendingCount + reactivationCount;
   const isTablet = viewportWidth <= 1100;
   const isMobile = viewportWidth <= 768;
-  const isCompactLayout = viewportWidth <= 1024;
+  const isPhone = viewportWidth <= 480;
+  const isCompactLayout = viewportWidth <= 1280;
 
   return (
-    <div style={{ display: 'flex', flexDirection: isCompactLayout ? 'column' : 'row', minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Inter, system-ui, sans-serif', overflowX: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isCompactLayout ? 'column' : 'row', height: isCompactLayout ? 'auto' : '100vh', minHeight: isCompactLayout ? '100vh' : 'unset', overflow: isCompactLayout ? 'visible' : 'hidden', background: '#f0f2f5', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* Sidebar */}
-      <aside style={{ width: isCompactLayout ? '100%' : 220, background: '#111827', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, position: isCompactLayout ? 'static' : 'sticky', top: 0, height: isCompactLayout ? 'auto' : '100vh' }}>
-        <div style={{ padding: isCompactLayout ? '16px' : '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <img src="/logo.png" alt="Voxiq" style={{ height: 30, marginBottom: 10 }} />
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Super Admin</div>
+      <aside style={{ width: isCompactLayout ? '100%' : 200, background: 'linear-gradient(180deg, #0f172a 0%, #111827 100%)', color: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, position: isCompactLayout ? 'sticky' : 'relative', top: isCompactLayout ? 0 : 'unset', zIndex: isCompactLayout ? 1100 : 50, height: isCompactLayout ? 'auto' : '100vh', overflowY: isCompactLayout ? 'visible' : 'auto', boxShadow: isCompactLayout ? '0 2px 8px rgba(0,0,0,0.2)' : '2px 0 8px rgba(0,0,0,0.15)' }}>
+        <div style={{ padding: isPhone ? '10px 14px 8px' : isCompactLayout ? '16px' : '22px 20px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: isPhone ? '#ffffff' : 'transparent' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '6px 10px', borderRadius: 14, background: 'transparent', marginBottom: 4 }}>
+            <img src="/logo.png" alt="Voxiq" style={{ height: 26 }} />
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: isPhone ? '#0f172a' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Super Admin</div>
         </div>
 
-        <nav style={{ flex: 1, padding: isCompactLayout ? '12px 12px 8px' : '12px 10px', display: 'flex', flexDirection: isCompactLayout ? 'row' : 'column', overflowX: isCompactLayout ? 'auto' : 'visible', gap: isCompactLayout ? 8 : 0 }}>
-          {NAV_ITEMS.map(item => {
+        <nav style={{ flex: 1, padding: isPhone ? '6px 8px 6px' : isCompactLayout ? '12px 12px 8px' : '12px 10px', display: isPhone ? 'grid' : 'flex', gridTemplateColumns: isPhone ? 'repeat(4, minmax(0, 1fr))' : 'none', flexDirection: isCompactLayout ? 'row' : 'column', flexWrap: isCompactLayout ? 'wrap' : 'nowrap', overflowX: 'visible', gap: isPhone ? 6 : isCompactLayout ? 8 : 0 }}>
+          {NAV_ITEMS_V2.map(item => {
             const isActive = tab === item.key;
             const badge = item.key === 'requests' ? openRequests : 0;
+            const Icon = item.icon;
             return (
               <button key={item.key} onClick={() => setTab(item.key)}
-                style={{ width: isCompactLayout ? 'auto' : '100%', minWidth: isCompactLayout ? 'max-content' : 'auto', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: isCompactLayout ? 0 : 4, textAlign: 'left',
-                  background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
-                  color: isActive ? '#fff' : '#9ca3af', fontWeight: isActive ? 700 : 500, fontSize: 14, transition: 'all 0.15s' }}>
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
+                style={{ width: isPhone ? '100%' : isCompactLayout ? 'auto' : '100%', minWidth: isPhone ? 0 : isCompactLayout ? 'max-content' : 'auto', flex: isPhone ? 'none' : '0 0 auto', display: 'flex', flexDirection: isPhone ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: isPhone ? 5 : 10, padding: isPhone ? '8px 4px 7px' : '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: isCompactLayout && !isPhone ? 0 : 4, textAlign: isPhone ? 'center' : 'left',
+                  background: isActive ? 'rgba(99,102,241,0.25)' : 'transparent',
+                  color: isActive ? '#fff' : '#94a3b8', fontWeight: isActive ? 700 : 500, fontSize: isPhone ? 10 : 14, transition: 'all 0.15s',
+                  borderLeft: !isCompactLayout && isActive ? '3px solid #6366f1' : !isCompactLayout ? '3px solid transparent' : 'none',
+                  position: isPhone ? 'relative' : 'static' }}>
+                <span style={{
+                  width: isPhone ? 26 : 30,
+                  height: isPhone ? 26 : 30,
+                  borderRadius: 8,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive ? 'linear-gradient(135deg, rgba(129,140,248,0.95), rgba(99,102,241,0.8))' : 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(148,163,184,0.04))',
+                  boxShadow: isActive ? '0 8px 18px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.25)' : 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                  border: `1px solid ${isActive ? 'rgba(255,255,255,0.16)' : 'rgba(148,163,184,0.12)'}`,
+                  flexShrink: 0,
+                }}>
+                  <Icon size={isPhone ? 13 : 16} strokeWidth={2.2} />
+                </span>
+                <span style={{ flex: isPhone ? 'none' : 1, lineHeight: 1.2 }}>{item.label}</span>
                 {badge > 0 && (
-                  <span style={{ background: '#ef4444', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 800, padding: '1px 6px', minWidth: 18, textAlign: 'center' }}>{badge}</span>
+                  <span style={{ background: '#ef4444', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 800, padding: '1px 6px', minWidth: 18, textAlign: 'center', position: isPhone ? 'absolute' : 'static', top: 8, right: 8 }}>{badge}</span>
                 )}
               </button>
             );
@@ -2797,18 +3073,18 @@ export default function SuperAdmin() {
 
         <div style={{ padding: isCompactLayout ? '0 12px 12px' : '14px 12px', borderTop: isCompactLayout ? 'none' : '1px solid rgba(255,255,255,0.08)' }}>
           <button onClick={() => { disconnectForLogout(); clearToken(); navigate('/login'); }}
-            style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#d1d5db', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>↩</span> Logout
+            style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.08)', color: '#d1d5db', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: isPhone ? 'center' : 'flex-start', gap: 8 }}>
+            <span style={{ width: 30, height: 30, borderRadius: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(148,163,184,0.04))', border: '1px solid rgba(148,163,184,0.12)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)', flexShrink: 0 }}><LogOut size={16} strokeWidth={2.2} /></span> Logout
           </button>
         </div>
       </aside>
 
       {/* Main content */}
-      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: isMobile ? '14px 16px' : '18px 28px', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
+      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflowY: isCompactLayout ? 'visible' : 'auto', overflowX: 'hidden' }}>
+        <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: isPhone ? '12px 14px' : isMobile ? '14px 16px' : '18px 28px', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 12, position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 20, color: '#111827' }}>
-              {NAV_ITEMS.find(n => n.key === tab)?.label}
+              {NAV_ITEMS_V2.find(n => n.key === tab)?.label}
             </div>
             <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>
               {tab === 'dashboard' && 'Platform-wide overview and stats'}
@@ -2828,14 +3104,14 @@ export default function SuperAdmin() {
           )}
         </header>
 
-        <div style={{ padding: isMobile ? 16 : 28, flex: 1, minWidth: 0 }}>
+        <div style={{ padding: isPhone ? 12 : isMobile ? 16 : 28, flex: 1, minWidth: 0 }}>
           {loadError && (
             <div style={{ marginBottom: 16, background: '#fff7ed', color: '#9a3412', border: '1px solid #fdba74', borderRadius: 14, padding: '12px 14px', fontSize: 13, fontWeight: 600 }}>
               {loadError}
             </div>
           )}
           {tab === 'dashboard' && (
-            <DashboardTab overview={overview} overviewLoading={overviewLoading} />
+            <DashboardTab overview={overview} overviewLoading={overviewLoading} isMobile={isMobile} isPhone={isPhone} />
           )}
           {tab === 'requests' && (
             <RequestsTab
@@ -2844,28 +3120,30 @@ export default function SuperAdmin() {
               onReject={setRejectModal}
               onActivate={handleToggle}
               onRegenerate={handleRegenerate}
+              isMobile={isMobile}
             />
           )}
           {tab === 'companies' && (
-            <CompaniesTab companies={companies} loading={loading} onToggle={handleToggle} onRegenerate={handleRegenerate} onDelete={handleDelete} />
+            <CompaniesTab companies={companies} loading={loading} onToggle={handleToggle} onRegenerate={handleRegenerate} onDelete={handleDelete} isMobile={isMobile} isPhone={isPhone} />
           )}
-          {tab === 'numbers' && <NumbersTab />}
-          {tab === 'recordings' && <RecordingsTab />}
+          {tab === 'numbers' && <NumbersTab isMobile={isMobile} isPhone={isPhone} />}
+          {tab === 'recordings' && <RecordingsTab isPhone={isPhone} />}
           {tab === 'analytics' && (
-            <AnalyticsTab analytics={analytics} loading={analyticsLoading} />
+            <AnalyticsTab analytics={analytics} loading={analyticsLoading} isPhone={isPhone} />
           )}
-          {tab === 'billing' && <BillingTab />}
+          {tab === 'billing' && <BillingTab isMobile={isMobile} isPhone={isPhone} />}
         </div>
       </main>
 
       {approveModal && (
         <ApproveModal company={approveModal} onClose={() => setApproveModal(null)}
-          onApproved={async () => { setApproveModal(null); await Promise.all([loadCompanies(), loadOverview()]); }} />
+          onApproved={async () => { setApproveModal(null); await loadDashboard(); }} />
       )}
       {rejectModal && (
         <RejectModal company={rejectModal} onClose={() => setRejectModal(null)}
-          onRejected={async () => { setRejectModal(null); await Promise.all([loadCompanies(), loadOverview()]); }} />
+          onRejected={async () => { setRejectModal(null); await loadDashboard(); }} />
       )}
     </div>
   );
 }
+

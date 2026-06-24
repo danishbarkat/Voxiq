@@ -85,43 +85,26 @@ let AuthService = class AuthService {
         const otpCode = this.generateOtpCode();
         const passwordHash = await bcryptjs_1.default.hash(dto.password, 10);
         const expiresAt = new Date(Date.now() + AuthService_1.SIGNUP_OTP_TTL_MS);
+        const signupPayload = {
+            name: dto.name,
+            lastName: dto.lastName,
+            email: dto.email.toLowerCase(),
+            passwordHash,
+            phone: this.normalizeOptionalPhone(dto.phone),
+            companyName: dto.companyName,
+            website: dto.website || null,
+            requestedAgentLimit: dto.requestedAgentLimit,
+            requestedNumbers: dto.requestedNumbers,
+            ntn: dto.ntn || null,
+            termsAccepted: dto.termsAccepted,
+            requestedPackage: dto.requestedPackage || 'Trial',
+            billingCycle: dto.billingCycle || 'monthly',
+            seatCount: dto.seatCount || 1,
+        };
         await this.prisma.signupVerification.upsert({
             where: { email: dto.email.toLowerCase() },
-            update: {
-                otpCode,
-                payload: {
-                    name: dto.name,
-                    lastName: dto.lastName,
-                    email: dto.email.toLowerCase(),
-                    passwordHash,
-                    phone: this.normalizeOptionalPhone(dto.phone),
-                    companyName: dto.companyName,
-                    website: dto.website || null,
-                    requestedAgentLimit: dto.requestedAgentLimit,
-                    requestedNumbers: dto.requestedNumbers,
-                    ntn: dto.ntn || null,
-                    termsAccepted: dto.termsAccepted,
-                },
-                expiresAt,
-            },
-            create: {
-                email: dto.email.toLowerCase(),
-                otpCode,
-                payload: {
-                    name: dto.name,
-                    lastName: dto.lastName,
-                    email: dto.email.toLowerCase(),
-                    passwordHash,
-                    phone: this.normalizeOptionalPhone(dto.phone),
-                    companyName: dto.companyName,
-                    website: dto.website || null,
-                    requestedAgentLimit: dto.requestedAgentLimit,
-                    requestedNumbers: dto.requestedNumbers,
-                    ntn: dto.ntn || null,
-                    termsAccepted: dto.termsAccepted,
-                },
-                expiresAt,
-            },
+            update: { otpCode, payload: signupPayload, expiresAt },
+            create: { email: dto.email.toLowerCase(), otpCode, payload: signupPayload, expiresAt },
         });
         const previewCode = await this.sendSignupVerificationEmail(dto.email.toLowerCase(), dto.companyName, otpCode);
         return previewCode
@@ -175,7 +158,8 @@ let AuthService = class AuthService {
             where: { email: email.toLowerCase() },
         });
         return {
-            message: 'Signup successful. Your account is under review. Voxiq will share your company access code after approval.',
+            message: 'Email verified. Proceeding to plan selection.',
+            accountId: account.id,
         };
     }
     async validateUser(email, password, accessCode) {
@@ -382,10 +366,12 @@ let AuthService = class AuthService {
         const account = await this.prisma.account.findUnique({
             where: { id: accountId },
             select: {
+                status: true,
                 packageName: true, isTrial: true, trialEndsAt: true,
                 canOutboundCall: true, canInboundCall: true,
-                canSendSms: true, canRecord: true,
+                canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true,
                 monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+                billingCycle: true, seatCount: true,
             },
         });
         if (!account)
@@ -505,6 +491,15 @@ let AuthService = class AuthService {
         }
         if (columns.has('termsAccepted')) {
             data.termsAccepted = payload.termsAccepted === true;
+        }
+        if (columns.has('requestedPackage')) {
+            data.requestedPackage = payload.requestedPackage || 'Trial';
+        }
+        if (columns.has('billingCycle')) {
+            data.billingCycle = payload.billingCycle || 'monthly';
+        }
+        if (columns.has('seatCount')) {
+            data.seatCount = Number(payload.seatCount) || 1;
         }
         return data;
     }

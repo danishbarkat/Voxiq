@@ -34,7 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         status: true,
         lastSessionId: true,
-        account: { select: { id: true, status: true } },
+        account: { select: { id: true, status: true, isTrial: true, trialEndsAt: true } },
         role: { select: { name: true } },
       },
     });
@@ -68,12 +68,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Company account is deactivated. Contact your admin.');
     }
 
+    // Trial expired — agents/managers blocked; admins allowed in so they can request upgrade
+    const trialExpired =
+      !!user.account.isTrial &&
+      user.account.trialEndsAt !== null &&
+      user.account.trialEndsAt < new Date();
+
+    if (trialExpired && roleName !== 'admin' && roleName !== 'superadmin') {
+      throw new UnauthorizedException('TRIAL_EXPIRED');
+    }
+
     return {
       userId: payload.sub,
       role: payload.role,
       accountId: payload.accountId,
       teamId: payload.teamId,
       accountStatus,
+      trialExpired: trialExpired && (roleName === 'admin' || roleName === 'superadmin'),
     };
   }
 }

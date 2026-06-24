@@ -232,11 +232,22 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     }
     async getRecordings(filters, requester) {
         const limit = filters?.limit ?? 200;
+        const agentAccountFilter = requester?.role?.toLowerCase() === 'superadmin'
+            ? {}
+            : (() => {
+                if (!requester?.accountId)
+                    throw new common_1.ForbiddenException('Company context is required');
+                return { agent: { accountId: requester.accountId } };
+            })();
         const where = {
-            ...this.buildCallLogWhereForRequester(requester),
-            OR: [
-                { recordingUrl: { not: null } },
-                { vmRecordingUrl: { not: null } },
+            AND: [
+                agentAccountFilter,
+                {
+                    OR: [
+                        { recordingUrl: { not: null } },
+                        { vmRecordingUrl: { not: null } },
+                    ],
+                },
             ],
         };
         if (filters?.agentId) {
@@ -291,49 +302,13 @@ let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     async getHistory(filters, requester) {
         const limit = Math.min(filters?.limit ?? 150, 300);
         const requesterRole = requester?.role?.toLowerCase();
-        const requesterUser = requesterRole === 'agent' && requester?.userId
-            ? await this.prisma.user.findUnique({
-                where: { id: requester.userId },
-                select: {
-                    id: true,
-                    accountId: true,
-                    callerNumber: true,
-                },
-            })
-            : null;
-        const agentCallClauses = [{ agentId: requester?.userId }];
-        if (requesterUser?.callerNumber) {
-            agentCallClauses.push({ fromNumber: requesterUser.callerNumber }, { toNumber: requesterUser.callerNumber });
-            if (requesterUser.accountId) {
-                agentCallClauses.push({
-                    AND: [
-                        {
-                            OR: [
-                                { agent: { accountId: requesterUser.accountId } },
-                                { lead: { accountId: requesterUser.accountId } },
-                                { campaign: { accountId: requesterUser.accountId } },
-                            ],
-                        },
-                        {
-                            OR: [
-                                { fromNumber: requesterUser.callerNumber },
-                                { toNumber: requesterUser.callerNumber },
-                            ],
-                        },
-                    ],
-                });
-            }
-        }
         const callWhere = requesterRole === 'agent'
-            ? { OR: agentCallClauses }
+            ? { agentId: requester?.userId }
             : this.buildCallLogWhereForRequester(requester);
         const smsWhere = requesterRole === 'agent'
             ? {
                 accountId: requester?.accountId,
-                OR: [
-                    { agentId: requester?.userId },
-                    { direction: 'inbound' },
-                ],
+                agentId: requester?.userId,
             }
             : this.buildSmsWhereForRequester(requester);
         const [calls, smsMessages] = await Promise.all([

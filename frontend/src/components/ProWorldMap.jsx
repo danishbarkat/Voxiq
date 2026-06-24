@@ -199,7 +199,7 @@ function MapLegend() {
   );
 }
 
-export default function ProWorldMap({ data = [] }) {
+export default function ProWorldMap({ data = [], compact = false }) {
   const [countryShapes, setCountryShapes] = useState(null);
 
   useEffect(() => {
@@ -269,9 +269,10 @@ export default function ProWorldMap({ data = [] }) {
             top: 12,
             left: 12,
             zIndex: 500,
-            minWidth: 190,
+            minWidth: compact ? 150 : 190,
+            maxWidth: compact ? 'calc(100% - 24px)' : 'none',
             borderRadius: 14,
-            padding: '10px 12px',
+            padding: compact ? '8px 10px' : '10px 12px',
             background: 'rgba(7,16,28,0.84)',
             border: '1px solid rgba(255,255,255,0.08)',
             backdropFilter: 'blur(10px)',
@@ -290,7 +291,7 @@ export default function ProWorldMap({ data = [] }) {
         </div>
       )}
 
-      <div style={{ height: 'clamp(280px, 36vw, 430px)', width: '100%' }}>
+      <div style={{ height: compact ? '260px' : 'clamp(280px, 36vw, 430px)', width: '100%' }}>
         <MapContainer
           center={[20, 15]}
           zoom={2}

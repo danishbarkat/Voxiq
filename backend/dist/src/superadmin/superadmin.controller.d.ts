@@ -21,74 +21,53 @@ declare class TranscribeRecordingDto {
 export declare class SuperAdminController {
     private readonly superAdminService;
     constructor(superAdminService: SuperAdminService);
-    getOverview(): Promise<{
-        connectionRate: number;
-        topCompanies: {
-            accountId: any;
-            companyName: any;
+    getDashboard(): Promise<{
+        companies: {
+            id: any;
+            name: any;
+            status: any;
+            approved: any;
+            agentLimit: any;
+            requestedAgentLimit: any;
+            requestedNumbers: any;
+            accessCode: any;
+            accessCodeUsed: boolean;
+            adminPhone: any;
+            ntn: any;
+            website: null;
+            rejectionReason: any;
+            reactivationRequested: any;
+            approvedAt: any;
+            createdAt: any;
+            userCount: any;
+            agentCount: any;
+            adminCount: any;
+            leadCount: any;
+            listCount: any;
+            campaignCount: any;
+            numberCount: any;
+            adminEmail: any;
+            adminName: any;
+            packageName: any;
+            isTrial: any;
+            trialEndsAt: any;
             totalCalls: number;
+            connectedCalls: number;
             totalMinutes: number;
+            avgDuration: number;
             revenue: any;
+            recordings: number;
+            inboundCalls: number;
+            outboundCalls: number;
+            services: (string | null)[];
             topStates: {
                 state: string;
                 calls: number;
             }[];
         }[];
-        topStates: {
-            state: string;
-            calls: number;
-        }[];
-        topCountries: {
-            id: string;
-            calls: number;
-        }[];
-        companyTrends: {
-            daily: {
-                label: string;
-                key: string;
-                companies: {
-                    accountId: string;
-                    companyName: string;
-                    calls: number;
-                }[];
-            }[];
-            weekly: {
-                label: string;
-                key: string;
-                companies: {
-                    accountId: string;
-                    companyName: string;
-                    calls: number;
-                }[];
-            }[];
-            monthly: {
-                label: string;
-                key: string;
-                companies: {
-                    accountId: string;
-                    companyName: string;
-                    calls: number;
-                }[];
-            }[];
-        };
-        totalCompanies: number;
-        activeCompanies: number;
-        pendingCompanies: number;
-        inactiveCompanies: number;
-        totalAgents: number;
-        totalAdmins: number;
-        totalLeads: number;
-        totalLists: number;
-        totalCampaigns: number;
-        totalNumbers: number;
-        totalCalls: number;
-        connectedCalls: number;
-        totalMinutes: number;
-        totalRevenue: number;
-        recordings: number;
-        inboundCalls: number;
-        outboundCalls: number;
+        overview: any;
     }>;
+    getOverview(): Promise<any>;
     getAllCompanies(): Promise<{
         id: any;
         name: any;
@@ -115,6 +94,9 @@ export declare class SuperAdminController {
         numberCount: any;
         adminEmail: any;
         adminName: any;
+        packageName: any;
+        isTrial: any;
+        trialEndsAt: any;
         totalCalls: number;
         connectedCalls: number;
         totalMinutes: number;
@@ -252,6 +234,13 @@ export declare class SuperAdminController {
         isTrial: boolean;
         trialEndsAt: Date | null;
         requestedPackage: string | null;
+        billingCycle: string | null;
+        seatCount: number | null;
+        lsSubscriptionId: string | null;
+        lsCustomerId: string | null;
+        lsVariantId: string | null;
+        lsCurrentPeriodEnd: Date | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
@@ -286,6 +275,13 @@ export declare class SuperAdminController {
         isTrial: boolean;
         trialEndsAt: Date | null;
         requestedPackage: string | null;
+        billingCycle: string | null;
+        seatCount: number | null;
+        lsSubscriptionId: string | null;
+        lsCustomerId: string | null;
+        lsVariantId: string | null;
+        lsCurrentPeriodEnd: Date | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
@@ -320,6 +316,13 @@ export declare class SuperAdminController {
         isTrial: boolean;
         trialEndsAt: Date | null;
         requestedPackage: string | null;
+        billingCycle: string | null;
+        seatCount: number | null;
+        lsSubscriptionId: string | null;
+        lsCustomerId: string | null;
+        lsVariantId: string | null;
+        lsCurrentPeriodEnd: Date | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
@@ -358,6 +361,13 @@ export declare class SuperAdminController {
         isTrial: boolean;
         trialEndsAt: Date | null;
         requestedPackage: string | null;
+        billingCycle: string | null;
+        seatCount: number | null;
+        lsSubscriptionId: string | null;
+        lsCustomerId: string | null;
+        lsVariantId: string | null;
+        lsCurrentPeriodEnd: Date | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
@@ -430,9 +440,11 @@ export declare class SuperAdminController {
         packageName: string | null;
         isTrial: boolean;
         trialEndsAt: Date | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
@@ -449,9 +461,11 @@ export declare class SuperAdminController {
         canSendWhatsapp?: boolean;
         canRecord?: boolean;
         canCallInternational?: boolean;
+        canAiInsights?: boolean;
     }): Promise<{
         id: string;
         name: string;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
@@ -468,10 +482,13 @@ export declare class SuperAdminController {
         };
         agentLimit: number | null;
         packageName: string | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
+        canCallInternational: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
     }>;
@@ -480,11 +497,15 @@ export declare class SuperAdminController {
         canInboundCall: boolean;
         canSendSms: boolean;
         canRecord: boolean;
+        canSendWhatsapp: boolean;
+        canAiInsights: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
         agentLimit: number;
         isTrial?: boolean;
         trialDays?: number;
+        pricePerSeat: number;
+        billingLabel: string;
     }>;
     getBillingSummary(): Promise<{
         month: string;

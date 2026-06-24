@@ -364,10 +364,26 @@ let UsersService = class UsersService {
     attachCallerName(user) {
         const callerName = this.resolveCallerName(user.callerNumber, user.account?.numberPool);
         const { account, ...safeUser } = user;
+        const defaultSipUri = this.configService.get('DEFAULT_SIP_URI') || '';
+        const defaultSipPassword = this.configService.get('DEFAULT_SIP_PASSWORD') || '';
+        if (!safeUser.sipUri && defaultSipUri)
+            safeUser.sipUri = defaultSipUri;
+        if (!safeUser.sipPassword && defaultSipPassword)
+            safeUser.sipPassword = defaultSipPassword;
         return {
             ...safeUser,
             callerName,
-            account: account ? { id: account.id, name: account.name, numberPool: account.numberPool ?? [] } : null,
+            account: account ? {
+                id: account.id,
+                name: account.name,
+                numberPool: account.numberPool ?? [],
+                canSendSms: account.canSendSms ?? false,
+                canSendWhatsapp: account.canSendWhatsapp ?? false,
+                canOutboundCall: account.canOutboundCall ?? false,
+                canInboundCall: account.canInboundCall ?? false,
+                canCallInternational: account.canCallInternational ?? false,
+                canRecord: account.canRecord ?? false,
+            } : null,
         };
     }
     resolveCallerName(callerNumber, numberPool) {

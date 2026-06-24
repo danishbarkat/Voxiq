@@ -124,10 +124,18 @@ export class DialerController {
         if (body.agentId) {
             const agent = await this.prisma.user.findUnique({
                 where: { id: body.agentId },
-                select: { account: { select: { canCallInternational: true, canOutboundCall: true } } },
+                select: { account: { select: { canCallInternational: true, canOutboundCall: true, isTrial: true, trialEndsAt: true } } },
             });
             if (agent?.account && !agent.account.canOutboundCall) {
                 return { error: 'not_permitted', message: 'Outbound calling is not enabled for your account.' };
+            }
+            if (
+                agent?.account &&
+                (agent.account as any).isTrial &&
+                (agent.account as any).trialEndsAt &&
+                new Date((agent.account as any).trialEndsAt) < new Date()
+            ) {
+                return { error: 'trial_expired', message: 'Your free trial has expired. Please contact your admin to upgrade.' };
             }
             if (agent?.account && !(agent.account as any).canCallInternational) {
                 const isUS = to.startsWith('+1') && to.replace(/\D/g,'').length === 11;

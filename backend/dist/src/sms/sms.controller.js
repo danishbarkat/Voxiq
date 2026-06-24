@@ -34,7 +34,9 @@ let SmsController = class SmsController {
     }
     async getThread(number, req, channel) {
         const accountId = req.user.accountId;
-        return this.smsService.getThread(number, accountId, channel);
+        const role = (req.user.role || '').toLowerCase();
+        const agentId = (role === 'admin' || role === 'superadmin') ? undefined : req.user.userId;
+        return this.smsService.getThread(number, accountId, channel, agentId);
     }
     async deleteConversation(number, req, channel) {
         const accountId = req.user.accountId;

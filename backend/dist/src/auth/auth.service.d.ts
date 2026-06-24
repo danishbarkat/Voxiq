@@ -21,6 +21,7 @@ export declare class AuthService {
     }>;
     verifySignup(email: string, code: string): Promise<{
         message: string;
+        accountId: string;
     }>;
     validateUser(email: string, password: string, accessCode?: string): Promise<any>;
     loginWithMfa(email: string, password: string, accessCode?: string): Promise<{
@@ -84,13 +85,18 @@ export declare class AuthService {
     getAccountPlan(accountId: string): Promise<{
         trialExpired: boolean;
         trialDaysLeft: number;
+        status: import("@prisma/client").$Enums.AccountStatus;
         agentLimit: number | null;
         packageName: string | null;
         isTrial: boolean;
         trialEndsAt: Date | null;
+        billingCycle: string | null;
+        seatCount: number | null;
+        canAiInsights: boolean;
         canOutboundCall: boolean;
         canInboundCall: boolean;
         canSendSms: boolean;
+        canSendWhatsapp: boolean;
         canRecord: boolean;
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;

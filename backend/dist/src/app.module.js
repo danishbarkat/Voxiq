@@ -29,6 +29,7 @@ const integrations_module_1 = require("./integrations/integrations.module");
 const backup_module_1 = require("./backup/backup.module");
 const superadmin_module_1 = require("./superadmin/superadmin.module");
 const sms_module_1 = require("./sms/sms.module");
+const billing_module_1 = require("./billing/billing.module");
 const core_1 = require("@nestjs/core");
 const jwt_auth_guard_1 = require("./auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("./auth/guards/roles.guard");
@@ -68,6 +69,7 @@ exports.AppModule = AppModule = __decorate([
             backup_module_1.BackupModule,
             superadmin_module_1.SuperAdminModule,
             sms_module_1.SmsModule,
+            billing_module_1.BillingModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

@@ -20,6 +20,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { BackupModule } from './backup/backup.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
 import { SmsModule } from './sms/sms.module';
+import { BillingModule } from './billing/billing.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -56,6 +57,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     BackupModule,
     SuperAdminModule,
     SmsModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [

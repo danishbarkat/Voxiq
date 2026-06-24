@@ -49,6 +49,11 @@ let SuperAdminService = class SuperAdminService {
         canInboundCall: true,
         canSendSms: true,
         canRecord: true,
+        canSendWhatsapp: true,
+        canAiInsights: true,
+        billingCycle: true,
+        seatCount: true,
+        requestedPackage: true,
         monthlyCallLimit: true,
         monthlySmsLimit: true,
         users: {
@@ -331,16 +336,21 @@ let SuperAdminService = class SuperAdminService {
             await (0, promises_1.unlink)(tempPath).catch(() => undefined);
         }
     }
-    async getOverview() {
+    async getDashboard() {
         const [accounts, callLogs] = await Promise.all([
             this.prisma.account.findMany({
                 where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+                orderBy: { createdAt: 'desc' },
                 select: this.accountSummarySelect,
             }),
             this.getDashboardLogs(),
         ]);
         const byAccount = this.groupLogsByAccount(callLogs);
         const companySummaries = accounts.map((account) => this.buildCompanySnapshot(account, byAccount.get(account.id) || []));
+        const overview = this.buildOverviewFromSnapshots(companySummaries, callLogs, byAccount);
+        return { companies: companySummaries, overview };
+    }
+    buildOverviewFromSnapshots(companySummaries, callLogs, byAccount) {
         const totals = companySummaries.reduce((acc, company) => {
             acc.totalCompanies += 1;
             acc.activeCompanies += company.status === 'ACTIVE' ? 1 : 0;
@@ -361,23 +371,10 @@ let SuperAdminService = class SuperAdminService {
             acc.outboundCalls += company.outboundCalls;
             return acc;
         }, {
-            totalCompanies: 0,
-            activeCompanies: 0,
-            pendingCompanies: 0,
-            inactiveCompanies: 0,
-            totalAgents: 0,
-            totalAdmins: 0,
-            totalLeads: 0,
-            totalLists: 0,
-            totalCampaigns: 0,
-            totalNumbers: 0,
-            totalCalls: 0,
-            connectedCalls: 0,
-            totalMinutes: 0,
-            totalRevenue: 0,
-            recordings: 0,
-            inboundCalls: 0,
-            outboundCalls: 0,
+            totalCompanies: 0, activeCompanies: 0, pendingCompanies: 0, inactiveCompanies: 0,
+            totalAgents: 0, totalAdmins: 0, totalLeads: 0, totalLists: 0,
+            totalCampaigns: 0, totalNumbers: 0, totalCalls: 0, connectedCalls: 0,
+            totalMinutes: 0, totalRevenue: 0, recordings: 0, inboundCalls: 0, outboundCalls: 0,
         });
         const topCompanies = [...companySummaries]
             .sort((a, b) => b.totalCalls - a.totalCalls)
@@ -401,10 +398,7 @@ let SuperAdminService = class SuperAdminService {
             .sort((a, b) => b.calls - a.calls)
             .slice(0, 8);
         const topCountries = this.buildTopCountries(callLogs);
-        const companyTrends = this.buildCompanyTrendSeries(topCompanies.map((company) => ({
-            accountId: company.accountId,
-            companyName: company.companyName,
-        })), byAccount);
+        const companyTrends = this.buildCompanyTrendSeries(topCompanies.map((company) => ({ accountId: company.accountId, companyName: company.companyName })), byAccount);
         return {
             ...totals,
             connectionRate: totals.totalCalls > 0 ? Number(((totals.connectedCalls / totals.totalCalls) * 100).toFixed(1)) : 0,
@@ -412,7 +406,20 @@ let SuperAdminService = class SuperAdminService {
             topStates,
             topCountries,
             companyTrends,
+            reactivationRequests: companySummaries.filter(c => c.reactivationRequested).length,
         };
+    }
+    async getOverview() {
+        const [accounts, callLogs] = await Promise.all([
+            this.prisma.account.findMany({
+                where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+                select: this.accountSummarySelect,
+            }),
+            this.getDashboardLogs(),
+        ]);
+        const byAccount = this.groupLogsByAccount(callLogs);
+        const companySummaries = accounts.map((account) => this.buildCompanySnapshot(account, byAccount.get(account.id) || []));
+        return this.buildOverviewFromSnapshots(companySummaries, callLogs, byAccount);
     }
     async getAllCompanies() {
         const [accounts, callLogs] = await Promise.all([
@@ -616,6 +623,8 @@ let SuperAdminService = class SuperAdminService {
                 canInboundCall: preset.canInboundCall,
                 canSendSms: preset.canSendSms,
                 canRecord: preset.canRecord,
+                canSendWhatsapp: preset.canSendWhatsapp,
+                canAiInsights: preset.canAiInsights,
                 monthlyCallLimit: preset.monthlyCallLimit,
                 monthlySmsLimit: preset.monthlySmsLimit,
             },
@@ -1126,13 +1135,11 @@ let SuperAdminService = class SuperAdminService {
         });
     }
     static PACKAGES = {
-        Trial: { canOutboundCall: true, canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 100, monthlySmsLimit: 0, agentLimit: 1, isTrial: true, trialDays: 7 },
-        Starter: { canOutboundCall: true, canInboundCall: false, canSendSms: false, canRecord: false, monthlyCallLimit: 300, monthlySmsLimit: 0, agentLimit: 1 },
-        Basic: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: false, monthlyCallLimit: 500, monthlySmsLimit: 400, agentLimit: 3 },
-        Growth: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: 1000, monthlySmsLimit: 800, agentLimit: 5 },
-        Pro: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: 2500, monthlySmsLimit: 2000, agentLimit: 10 },
-        Agency: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: 6000, monthlySmsLimit: 5000, agentLimit: 25 },
-        Enterprise: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 100 },
+        Trial: { canOutboundCall: true, canInboundCall: false, canSendSms: false, canRecord: false, canSendWhatsapp: false, canAiInsights: false, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1, isTrial: true, trialDays: 7, pricePerSeat: 0, billingLabel: 'Free' },
+        Basic: { canOutboundCall: true, canInboundCall: true, canSendSms: false, canRecord: false, canSendWhatsapp: false, canAiInsights: false, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1, pricePerSeat: 24.99, billingLabel: '$24.99/seat/mo' },
+        Pro: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, canSendWhatsapp: false, canAiInsights: false, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1, pricePerSeat: 39.99, billingLabel: '$39.99/seat/mo' },
+        Business: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 1, pricePerSeat: 69.99, billingLabel: '$69.99/seat/mo' },
+        Enterprise: { canOutboundCall: true, canInboundCall: true, canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true, monthlyCallLimit: null, monthlySmsLimit: null, agentLimit: 100, pricePerSeat: 0, billingLabel: 'Contact Sales' },
     };
     async assignPackage(accountId, packageName) {
         const preset = SuperAdminService_1.PACKAGES[packageName];
@@ -1151,21 +1158,21 @@ let SuperAdminService = class SuperAdminService {
                 canInboundCall: preset.canInboundCall,
                 canSendSms: preset.canSendSms,
                 canRecord: preset.canRecord,
+                canSendWhatsapp: preset.canSendWhatsapp,
+                canAiInsights: preset.canAiInsights,
                 monthlyCallLimit: preset.monthlyCallLimit,
                 monthlySmsLimit: preset.monthlySmsLimit,
-                agentLimit: preset.agentLimit,
             },
             select: {
                 id: true, name: true, packageName: true, isTrial: true, trialEndsAt: true,
                 canOutboundCall: true, canInboundCall: true,
-                canSendSms: true, canRecord: true,
+                canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true,
                 monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
             },
         });
     }
     static PACKAGE_PRICES = {
-        Trial: 0, Starter: 29, Basic: 49, Growth: 89,
-        Pro: 179, Agency: 399, Enterprise: 899,
+        Trial: 0, Basic: 24.99, Pro: 39.99, Business: 69.99, Enterprise: 0,
     };
     static RATES = {
         usOutboundPerMin: 0.007,
@@ -1445,7 +1452,7 @@ let SuperAdminService = class SuperAdminService {
         return this.prisma.account.update({
             where: { id: accountId },
             data: features,
-            select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true, canCallInternational: true },
+            select: { id: true, name: true, canOutboundCall: true, canInboundCall: true, canSendSms: true, canSendWhatsapp: true, canRecord: true, canCallInternational: true, canAiInsights: true },
         });
     }
     async getPackageUsage(accountId) {
@@ -1462,8 +1469,9 @@ let SuperAdminService = class SuperAdminService {
                 where: { id: accountId },
                 select: {
                     packageName: true, canOutboundCall: true, canInboundCall: true,
-                    canSendSms: true, canRecord: true,
+                    canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true,
                     monthlyCallLimit: true, monthlySmsLimit: true, agentLimit: true,
+                    canCallInternational: true,
                 },
             }),
         ]);
@@ -1577,6 +1585,9 @@ let SuperAdminService = class SuperAdminService {
             numberCount: Array.isArray(account.numberPool) ? account.numberPool.length : 0,
             adminEmail: adminUsers[0]?.email ?? null,
             adminName: adminUsers[0]?.name ?? null,
+            packageName: account.packageName ?? null,
+            isTrial: account.isTrial ?? false,
+            trialEndsAt: account.trialEndsAt ?? null,
             totalCalls: stats.totalCalls,
             connectedCalls: stats.connectedCalls,
             totalMinutes: stats.totalMinutes,

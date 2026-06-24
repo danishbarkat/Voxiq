@@ -11,6 +11,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'telnyx':       ['@telnyx/webrtc'],
           'socket':       ['socket.io-client'],
+          'leaflet':      ['leaflet', 'react-leaflet'],
         },
       },
     },

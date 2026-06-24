@@ -36,6 +36,11 @@ class TranscribeRecordingDto {
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 
+  @Get('dashboard')
+  getDashboard() {
+    return this.superAdminService.getDashboard();
+  }
+
   @Get('overview')
   getOverview() {
     return this.superAdminService.getOverview();

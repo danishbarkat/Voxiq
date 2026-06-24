@@ -10,4 +10,7 @@ export declare class SignupDto {
     website?: string;
     ntn: string;
     termsAccepted: boolean;
+    requestedPackage?: string;
+    billingCycle?: string;
+    seatCount?: number;
 }

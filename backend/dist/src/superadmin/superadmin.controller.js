@@ -87,6 +87,9 @@ let SuperAdminController = class SuperAdminController {
     constructor(superAdminService) {
         this.superAdminService = superAdminService;
     }
+    getDashboard() {
+        return this.superAdminService.getDashboard();
+    }
     getOverview() {
         return this.superAdminService.getOverview();
     }
@@ -188,6 +191,12 @@ let SuperAdminController = class SuperAdminController {
     }
 };
 exports.SuperAdminController = SuperAdminController;
+__decorate([
+    (0, common_1.Get)('dashboard'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SuperAdminController.prototype, "getDashboard", null);
 __decorate([
     (0, common_1.Get)('overview'),
     __metadata("design:type", Function),

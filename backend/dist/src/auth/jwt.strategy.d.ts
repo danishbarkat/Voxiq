@@ -18,6 +18,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         accountId: string | undefined;
         teamId: string | null | undefined;
         accountStatus: "ACTIVE" | "INACTIVE";
+        trialExpired: boolean;
     }>;
 }
 export {};

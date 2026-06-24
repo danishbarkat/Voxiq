@@ -68,6 +68,7 @@ export default function Checkout() {
   const navigate = useNavigate();
 
   const planId = searchParams.get('plan') || 'Pro';
+  const isUpgrade = searchParams.get('source') === 'upgrade' || !!searchParams.get('plan');
   const [seats, setSeats] = useState(Math.max(1, parseInt(searchParams.get('seats') || '1', 10)));
   const [billing, setBilling] = useState(searchParams.get('billing') === 'annual' ? 'annual' : 'monthly');
 
@@ -82,7 +83,13 @@ export default function Checkout() {
     : null;
 
   const handleContinue = () => {
-    navigate(`/signup?plan=${plan.id}&seats=${seats}&billing=${billing}`);
+    if (isUpgrade) {
+      const subject = encodeURIComponent(`Upgrade Request — ${plan.name} (${seats} seat${seats > 1 ? 's' : ''}, ${billing})`);
+      const body = encodeURIComponent(`Hi Voxiq team,\n\nI would like to upgrade my plan:\n\nPlan: ${plan.name}\nSeats: ${seats}\nBilling: ${billing}\nTotal: $${totalPrice}/${billing === 'annual' ? 'year' : 'month'}\n\nPlease process this upgrade. Thank you.`);
+      window.open(`mailto:billing@voxiq.com?subject=${subject}&body=${body}`, '_blank');
+    } else {
+      navigate(`/signup?plan=${plan.id}&seats=${seats}&billing=${billing}`);
+    }
   };
 
   return (
@@ -259,14 +266,16 @@ export default function Checkout() {
                 onMouseEnter={e => { e.currentTarget.style.background = '#1a1e42'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(45,51,107,0.28)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--vx-accent)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
               >
-                Continue to Registration →
+                {isUpgrade ? 'Send Upgrade Request →' : 'Continue to Registration →'}
               </button>
             )}
 
             <p style={{ fontSize: '0.75rem', color: 'var(--vx-gray-400)', textAlign: 'center', marginTop: '14px', lineHeight: '1.5' }}>
               {plan.price === 0
                 ? 'No credit card required. Cancel anytime.'
-                : 'No charges until approved by our team.'}
+                : isUpgrade
+                  ? 'Our team will apply the upgrade and confirm within 24 hours.'
+                  : 'No charges until approved by our team.'}
             </p>
 
             {/* Trust badges */}

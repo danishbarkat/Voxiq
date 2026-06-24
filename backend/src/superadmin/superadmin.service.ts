@@ -357,10 +357,11 @@ export class SuperAdminService {
     }
   }
 
-  async getOverview() {
+  async getDashboard() {
     const [accounts, callLogs] = await Promise.all([
       this.prisma.account.findMany({
         where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+        orderBy: { createdAt: 'desc' },
         select: this.accountSummarySelect,
       }),
       this.getDashboardLogs(),
@@ -371,6 +372,15 @@ export class SuperAdminService {
       this.buildCompanySnapshot(account, byAccount.get(account.id) || []),
     );
 
+    const overview = this.buildOverviewFromSnapshots(companySummaries, callLogs, byAccount);
+    return { companies: companySummaries, overview };
+  }
+
+  private buildOverviewFromSnapshots(
+    companySummaries: any[],
+    callLogs: any[],
+    byAccount: Map<string, any[]>,
+  ) {
     const totals = companySummaries.reduce(
       (acc, company) => {
         acc.totalCompanies += 1;
@@ -393,23 +403,10 @@ export class SuperAdminService {
         return acc;
       },
       {
-        totalCompanies: 0,
-        activeCompanies: 0,
-        pendingCompanies: 0,
-        inactiveCompanies: 0,
-        totalAgents: 0,
-        totalAdmins: 0,
-        totalLeads: 0,
-        totalLists: 0,
-        totalCampaigns: 0,
-        totalNumbers: 0,
-        totalCalls: 0,
-        connectedCalls: 0,
-        totalMinutes: 0,
-        totalRevenue: 0,
-        recordings: 0,
-        inboundCalls: 0,
-        outboundCalls: 0,
+        totalCompanies: 0, activeCompanies: 0, pendingCompanies: 0, inactiveCompanies: 0,
+        totalAgents: 0, totalAdmins: 0, totalLeads: 0, totalLists: 0,
+        totalCampaigns: 0, totalNumbers: 0, totalCalls: 0, connectedCalls: 0,
+        totalMinutes: 0, totalRevenue: 0, recordings: 0, inboundCalls: 0, outboundCalls: 0,
       },
     );
 
@@ -439,10 +436,7 @@ export class SuperAdminService {
 
     const topCountries = this.buildTopCountries(callLogs);
     const companyTrends = this.buildCompanyTrendSeries(
-      topCompanies.map((company) => ({
-        accountId: company.accountId,
-        companyName: company.companyName,
-      })),
+      topCompanies.map((company) => ({ accountId: company.accountId, companyName: company.companyName })),
       byAccount,
     );
 
@@ -453,7 +447,25 @@ export class SuperAdminService {
       topStates,
       topCountries,
       companyTrends,
+      reactivationRequests: companySummaries.filter(c => c.reactivationRequested).length,
     };
+  }
+
+  async getOverview() {
+    const [accounts, callLogs] = await Promise.all([
+      this.prisma.account.findMany({
+        where: { id: { not: SUPERADMIN_ACCOUNT_ID } },
+        select: this.accountSummarySelect,
+      }),
+      this.getDashboardLogs(),
+    ]);
+
+    const byAccount = this.groupLogsByAccount(callLogs);
+    const companySummaries = accounts.map((account) =>
+      this.buildCompanySnapshot(account, byAccount.get(account.id) || []),
+    );
+
+    return this.buildOverviewFromSnapshots(companySummaries, callLogs, byAccount);
   }
 
   async getAllCompanies() {

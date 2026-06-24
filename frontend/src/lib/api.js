@@ -23,7 +23,11 @@ export async function fetchJson(url, options = {}) {
   if (!res.ok) {
     if (res.status === 401 && token) {
       const text = await res.text();
-      forceLogout(text || 'Your session expired. Please sign in again.');
+      if (text && text.includes('TRIAL_EXPIRED')) {
+        forceLogout('Your free trial has expired. Please contact your Voxiq admin to upgrade your plan.');
+      } else {
+        forceLogout(text || 'Your session expired. Please sign in again.');
+      }
       return;
     }
     const text = await res.text();

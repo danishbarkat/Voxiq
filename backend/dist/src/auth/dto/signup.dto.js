@@ -23,6 +23,9 @@ class SignupDto {
     website;
     ntn;
     termsAccepted;
+    requestedPackage;
+    billingCycle;
+    seatCount;
 }
 exports.SignupDto = SignupDto;
 __decorate([
@@ -81,4 +84,22 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], SignupDto.prototype, "termsAccepted", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['Trial', 'Basic', 'Pro', 'Business', 'Enterprise']),
+    __metadata("design:type", String)
+], SignupDto.prototype, "requestedPackage", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['monthly', 'annual']),
+    __metadata("design:type", String)
+], SignupDto.prototype, "billingCycle", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], SignupDto.prototype, "seatCount", void 0);
 //# sourceMappingURL=signup.dto.js.map

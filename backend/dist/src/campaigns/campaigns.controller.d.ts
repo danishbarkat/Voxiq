@@ -73,6 +73,13 @@ export declare class CampaignsController {
             isTrial: boolean;
             trialEndsAt: Date | null;
             requestedPackage: string | null;
+            billingCycle: string | null;
+            seatCount: number | null;
+            lsSubscriptionId: string | null;
+            lsCustomerId: string | null;
+            lsVariantId: string | null;
+            lsCurrentPeriodEnd: Date | null;
+            canAiInsights: boolean;
             canOutboundCall: boolean;
             canInboundCall: boolean;
             canSendSms: boolean;

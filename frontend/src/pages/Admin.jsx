@@ -1019,7 +1019,10 @@ function PlanCard({ token }) {
   );
 }
 
+const PLAN_PRICES = { Basic: 24.99, Pro: 39.99, Business: 69.99, Enterprise: 0 };
+
 function TrialBanner({ token }) {
+  const navigate = useNavigate();
   const [plan, setPlan] = useState(null);
 
   useEffect(() => {
@@ -1030,20 +1033,49 @@ function TrialBanner({ token }) {
 
   if (!plan || !plan.packageName) return null;
 
+  // Case 2: Subscription overdue — account is INACTIVE but not a trial
+  if (plan.status === 'INACTIVE' && !plan.isTrial) {
+    const seats = plan.seatCount || plan.agentLimit || 1;
+    const pricePerSeat = PLAN_PRICES[plan.packageName] || 0;
+    const totalDue = (seats * pricePerSeat).toFixed(2);
+    const checkoutUrl = `/checkout?plan=${plan.packageName}&seats=${seats}&billing=${plan.billingCycle || 'monthly'}&source=upgrade`;
+    return (
+      <div style={{ background: 'linear-gradient(135deg, #fff7ed, #ffedd5)', border: '1.5px solid #fb923c', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 14, color: '#c2410c' }}>⚠️ Subscription payment overdue</div>
+          <div style={{ fontSize: 12, color: '#9a3412', marginTop: 3 }}>
+            Your account is paused. Amount due: <strong>${totalDue}</strong> ({seats} seat{seats > 1 ? 's' : ''} × ${pricePerSeat}/seat · {plan.packageName} plan)
+          </div>
+        </div>
+        <button
+          onClick={() => navigate(checkoutUrl)}
+          style={{ background: '#f97316', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          Pay Now →
+        </button>
+      </div>
+    );
+  }
+
+  // Case 1: Trial expired — show upgrade to paid plan
   if (plan.trialExpired) {
     return (
       <div style={{ background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: '1.5px solid #fca5a5', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 14, color: '#991b1b' }}>⚠️ Your free trial has expired</div>
-          <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 3 }}>Calls and SMS are paused. Contact Voxiq to upgrade your plan and continue.</div>
+          <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 3 }}>Calls and SMS are paused. Choose a plan to continue.</div>
         </div>
-        <div style={{ background: '#ef4444', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13 }}>
+        <button
+          onClick={() => navigate('/checkout?source=upgrade')}
+          style={{ background: '#ef4444', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
           Upgrade Now →
-        </div>
+        </button>
       </div>
     );
   }
 
+  // Trial still active — show days remaining
   if (plan.isTrial) {
     const urgent = plan.trialDaysLeft <= 2;
     return (
@@ -1053,12 +1085,15 @@ function TrialBanner({ token }) {
             {urgent ? '⏰' : '🎯'} Free Trial — {plan.trialDaysLeft} day{plan.trialDaysLeft !== 1 ? 's' : ''} remaining
           </div>
           <div style={{ fontSize: 12, color: urgent ? '#9a3412' : '#1e40af', marginTop: 3 }}>
-            {plan.monthlyCallLimit} calls included · Outbound only · Contact Voxiq to upgrade anytime
+            Outbound calls only · Upgrade anytime to unlock full features
           </div>
         </div>
-        <div style={{ background: urgent ? '#f97316' : '#3b82f6', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13 }}>
+        <button
+          onClick={() => navigate('/checkout?source=upgrade')}
+          style={{ background: urgent ? '#f97316' : '#3b82f6', color: '#fff', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
           Upgrade Plan →
-        </div>
+        </button>
       </div>
     );
   }

@@ -32,7 +32,7 @@ export declare class SmsService {
         channel: string;
     }>;
     getConversations(accountId: string, agentId?: string, channel?: string): Promise<any[]>;
-    getThread(contactNumber: string, accountId: string, channel?: string): Promise<{
+    getThread(contactNumber: string, accountId: string, channel?: string, agentId?: string): Promise<{
         id: string;
         direction: string;
         fromNumber: string;

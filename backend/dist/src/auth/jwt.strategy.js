@@ -32,7 +32,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
                 id: true,
                 status: true,
                 lastSessionId: true,
-                account: { select: { id: true, status: true } },
+                account: { select: { id: true, status: true, isTrial: true, trialEndsAt: true } },
                 role: { select: { name: true } },
             },
         });
@@ -53,12 +53,19 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (accountStatus === 'INACTIVE' && roleName !== 'admin' && roleName !== 'superadmin') {
             throw new common_1.UnauthorizedException('Company account is deactivated. Contact your admin.');
         }
+        const trialExpired = !!user.account.isTrial &&
+            user.account.trialEndsAt !== null &&
+            user.account.trialEndsAt < new Date();
+        if (trialExpired && roleName !== 'admin' && roleName !== 'superadmin') {
+            throw new common_1.UnauthorizedException('TRIAL_EXPIRED');
+        }
         return {
             userId: payload.sub,
             role: payload.role,
             accountId: payload.accountId,
             teamId: payload.teamId,
             accountStatus,
+            trialExpired: trialExpired && (roleName === 'admin' || roleName === 'superadmin'),
         };
     }
 };

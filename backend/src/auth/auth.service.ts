@@ -164,8 +164,8 @@ export class AuthService {
     });
 
     return {
-      message:
-        'Signup successful. Your account is under review. Voxiq will share your company access code after approval.',
+      message: 'Email verified. Proceeding to plan selection.',
+      accountId: account.id,
     };
   }
 
@@ -407,6 +407,7 @@ export class AuthService {
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
       select: {
+        status: true,
         packageName: true, isTrial: true, trialEndsAt: true,
         canOutboundCall: true, canInboundCall: true,
         canSendSms: true, canRecord: true, canSendWhatsapp: true, canAiInsights: true,
