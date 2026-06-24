@@ -816,7 +816,7 @@ function DashboardPlanBanner({ token }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button onClick={() => setShowUpgrade(false)} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
               <button
-                onClick={() => { alert(`Upgrade request submitted: ${upgradePkg} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
+                onClick={() => { setErrorModal(`Upgrade request submitted: ${upgradePkg} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
                 style={{ padding: '9px 20px', borderRadius: '10px', background: color, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
               >
                 Request Upgrade →
@@ -903,7 +903,7 @@ function SidebarPlanWidget({ token, collapsed }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button onClick={() => setShowUpgrade(false)} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
               <button
-                onClick={() => { alert(`Upgrade request submitted: ${upgradePkg} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
+                onClick={() => { setErrorModal(`Upgrade request submitted: ${upgradePkg} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
                 style={{ padding: '9px 20px', borderRadius: '10px', background: color, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
               >
                 Request Upgrade →
@@ -1006,7 +1006,7 @@ function PlanCard({ token }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
               <button onClick={() => setShowUpgrade(false)} style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
               <button
-                onClick={() => { alert(`Upgrade request submitted: ${upgradePackage} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
+                onClick={() => { setErrorModal(`Upgrade request submitted: ${upgradePackage} — ${upgradeSeats} seat${upgradeSeats > 1 ? 's' : ''}, ${upgradeBilling}. Your Voxiq account manager will apply this shortly.`); setShowUpgrade(false); }}
                 style={{ padding: '9px 20px', borderRadius: '10px', background: pkgColor, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
               >
                 Request Upgrade →
@@ -1132,6 +1132,7 @@ export default function Admin() {
   const [metrics, setMetrics] = useState({});
   const [isLoading, setIsLoading] = useState(!!getToken());
   const [error, setError] = useState(null);
+  const [errorModal, setErrorModal] = useState(null);
   const [importForm, setImportForm] = useState({ listId: '', accountId: '', newListName: '' });
   const [availableLists, setAvailableLists] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -1296,9 +1297,9 @@ export default function Admin() {
         method: 'POST',
         body: JSON.stringify({ message: activationMessage }),
       });
-      alert('Activation request sent to the Voxiq super admin team.');
+      setErrorModal('Activation request sent to the Voxiq support team.');
     } catch (e) {
-      alert(`Failed: ${e.message}`);
+      setErrorModal(e.message || 'Something went wrong.');
     } finally {
       setActivationLoading(false);
     }
@@ -1506,7 +1507,7 @@ export default function Admin() {
       setNewWebhookUrl('');
       setNewWebhookLabel('');
       fetchWebhooks();
-    } catch (e) { alert('Failed: ' + e.message); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const deleteWebhook = async (id) => {
@@ -1580,7 +1581,7 @@ export default function Admin() {
       });
       setSmsInput('');
       await fetchAdminSmsThread(smsActiveThread);
-    } catch (e) { alert('SMS failed: ' + e.message); }
+    } catch (e) { setErrorModal('SMS failed: ' + (e.message || 'Unknown error')); }
     finally { setSmsSendingMsg(false); }
   };
 
@@ -1599,14 +1600,14 @@ export default function Admin() {
 
   const handleCsvUpload = async () => {
     if (!selectedFile || (!importForm.listId && !importForm.newListName) || !importForm.accountId) {
-      return alert('Required: Account, either Existing List or New List Name, and a CSV file.');
+      return setErrorModal('Required: Account, either Existing List or New List Name, and a CSV file.');
     }
     setIsImporting(true);
     const fd = new FormData();
     fd.append('file', selectedFile);
     if (importForm.newListName) fd.append('newListName', importForm.newListName);
     else if (importForm.listId) fd.append('listId', importForm.listId);
-    else return alert('Select an existing list or enter a name for a new list.');
+    else return setErrorModal('Select an existing list or enter a name for a new list.');
 
     fd.append('accountId', importForm.accountId);
     try {
@@ -1625,40 +1626,40 @@ export default function Admin() {
       } else {
         setImportResult({ error: r.message || 'Import failed' });
       }
-    } catch (e) { alert('Network error.'); }
+    } catch (e) { setErrorModal('Network error. Please try again.'); }
     finally { setIsImporting(false); }
   };
 
   const handleCreateAccount = async () => {
-    if (!accountForm.name) return alert('Name required');
+    if (!accountForm.name) return setErrorModal('Name required.');
     try {
       await fetchJson(`${API_URL}/leads/accounts`, { method: 'POST', body: JSON.stringify(accountForm) });
       setShowAccountModal(false);
       setAccountForm({ name: '' });
       fetchInitialData();
-    } catch (e) { alert(`Failed: ${e.message}`); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const handleCreateList = async () => {
-    if (!listForm.name || !listForm.accountId) return alert('Name and account required');
+    if (!listForm.name || !listForm.accountId) return setErrorModal('List name and account are required.');
     try {
       await fetchJson(`${API_URL}/leads/lists`, { method: 'POST', body: JSON.stringify(listForm) });
       setShowListModal(false);
       setListForm({ name: '', accountId: companyAccountId, description: '' });
       fetchLists(importForm.accountId);
-    } catch (e) { alert(`Failed: ${e.message}`); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const [createdAgentCreds, setCreatedAgentCreds] = useState(null);
 
   const handleCreateUser = async () => {
-    if (!userForm.email || !userForm.password || !userForm.accountId) return alert('Email, password and account are required');
-    if (userForm.password.length < 8) return alert('Password must be at least 8 characters');
+    if (!userForm.email || !userForm.password || !userForm.accountId) return setErrorModal('Email, password and account are required.');
+    if (userForm.password.length < 8) return setErrorModal('Password must be at least 8 characters.');
     // auto-pick Agent role if not superadmin
     let roleId = userForm.roleId;
     if (!roleId) {
       const agentRole = roles.find(r => r.name.toLowerCase() === 'agent');
-      if (!agentRole) return alert('Agent role not found. Contact support.');
+      if (!agentRole) return setErrorModal('Agent role not found. Contact Voxiq support.');
       roleId = agentRole.id;
     }
     try {
@@ -1670,7 +1671,7 @@ export default function Admin() {
       setCreatedAgentCreds({ name: userForm.name, email: userForm.email, password: userForm.password });
       setUserForm({ name: '', email: '', password: '', roleId: '', accountId: companyAccountId });
       fetchUsers();
-    } catch (e) { alert(`Failed: ${e.message}`); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const handleEditAgent = async () => {
@@ -1679,10 +1680,10 @@ export default function Admin() {
     if (editAgentForm.name.trim())  payload.name = editAgentForm.name.trim();
     if (editAgentForm.email.trim()) payload.email = editAgentForm.email.trim();
     if (editAgentForm.password.trim()) {
-      if (editAgentForm.password.length < 8) return alert('Password must be at least 8 characters');
+      if (editAgentForm.password.length < 8) return setErrorModal('Password must be at least 8 characters.');
       payload.password = editAgentForm.password.trim();
     }
-    if (!Object.keys(payload).length) return alert('No changes made');
+    if (!Object.keys(payload).length) return setErrorModal('No changes made.');
     try {
       // If password is being reset and there's a reset request, use the dedicated endpoint
       if (payload.password && resetRequests.some(r => r.id === editAgentModal.id)) {
@@ -1701,7 +1702,7 @@ export default function Admin() {
       setEditAgentModal(null);
       fetchUsers();
       fetchResetRequests();
-    } catch (e) { alert(`Failed: ${e.message}`); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const handleDeleteUser = async (id) => {
@@ -1716,7 +1717,7 @@ export default function Admin() {
             headers: { Authorization: `Bearer ${getToken()}` },
           });
           fetchUsers();
-        } catch (e) { alert('Failed to delete user'); }
+        } catch (e) { setErrorModal('Failed to delete user.'); }
       }
     });
   };
@@ -1733,7 +1734,7 @@ export default function Admin() {
             headers: { Authorization: `Bearer ${getToken()}` },
           });
           fetchAccounts();
-        } catch (e) { alert('Failed to delete account'); }
+        } catch (e) { setErrorModal('Failed to delete account.'); }
       }
     });
   };
@@ -1751,13 +1752,13 @@ export default function Admin() {
           });
           fetchLists(importForm.accountId);
           fetchLeads();
-        } catch (e) { alert('Failed to delete list'); }
+        } catch (e) { setErrorModal('Failed to delete list.'); }
       }
     });
   };
 
   const handleUpdateAccount = async () => {
-    if (!manageAccount?.name) return alert('Name required');
+    if (!manageAccount?.name) return setErrorModal('Account name is required.');
     try {
       const { id, ...data } = manageAccount;
       await fetchJson(`${API_URL}/leads/accounts/${id}`, {
@@ -1766,7 +1767,7 @@ export default function Admin() {
       });
       setManageAccount(null);
       fetchAccounts();
-    } catch (e) { alert(`Failed: ${e.message}`); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const handleDeleteLead = async (id) => {
@@ -1781,13 +1782,13 @@ export default function Admin() {
             headers: { Authorization: `Bearer ${getToken()}` },
           });
           setLeads(prev => prev.filter(l => l.id !== id));
-        } catch (e) { alert('Failed to delete lead'); }
+        } catch (e) { setErrorModal('Failed to delete lead.'); }
       }
     });
   };
 
   const handleSaveCampaign = async () => {
-    if (!campaignForm.name || !campaignForm.accountId) return alert('Name and account required');
+    if (!campaignForm.name || !campaignForm.accountId) return setErrorModal('Campaign name and account are required.');
 
     const payload = { ...campaignForm };
     if (!payload.localPresence) payload.numberPool = []; // Format to empty array if not used
@@ -1806,7 +1807,7 @@ export default function Admin() {
       setShowCampaignModal(false);
       setCampaignForm({ id: null, name: '', accountId: '', mode: 'PREDICTIVE', pacing: 3, localPresence: false, record: false, numberPool: [] });
       fetchCampaigns();
-    } catch (e) { alert(`Failed: ${e.message}`); }
+    } catch (e) { setErrorModal(e.message || 'Something went wrong.'); }
   };
 
   const openCampaignModal = (campaign = null) => {
@@ -1866,6 +1867,23 @@ export default function Admin() {
 
   return (
     <div className={`admin-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+
+      {/* Error Modal */}
+      {errorModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: '36px 32px 28px', maxWidth: 420, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+            <div style={{ background: '#f8fafc', borderRadius: 12, padding: '10px 14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+              <img src="/logo.png" alt="Voxiq" style={{ height: 32 }} />
+            </div>
+            <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 600, marginBottom: 8, lineHeight: 1.5 }}>{errorModal}</div>
+            <button
+              onClick={() => setErrorModal(null)}
+              style={{ marginTop: 16, background: '#6366f1', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 32px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}
+            >OK</button>
+          </div>
+        </div>
+      )}
+
       <aside className="sidebar">
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: isSidebarCollapsed ? 'center' : 'flex-start', gap: 8, padding: '4px 2px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }}>
@@ -2475,7 +2493,7 @@ export default function Admin() {
                               setSelectedLists([]);
                               fetchLists(importForm.accountId);
                               fetchLeads();
-                            } catch (e) { alert('Failed some deletions'); }
+                            } catch (e) { setErrorModal('Failed to delete some items.'); }
                           }
                         });
                       }}>🗑️ Delete Selected ({selectedLists.length})</button>
