@@ -460,7 +460,7 @@ export default function Signup() {
 
                     {error && <div className="auth-error">{error}</div>}
 
-                    {signupStep === 'form' ? (
+                    {signupStep === 'form' && (
                     <form onSubmit={handleGoToPricing} className="auth-form">
                         <div className="auth-field-row">
                             <div className="auth-field">
