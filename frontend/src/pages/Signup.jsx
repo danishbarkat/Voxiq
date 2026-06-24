@@ -113,6 +113,8 @@ export default function Signup() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [checkoutError, setCheckoutError] = useState(null);
 
     const handleChange = (e) => {
         let value = e.target.type === 'number' ? Number(e.target.value) : e.target.value;
@@ -193,18 +195,38 @@ export default function Signup() {
         setIsLoading(true);
         setError(null);
         try {
-            await fetchJson(`${API_URL}/auth/signup/verify`, {
+            const response = await fetchJson(`${API_URL}/auth/signup/verify`, {
                 method: 'POST',
                 body: JSON.stringify({
                     email: formData.email,
                     code: verificationCode,
                 }),
             });
-            setSuccess(true);
+
+            if (!response.accountId) { setSuccess(true); return; }
+
+            const pkg = selectedPackage === 'Trial' ? 'Basic' : selectedPackage;
+            if (pkg === 'Enterprise') { setSuccess(true); return; }
+
+            setIsLoading(false);
+            setCheckoutLoading(true);
+
+            const checkoutRes = await fetchJson(`${API_URL}/billing/checkout/new-user`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    accountId: response.accountId,
+                    packageName: pkg,
+                    billingCycle,
+                    seats: seatCount,
+                }),
+            });
+
+            window.location.href = checkoutRes.checkoutUrl;
         } catch (err) {
-            setError(err.message || 'Verification failed. Please try again.');
+            setCheckoutError(err.message || 'Could not start checkout. Please contact support@voxiq.com');
         } finally {
             setIsLoading(false);
+            setCheckoutLoading(false);
         }
     };
 
@@ -215,7 +237,7 @@ export default function Signup() {
                     <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
                     <h2 style={{ marginBottom: 8 }}>Request Submitted!</h2>
                     <p style={{ color: '#6b7280', marginBottom: 24 }}>
-                        Your email is verified and your company request is now with the Voxiq team. After approval, the super admin will share your one-time first-login access code for the company admin account.
+                        Your email is verified and your Enterprise request is with the Voxiq team. We'll contact you within 1 business day to complete your setup.
                     </p>
                     <Link to="/login" className="auth-btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
                         Go to Login →
@@ -623,9 +645,19 @@ export default function Signup() {
                                 Dev preview code: {verificationPreview}
                             </div>
                         )}
-                        <button type="submit" className="auth-btn-primary" disabled={isLoading}>
-                            {isLoading ? 'Verifying…' : 'Verify Email & Complete Signup →'}
+                        <button type="submit" className="auth-btn-primary" disabled={isLoading || checkoutLoading}>
+                            {checkoutLoading ? 'Setting up your trial…' : isLoading ? 'Verifying…' : 'Verify Email & Start Trial →'}
                         </button>
+                        {checkoutError && (
+                            <div className="auth-error" style={{ marginTop: 10 }}>
+                                {checkoutError}
+                            </div>
+                        )}
+                        {checkoutLoading && (
+                            <p style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600, marginTop: 10, fontSize: '0.85rem' }}>
+                                Redirecting to secure payment…
+                            </p>
+                        )}
                         <button
                             type="button"
                             className="btn"

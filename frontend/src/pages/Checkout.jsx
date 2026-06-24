@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { getToken } from '../lib/auth';
+import { API_URL } from '../config/env';
 
 const PLANS = {
   Trial: {
@@ -73,6 +75,8 @@ export default function Checkout() {
   const [billing, setBilling] = useState(searchParams.get('billing') === 'annual' ? 'annual' : 'monthly');
 
   const plan = PLANS[planId] || PLANS.Pro;
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(null);
 
   const perSeatPrice = plan.price
     ? (billing === 'annual' ? plan.price * 0.9 : plan.price)
@@ -82,13 +86,33 @@ export default function Checkout() {
     ? (billing === 'annual' ? perSeatPrice * seats * 12 : perSeatPrice * seats).toFixed(2)
     : null;
 
-  const handleContinue = () => {
-    if (isUpgrade) {
-      const subject = encodeURIComponent(`Upgrade Request — ${plan.name} (${seats} seat${seats > 1 ? 's' : ''}, ${billing})`);
-      const body = encodeURIComponent(`Hi Voxiq team,\n\nI would like to upgrade my plan:\n\nPlan: ${plan.name}\nSeats: ${seats}\nBilling: ${billing}\nTotal: $${totalPrice}/${billing === 'annual' ? 'year' : 'month'}\n\nPlease process this upgrade. Thank you.`);
-      window.open(`mailto:billing@voxiq.com?subject=${subject}&body=${body}`, '_blank');
-    } else {
+  const handleContinue = async () => {
+    if (plan.contactSales) {
+      window.open('mailto:sales@voxiq.com', '_blank');
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
       navigate(`/signup?plan=${plan.id}&seats=${seats}&billing=${billing}`);
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const res = await fetch(`${API_URL}/billing/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ packageName: plan.id, billingCycle: billing, seats }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Checkout failed');
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      setCheckoutError(err.message || 'Could not start checkout. Please try again.');
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -255,27 +279,31 @@ export default function Checkout() {
                 Contact Sales →
               </a>
             ) : (
-              <button
-                onClick={handleContinue}
-                style={{
-                  width: '100%', padding: '15px 20px', borderRadius: '12px', border: 'none',
-                  background: 'var(--vx-accent)', color: '#fff', fontWeight: 800, fontSize: '1rem',
-                  cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.01em',
-                  transition: 'background 0.2s, transform 0.15s, box-shadow 0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#1a1e42'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(45,51,107,0.28)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--vx-accent)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-              >
-                {isUpgrade ? 'Send Upgrade Request →' : 'Continue to Registration →'}
-              </button>
+              <>
+                {checkoutError && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', fontSize: '0.8rem', color: '#991b1b', fontWeight: 600 }}>
+                    {checkoutError}
+                  </div>
+                )}
+                <button
+                  onClick={handleContinue}
+                  disabled={checkoutLoading}
+                  style={{
+                    width: '100%', padding: '15px 20px', borderRadius: '12px', border: 'none',
+                    background: checkoutLoading ? '#94a3b8' : 'var(--vx-accent)', color: '#fff',
+                    fontWeight: 800, fontSize: '1rem', cursor: checkoutLoading ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', letterSpacing: '0.01em', transition: 'background 0.2s',
+                  }}
+                >
+                  {checkoutLoading ? 'Redirecting to payment…' : 'Start 7-Day Free Trial →'}
+                </button>
+              </>
             )}
 
             <p style={{ fontSize: '0.75rem', color: 'var(--vx-gray-400)', textAlign: 'center', marginTop: '14px', lineHeight: '1.5' }}>
-              {plan.price === 0
-                ? 'No credit card required. Cancel anytime.'
-                : isUpgrade
-                  ? 'Our team will apply the upgrade and confirm within 24 hours.'
-                  : 'No charges until approved by our team.'}
+              {plan.contactSales
+                ? 'Our team will reach out within 1 business day.'
+                : 'Card required. Cancel before day 8 and pay nothing. Renews automatically.'}
             </p>
 
             {/* Trust badges */}
