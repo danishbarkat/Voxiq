@@ -46,12 +46,11 @@ export class BillingService {
         type: 'checkouts',
         attributes: {
           checkout_data: {
-            quantity: seats,
-            custom: { accountId, packageName, billingCycle, seats: String(seats) },
             email,
+            custom: { accountId, packageName, billingCycle, seats: String(seats) },
           },
           product_options: { redirect_url: successUrl },
-          checkout_options: { quantity: true },
+          checkout_options: { quantity: false },
         },
         relationships: {
           store:   { data: { type: 'stores',  id: this.storeId } },
