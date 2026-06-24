@@ -74,9 +74,7 @@ export class BillingService {
     }
 
     const data = await res.json();
-    const checkoutUrl = new URL(data.data.attributes.url);
-    checkoutUrl.searchParams.set('checkout[quantity]', String(seats));
-    return checkoutUrl.toString();
+    return data.data.attributes.url;
   }
 
   async activateAccount(

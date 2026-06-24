@@ -68,9 +68,7 @@ let BillingService = class BillingService {
             throw new common_1.BadRequestException(`LemonSqueezy checkout error: ${err}`);
         }
         const data = await res.json();
-        const checkoutUrl = new URL(data.data.attributes.url);
-        checkoutUrl.searchParams.set('checkout[quantity]', String(seats));
-        return checkoutUrl.toString();
+        return data.data.attributes.url;
     }
     async activateAccount(accountId, packageName, billingCycle, seats, lsSubscriptionId, lsCustomerId, lsVariantId, periodEnd, lsStatus = 'active', trialEndsAt = null) {
         const features = PLAN_FEATURES[packageName];
