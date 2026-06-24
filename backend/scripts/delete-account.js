@@ -10,8 +10,13 @@ async function main() {
   console.log('Found user:', user.id, '| account:', user.accountId);
 
   const accountId = user.accountId;
+
+  // Get all user IDs in this account
+  const users = await prisma.user.findMany({ where: { accountId }, select: { id: true } });
+  const userIds = users.map(u => u.id);
+
   await prisma.signupVerification.deleteMany({ where: { email } });
-  await prisma.callLog.deleteMany({ where: { accountId } });
+  if (userIds.length) await prisma.callLog.deleteMany({ where: { agentId: { in: userIds } } });
   await prisma.lead.deleteMany({ where: { accountId } });
   await prisma.campaign.deleteMany({ where: { accountId } });
   await prisma.user.deleteMany({ where: { accountId } });
