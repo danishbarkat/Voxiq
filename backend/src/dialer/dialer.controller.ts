@@ -120,6 +120,19 @@ export class DialerController {
         }
         // ─────────────────────────────────────────────────────────────────────
 
+        // ── COUNTRY RESTRICTION (North America + Europe only) ─────────────────
+        const ALLOWED_PREFIXES = [
+            '+1',   // US & Canada
+            '+44', '+49', '+33', '+34', '+39', '+31', '+32', '+41', '+43',
+            '+45', '+46', '+47', '+48', '+351', '+353', '+358', '+370', '+371', '+372',
+            '+420', '+421', '+36', '+40', '+30', '+385', '+386', '+359',
+            '+352', '+354', '+356', '+357', '+376', '+377', '+378', '+423',
+        ];
+        if (!ALLOWED_PREFIXES.some(p => to.startsWith(p))) {
+            return { error: 'country_blocked', message: 'Outbound calls to this country are not available. If you need additional countries access, please contact your admin.' };
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         // ── INTERNATIONAL CALL RESTRICTION ───────────────────────────────────
         if (body.agentId) {
             const agent = await this.prisma.user.findUnique({

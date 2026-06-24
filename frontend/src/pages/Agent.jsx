@@ -219,6 +219,7 @@ export default function Agent() {
   const [showApptModal, setShowApptModal] = useState(false);
   const [apptForm, setApptForm] = useState({ customerName: '', customerPhone: '', customerEmail: '', scheduledAt: '', notes: '' });
   const [apptSaving, setApptSaving] = useState(false);
+  const [countryBlockedModal, setCountryBlockedModal] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1440,
   );
@@ -515,6 +516,8 @@ export default function Agent() {
   const handleDialLead = useCallback(async (lead) => {
     hasDialedRef.current = true;
 
+    if (!isAllowedCountry(lead?.phone)) { setCountryBlockedModal(true); return false; }
+
     // 1. Acquire distributed lock: prevent two agents dialing the same number
     //    The lock creates a RINGING callLog which blocks getNextLeadBatch for other agents.
     let logId = null;
@@ -578,10 +581,23 @@ export default function Agent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [makeCall, agentId]);
 
+  const ALLOWED_DIAL_PREFIXES = [
+    '+1',
+    '+44', '+49', '+33', '+34', '+39', '+31', '+32', '+41', '+43',
+    '+45', '+46', '+47', '+48', '+351', '+353', '+358', '+370', '+371', '+372',
+    '+420', '+421', '+36', '+40', '+30', '+385', '+386', '+359',
+    '+352', '+354', '+356', '+357', '+376', '+377', '+378', '+423',
+  ];
+  const isAllowedCountry = (phone) => {
+    if (!phone?.startsWith('+')) return true;
+    return ALLOWED_DIAL_PREFIXES.some(p => phone.startsWith(p));
+  };
+
   const handleManualInputDial = useCallback(async (overrideNumber, overrideName) => {
     const rawNumber = (typeof overrideNumber === 'string' ? overrideNumber : null) || dialNumber;
     const numberToUse = rawNumber && !rawNumber.startsWith('+') ? dialCountryCode + rawNumber : rawNumber;
     if (!numberToUse) return;
+    if (!isAllowedCountry(numberToUse)) { setCountryBlockedModal(true); return; }
     if (!agentId) {
       alert('Profile still loading — please wait a moment and try again.');
       return;
@@ -1355,6 +1371,26 @@ export default function Agent() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+
+      {/* ── COUNTRY BLOCKED MODAL ──────────────────────────────────── */}
+      {countryBlockedModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#1e293b', borderRadius: 18, padding: '36px 32px', maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 12px 48px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ fontSize: 44, marginBottom: 14 }}>🌍</div>
+            <h3 style={{ color: '#f1f5f9', fontSize: '1.15rem', fontWeight: 800, marginBottom: 10, margin: '0 0 10px' }}>Country Not Available</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 28 }}>
+              Outbound calls to this country are not available on your current plan.<br /><br />
+              If you need additional countries access, please contact your admin.
+            </p>
+            <button
+              onClick={() => setCountryBlockedModal(false)}
+              style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 32px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              OK, Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header style={{
