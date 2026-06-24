@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { API_URL } from '../config/env';
+import { fetchJson } from '../lib/api';
 
 export default function BillingSuccess() {
   const [searchParams] = useSearchParams();
-  const plan     = searchParams.get('plan')    || 'your plan';
-  const seats    = searchParams.get('seats')   || '1';
+  const plan      = searchParams.get('plan')    || 'your plan';
+  const seats     = searchParams.get('seats')   || '1';
   const isNewUser = searchParams.get('newuser') === 'true';
-  const [countdown, setCountdown] = useState(isNewUser ? null : 8);
+  const email     = searchParams.get('email')   || '';
+
+  const [countdown, setCountdown]     = useState(isNewUser ? null : 8);
+  const [otpSent, setOtpSent]         = useState(false);
+  const [otpCode, setOtpCode]         = useState('');
+  const [verified, setVerified]       = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [sendLoading, setSendLoading] = useState(false);
 
   useEffect(() => {
     if (isNewUser || countdown === null) return;
@@ -18,6 +28,40 @@ export default function BillingSuccess() {
     }, 1000);
     return () => clearInterval(t);
   }, [isNewUser, countdown]);
+
+  const sendOtp = async () => {
+    if (!email) return;
+    setSendLoading(true);
+    setVerifyError('');
+    try {
+      await fetchJson(`${API_URL}/auth/resend-verification`, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      setOtpSent(true);
+    } catch (err) {
+      setVerifyError(err.message || 'Could not send verification email.');
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      await fetchJson(`${API_URL}/auth/signup/verify`, {
+        method: 'POST',
+        body: JSON.stringify({ email, code: otpCode }),
+      });
+      setVerified(true);
+    } catch (err) {
+      setVerifyError(err.message || 'Invalid code. Please try again.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -43,43 +87,119 @@ export default function BillingSuccess() {
 
         <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '32px' }}>
           {isNewUser
-            ? 'Your 7-day free trial has started. You will not be charged until day 8. Log in below to access your dashboard.'
-            : 'Your account has been upgraded automatically. All features are now unlocked.'}
+            ? 'Your 7-day free trial has started. You will not be charged until day 8.'
+            : 'Your account has been upgraded. All features are now unlocked.'}
         </p>
 
-        <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
-          {isNewUser ? (
-            <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
-              Account activation takes ~10 seconds after payment.
-            </p>
-          ) : (
-            <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
-              Redirecting to your dashboard in {countdown}s…
-            </p>
-          )}
-        </div>
-
         {isNewUser ? (
-          <Link
-            to="/login"
-            style={{
-              display: 'inline-block', background: '#6366f1', color: '#fff',
-              borderRadius: '12px', padding: '13px 32px', fontWeight: 700,
-              fontSize: '1rem', textDecoration: 'none',
-            }}
-          >
-            Log In to Dashboard →
-          </Link>
+          verified ? (
+            <>
+              <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+                <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
+                  Email verified! Your account is ready.
+                </p>
+              </div>
+              <Link
+                to="/login"
+                style={{
+                  display: 'inline-block', background: '#6366f1', color: '#fff',
+                  borderRadius: '12px', padding: '13px 32px', fontWeight: 700,
+                  fontSize: '1rem', textDecoration: 'none',
+                }}
+              >
+                Log In to Dashboard →
+              </Link>
+            </>
+          ) : otpSent ? (
+            <>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '16px' }}>
+                We sent a 6-digit code to <strong>{email}</strong>. Enter it below to verify your email.
+              </p>
+              <form onSubmit={handleVerify} style={{ textAlign: 'left' }}>
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                  style={{
+                    width: '100%', boxSizing: 'border-box', padding: '12px 16px',
+                    borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '1.1rem',
+                    textAlign: 'center', letterSpacing: '0.2em', marginBottom: '12px',
+                    fontWeight: 700,
+                  }}
+                />
+                {verifyError && (
+                  <p style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '10px', textAlign: 'center' }}>{verifyError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={verifyLoading || otpCode.length < 6}
+                  style={{
+                    width: '100%', background: verifyLoading ? '#94a3b8' : '#6366f1',
+                    color: '#fff', border: 'none', borderRadius: '12px',
+                    padding: '13px', fontWeight: 700, fontSize: '1rem',
+                    cursor: verifyLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {verifyLoading ? 'Verifying…' : 'Verify Email →'}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  style={{ marginTop: '10px', width: '100%', background: 'none', border: 'none', color: '#6366f1', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Resend code
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+                <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
+                  Account activation takes ~10 seconds after payment.
+                </p>
+              </div>
+              {verifyError && (
+                <p style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '12px' }}>{verifyError}</p>
+              )}
+              <button
+                onClick={sendOtp}
+                disabled={sendLoading || !email}
+                style={{
+                  width: '100%', background: sendLoading ? '#94a3b8' : '#6366f1',
+                  color: '#fff', border: 'none', borderRadius: '12px',
+                  padding: '13px', fontWeight: 700, fontSize: '1rem',
+                  cursor: sendLoading ? 'not-allowed' : 'pointer', marginBottom: '12px',
+                }}
+              >
+                {sendLoading ? 'Sending…' : 'Verify Your Email →'}
+              </button>
+              <Link
+                to="/login"
+                style={{ display: 'block', color: '#6366f1', fontSize: '0.85rem', fontWeight: 600 }}
+              >
+                Skip for now, go to Login
+              </Link>
+            </>
+          )
         ) : (
-          <button
-            onClick={() => { window.location.href = '/admin'; }}
-            style={{
-              background: '#6366f1', color: '#fff', border: 'none', borderRadius: '12px',
-              padding: '13px 32px', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
-            }}
-          >
-            Go to Dashboard →
-          </button>
+          <>
+            <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+              <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
+                Redirecting to your dashboard in {countdown}s…
+              </p>
+            </div>
+            <button
+              onClick={() => { window.location.href = '/admin'; }}
+              style={{
+                background: '#6366f1', color: '#fff', border: 'none', borderRadius: '12px',
+                padding: '13px 32px', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
+              }}
+            >
+              Go to Dashboard →
+            </button>
+          </>
         )}
       </div>
     </div>

@@ -63,7 +63,7 @@ export class BillingController {
 
     const email = account.users?.[0]?.email || '';
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const successUrl = `${baseUrl}/billing/success?plan=${body.packageName}&seats=${body.seats}&newuser=true`;
+    const successUrl = `${baseUrl}/billing/success?plan=${body.packageName}&seats=${body.seats}&newuser=true&email=${encodeURIComponent(email)}`;
     const cancelUrl  = `${baseUrl}/signup`;
 
     const checkoutUrl = await this.billing.createCheckout(

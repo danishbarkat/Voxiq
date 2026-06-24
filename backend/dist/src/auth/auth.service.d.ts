@@ -13,15 +13,14 @@ export declare class AuthService {
     private accountColumnCache;
     constructor(prisma: PrismaService, jwtService: JwtService, configService: ConfigService, websocketGateway: WebsocketGateway);
     signup(dto: SignupDto): Promise<{
+        accountId: string;
         message: string;
-        verificationCodePreview: string;
-    } | {
-        message: string;
-        verificationCodePreview?: undefined;
     }>;
     verifySignup(email: string, code: string): Promise<{
         message: string;
-        accountId: string;
+    }>;
+    resendVerification(email: string): Promise<{
+        message: string;
     }>;
     validateUser(email: string, password: string, accessCode?: string): Promise<any>;
     loginWithMfa(email: string, password: string, accessCode?: string): Promise<{

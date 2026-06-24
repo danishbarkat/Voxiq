@@ -56,6 +56,13 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  @Post('resend-verification')
+  resendVerification(@Body('email') email: string) {
+    return this.authService.resendVerification(email);
+  }
+
+  @Public()
   @Throttle({ short: { ttl: 60000, limit: 3 } })   // 3 forgot-password/min
   @Post('forgot-password')
   forgotPassword(@Body('email') email: string) {

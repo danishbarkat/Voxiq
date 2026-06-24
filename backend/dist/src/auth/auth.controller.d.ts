@@ -5,15 +5,11 @@ export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
     signup(dto: SignupDto): Promise<{
+        accountId: string;
         message: string;
-        verificationCodePreview: string;
-    } | {
-        message: string;
-        verificationCodePreview?: undefined;
     }>;
     verifySignup(email: string, code: string): Promise<{
         message: string;
-        accountId: string;
     }>;
     login(dto: LoginDto): Promise<{
         access_token: string;
@@ -69,6 +65,9 @@ export declare class AuthController {
         monthlyCallLimit: number | null;
         monthlySmsLimit: number | null;
     } | null>;
+    resendVerification(email: string): Promise<{
+        message: string;
+    }>;
     forgotPassword(email: string): Promise<{
         message: string;
     }>;

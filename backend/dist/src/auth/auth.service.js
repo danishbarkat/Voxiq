@@ -82,9 +82,7 @@ let AuthService = class AuthService {
                 throw new common_1.BadRequestException('This NTN is already registered. Each company can only register once. Contact support if this is an error.');
             }
         }
-        const otpCode = this.generateOtpCode();
         const passwordHash = await bcryptjs_1.default.hash(dto.password, 10);
-        const expiresAt = new Date(Date.now() + AuthService_1.SIGNUP_OTP_TTL_MS);
         const signupPayload = {
             name: dto.name,
             lastName: dto.lastName,
@@ -97,45 +95,10 @@ let AuthService = class AuthService {
             requestedNumbers: dto.requestedNumbers,
             ntn: dto.ntn || null,
             termsAccepted: dto.termsAccepted,
-            requestedPackage: dto.requestedPackage || 'Trial',
+            requestedPackage: dto.requestedPackage || 'Basic',
             billingCycle: dto.billingCycle || 'monthly',
             seatCount: dto.seatCount || 1,
         };
-        await this.prisma.signupVerification.upsert({
-            where: { email: dto.email.toLowerCase() },
-            update: { otpCode, payload: signupPayload, expiresAt },
-            create: { email: dto.email.toLowerCase(), otpCode, payload: signupPayload, expiresAt },
-        });
-        const previewCode = await this.sendSignupVerificationEmail(dto.email.toLowerCase(), dto.companyName, otpCode);
-        return previewCode
-            ? {
-                message: 'Verification code sent. Enter the code to complete signup.',
-                verificationCodePreview: previewCode,
-            }
-            : {
-                message: 'Verification code sent. Enter the code to complete signup.',
-            };
-    }
-    async verifySignup(email, code) {
-        const verification = await this.prisma.signupVerification.findUnique({
-            where: { email: email.toLowerCase() },
-        });
-        if (!verification) {
-            throw new common_1.BadRequestException('No signup verification found for this email');
-        }
-        if (verification.expiresAt.getTime() < Date.now()) {
-            throw new common_1.BadRequestException('Verification code expired. Request a new code.');
-        }
-        if (verification.otpCode !== code.trim()) {
-            throw new common_1.BadRequestException('Invalid verification code');
-        }
-        const payload = verification.payload;
-        const existing = await this.prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
-        });
-        if (existing) {
-            throw new common_1.BadRequestException('Email already registered');
-        }
         let adminRole = await this.prisma.role.findFirst({
             where: { name: { equals: 'Admin', mode: 'insensitive' } },
         });
@@ -143,24 +106,62 @@ let AuthService = class AuthService {
             adminRole = await this.prisma.role.create({ data: { name: 'Admin' } });
         }
         const account = await this.prisma.account.create({
-            data: await this.buildSignupAccountData(payload),
+            data: await this.buildSignupAccountData(signupPayload),
         });
         await this.prisma.user.create({
             data: {
-                name: `${payload.name} ${payload.lastName}`.trim(),
-                email: payload.email,
-                passwordHash: payload.passwordHash,
+                name: `${dto.name} ${dto.lastName}`.trim(),
+                email: dto.email.toLowerCase(),
+                passwordHash,
                 roleId: adminRole.id,
                 accountId: account.id,
             },
         });
+        const otpCode = this.generateOtpCode();
+        const expiresAt = new Date(Date.now() + AuthService_1.SIGNUP_OTP_TTL_MS);
+        await this.prisma.signupVerification.upsert({
+            where: { email: dto.email.toLowerCase() },
+            update: { otpCode, payload: { accountId: account.id }, expiresAt },
+            create: { email: dto.email.toLowerCase(), otpCode, payload: { accountId: account.id }, expiresAt },
+        });
+        return { accountId: account.id, message: 'Account created. Proceed to checkout.' };
+    }
+    async verifySignup(email, code) {
+        const verification = await this.prisma.signupVerification.findUnique({
+            where: { email: email.toLowerCase() },
+        });
+        if (!verification) {
+            throw new common_1.BadRequestException('No verification found for this email. Please request a new code.');
+        }
+        if (verification.expiresAt.getTime() < Date.now()) {
+            throw new common_1.BadRequestException('Verification code expired. Request a new code.');
+        }
+        if (verification.otpCode !== code.trim()) {
+            throw new common_1.BadRequestException('Invalid verification code');
+        }
         await this.prisma.signupVerification.delete({
             where: { email: email.toLowerCase() },
         });
         return {
-            message: 'Email verified. Proceeding to plan selection.',
-            accountId: account.id,
+            message: 'Email verified successfully.',
         };
+    }
+    async resendVerification(email) {
+        const user = await this.prisma.user.findUnique({
+            where: { email: email.toLowerCase() },
+            include: { account: { select: { name: true } } },
+        });
+        if (!user)
+            throw new common_1.BadRequestException('Email not found');
+        const otpCode = this.generateOtpCode();
+        const expiresAt = new Date(Date.now() + AuthService_1.SIGNUP_OTP_TTL_MS);
+        await this.prisma.signupVerification.upsert({
+            where: { email: email.toLowerCase() },
+            update: { otpCode, payload: {}, expiresAt },
+            create: { email: email.toLowerCase(), otpCode, payload: {}, expiresAt },
+        });
+        await this.sendSignupVerificationEmail(email.toLowerCase(), user.account?.name || 'your company', otpCode);
+        return { message: 'Verification code sent to your email.' };
     }
     async validateUser(email, password, accessCode) {
         console.log(`Validating user: ${email}`);

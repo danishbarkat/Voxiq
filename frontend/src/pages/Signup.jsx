@@ -6,11 +6,10 @@ import { countries } from '../lib/countries';
 import PricingCards from '../components/PricingCards';
 
 const PLAN_DETAILS = {
-    Trial:      { name: '7-Day Free Trial', tagline: 'Try before you buy',        price: 0,     color: '#6366f1', popular: false, contactSales: false, features: ['Outbound Calls', '1 Agent Seat', '7 Days Free', 'No credit card required'] },
-    Basic:      { name: 'Basic',            tagline: 'Unlimited calling per seat', price: 24.99, color: '#3b82f6', popular: false, contactSales: false, features: ['Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'] },
-    Pro:        { name: 'Pro',              tagline: 'Calls + SMS + Recordings',   price: 39.99, color: '#8b5cf6', popular: true,  contactSales: false, features: ['Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'] },
-    Business:   { name: 'Business',         tagline: 'Full-featured platform',     price: 69.99, color: '#f59e0b', popular: false, contactSales: false, features: ['Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'] },
-    Enterprise: { name: 'Enterprise',       tagline: 'Custom for large teams',     price: null,  color: '#10b981', popular: false, contactSales: true,  features: ['Everything in Business', 'Custom Seat Limit', 'Dedicated Account Manager', 'SLA & Custom Integrations'] },
+    Basic:      { name: 'Basic',      tagline: 'Unlimited calling per seat', price: 24.99, color: '#3b82f6', popular: false, contactSales: false, features: ['7-Day Free Trial Included', 'Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'] },
+    Pro:        { name: 'Pro',        tagline: 'Calls + SMS + Recordings',   price: 39.99, color: '#8b5cf6', popular: true,  contactSales: false, features: ['7-Day Free Trial Included', 'Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'] },
+    Business:   { name: 'Business',   tagline: 'Full-featured platform',     price: 69.99, color: '#f59e0b', popular: false, contactSales: false, features: ['7-Day Free Trial Included', 'Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'] },
+    Enterprise: { name: 'Enterprise', tagline: 'Custom for large teams',     price: null,  color: '#10b981', popular: false, contactSales: true,  features: ['Everything in Business', 'Custom Seat Limit', 'Dedicated Account Manager', 'SLA & Custom Integrations'] },
 };
 
 function checkPassword(pw) {
@@ -57,8 +56,8 @@ function PasswordStrength({ password }) {
 }
 
 function StepBar({ step }) {
-    const steps = ['Company Info', 'Choose Plan', 'Review Order', 'Verify Email'];
-    const idx = step === 'form' ? 0 : step === 'pricing' ? 1 : step === 'checkout' ? 2 : 3;
+    const steps = ['Company Info', 'Choose Plan', 'Review & Pay'];
+    const idx = step === 'form' ? 0 : step === 'pricing' ? 1 : 2;
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 20 }}>
             {steps.map((label, i) => (
@@ -90,7 +89,7 @@ export default function Signup() {
     const [signupStep, setSignupStep] = useState('form');
     const [verificationCode, setVerificationCode] = useState('');
     const [verificationPreview, setVerificationPreview] = useState('');
-    const [selectedPackage, setSelectedPackage] = useState(searchParams.get('plan') || 'Trial');
+    const [selectedPackage, setSelectedPackage] = useState(searchParams.get('plan') || 'Basic');
     const [billingCycle, setBillingCycle] = useState(searchParams.get('billing') === 'annual' ? 'annual' : 'monthly');
     const [seatCount, setSeatCount] = useState(Math.max(1, parseInt(searchParams.get('seats') || '1', 10)));
     const [formData, setFormData] = useState({
@@ -181,32 +180,9 @@ export default function Signup() {
                     seatCount,
                 }),
             });
-            if (import.meta.env.DEV) setVerificationPreview(response.verificationCodePreview || '');
-            setSignupStep('verify');
-        } catch (err) {
-            setError(err.message || 'Signup failed. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleVerifySignup = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetchJson(`${API_URL}/auth/signup/verify`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    email: formData.email,
-                    code: verificationCode,
-                }),
-            });
 
             if (!response.accountId) { setSuccess(true); return; }
-
-            const pkg = selectedPackage === 'Trial' ? 'Basic' : selectedPackage;
-            if (pkg === 'Enterprise') { setSuccess(true); return; }
+            if (selectedPackage === 'Enterprise') { setSuccess(true); return; }
 
             setIsLoading(false);
             setCheckoutLoading(true);
@@ -215,7 +191,7 @@ export default function Signup() {
                 method: 'POST',
                 body: JSON.stringify({
                     accountId: response.accountId,
-                    packageName: pkg,
+                    packageName: selectedPackage,
                     billingCycle,
                     seats: seatCount,
                 }),
@@ -223,7 +199,7 @@ export default function Signup() {
 
             window.location.href = checkoutRes.checkoutUrl;
         } catch (err) {
-            setCheckoutError(err.message || 'Could not start checkout. Please contact support@voxiq.com');
+            setError(err.message || 'Signup failed. Please try again.');
         } finally {
             setIsLoading(false);
             setCheckoutLoading(false);
@@ -294,7 +270,7 @@ export default function Signup() {
     }
 
     if (signupStep === 'checkout') {
-        const plan = PLAN_DETAILS[selectedPackage] || PLAN_DETAILS.Trial;
+        const plan = PLAN_DETAILS[selectedPackage] || PLAN_DETAILS.Basic;
         const perSeatPrice = plan.price ? (billingCycle === 'annual' ? plan.price * 0.9 : plan.price) : null;
         const totalPrice = perSeatPrice
             ? (billingCycle === 'annual' ? perSeatPrice * seatCount * 12 : perSeatPrice * seatCount).toFixed(2)
@@ -327,15 +303,11 @@ export default function Signup() {
                                 <div style={{ marginBottom: '18px' }}>
                                     <div style={{ fontSize: '1.8rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom</div>
                                 </div>
-                            ) : plan.price === 0 ? (
-                                <div style={{ marginBottom: '18px' }}>
-                                    <div style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Free</div>
-                                    <p style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem', marginTop: '2px' }}>7 days, no credit card</p>
-                                </div>
                             ) : (
                                 <div style={{ marginBottom: '18px' }}>
                                     <span style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>${perSeatPrice.toFixed(2)}</span>
                                     <span style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem' }}>/seat/mo</span>
+                                    <p style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 700, marginTop: '4px' }}>7-day free trial · cancel anytime</p>
                                 </div>
                             )}
 
@@ -403,17 +375,17 @@ export default function Signup() {
                                         </div>
                                     </>
                                 )}
-                                {plan.price === 0 && (
+                                {!plan.contactSales && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                                        <span style={{ color: 'var(--vx-gray-500)' }}>Duration</span>
-                                        <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>7 days free</span>
+                                        <span style={{ color: 'var(--vx-gray-500)' }}>Trial</span>
+                                        <span style={{ fontWeight: 700, color: '#16a34a' }}>7 days free</span>
                                     </div>
                                 )}
                                 <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '12px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                                     <span style={{ fontWeight: 800, color: 'var(--vx-primary)', fontSize: '0.875rem' }}>Total due today</span>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: '1.5rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>
-                                            {plan.price === 0 ? '$0' : plan.contactSales ? 'Custom' : `$${totalPrice}`}
+                                            {plan.contactSales ? 'Custom' : `$${totalPrice}`}
                                         </div>
                                         {plan.price > 0 && <div style={{ fontSize: '0.7rem', color: 'var(--vx-gray-400)' }}>/{billingCycle === 'annual' ? 'year' : 'month'}</div>}
                                     </div>
@@ -422,12 +394,12 @@ export default function Signup() {
 
                             {error && <div className="auth-error" style={{ marginBottom: '12px' }}>{error}</div>}
 
-                            <button type="button" className="auth-btn-primary" disabled={isLoading} onClick={handleSignup}>
-                                {isLoading ? 'Submitting…' : 'Submit Registration →'}
+                            <button type="button" className="auth-btn-primary" disabled={isLoading || checkoutLoading} onClick={handleSignup}>
+                                {checkoutLoading ? 'Redirecting to payment…' : isLoading ? 'Creating account…' : 'Start 7-Day Free Trial →'}
                             </button>
-
+                            {error && <div className="auth-error" style={{ marginTop: '10px' }}>{error}</div>}
                             <p style={{ fontSize: '0.72rem', color: 'var(--vx-gray-400)', textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
-                                {plan.price === 0 ? 'No credit card required.' : 'No charges until approved by our team.'}
+                                Card required. Cancel before day 8, pay nothing.
                             </p>
 
                             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--vx-gray-100)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -461,7 +433,7 @@ export default function Signup() {
                     <div className="auth-feature-list">
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
-                            Free 7-Day Trial — no card needed
+                            7-Day Free Trial — cancel before day 8, pay nothing
                         </div>
                         <div className="auth-feature-item">
                             <span className="auth-feature-check">✓</span>
@@ -623,54 +595,6 @@ export default function Signup() {
                         <p className="auth-switch">
                             Already approved? <Link to="/login">Sign in</Link>
                         </p>
-                    </form>
-                    ) : (
-                    <form onSubmit={handleVerifySignup} className="auth-form">
-                        <div className="auth-field">
-                            <label>Verification Code</label>
-                            <input
-                                name="verificationCode"
-                                type="text"
-                                placeholder="Enter the 6-digit code sent to your email"
-                                value={verificationCode}
-                                onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                required
-                            />
-                        </div>
-                        <p className="auth-subtitle" style={{ marginTop: 0 }}>
-                            We sent a verification code to <strong>{formData.email}</strong>.
-                        </p>
-                        {import.meta.env.DEV && verificationPreview && (
-                            <div className="auth-error" style={{ background: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' }}>
-                                Dev preview code: {verificationPreview}
-                            </div>
-                        )}
-                        <button type="submit" className="auth-btn-primary" disabled={isLoading || checkoutLoading}>
-                            {checkoutLoading ? 'Setting up your trial…' : isLoading ? 'Verifying…' : 'Verify Email & Start Trial →'}
-                        </button>
-                        {checkoutError && (
-                            <div className="auth-error" style={{ marginTop: 10 }}>
-                                {checkoutError}
-                            </div>
-                        )}
-                        {checkoutLoading && (
-                            <p style={{ textAlign: 'center', color: '#6366f1', fontWeight: 600, marginTop: 10, fontSize: '0.85rem' }}>
-                                Redirecting to secure payment…
-                            </p>
-                        )}
-                        <button
-                            type="button"
-                            className="btn"
-                            style={{ width: '100%', marginTop: '0.75rem', background: '#f1f5f9', color: '#475569' }}
-                            onClick={() => {
-                                setSignupStep('form');
-                                setVerificationCode('');
-                                setVerificationPreview('');
-                                setError(null);
-                            }}
-                        >
-                            Back
-                        </button>
                     </form>
                     )}
                 </div>

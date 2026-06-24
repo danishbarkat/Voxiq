@@ -47,6 +47,9 @@ let AuthController = class AuthController {
         const account = await this.authService.getAccountPlan(accountId);
         return account;
     }
+    resendVerification(email) {
+        return this.authService.resendVerification(email);
+    }
     forgotPassword(email) {
         return this.authService.requestPasswordReset(email);
     }
@@ -114,6 +117,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getMyPlan", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 5 } }),
+    (0, common_1.Post)('resend-verification'),
+    __param(0, (0, common_1.Body)('email')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "resendVerification", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, throttler_1.Throttle)({ short: { ttl: 60000, limit: 3 } }),
