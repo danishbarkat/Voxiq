@@ -6,10 +6,10 @@ import { countries } from '../lib/countries';
 import PricingCards from '../components/PricingCards';
 
 const PLAN_DETAILS = {
-    Basic:      { name: 'Basic',      tagline: 'Unlimited calling per seat', price: 24.99, color: '#3b82f6', popular: false, contactSales: false, features: ['7-Day Free Trial Included', 'Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'] },
-    Pro:        { name: 'Pro',        tagline: 'Calls + SMS + Recordings',   price: 39.99, color: '#8b5cf6', popular: true,  contactSales: false, features: ['7-Day Free Trial Included', 'Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'] },
-    Business:   { name: 'Business',   tagline: 'Full-featured platform',     price: 69.99, color: '#f59e0b', popular: false, contactSales: false, features: ['7-Day Free Trial Included', 'Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'] },
-    Enterprise: { name: 'Enterprise', tagline: 'Custom for large teams',     price: null,  color: '#10b981', popular: false, contactSales: true,  features: ['Everything in Business', 'Custom Seat Limit', 'Dedicated Account Manager', 'SLA & Custom Integrations'] },
+    Basic:      { name: 'Basic',      tagline: 'Unlimited calling per seat', price: 24.99, color: '#7C6DFA', popular: false, contactSales: false, features: ['7-Day Free Trial Included', 'Unlimited Outbound & Inbound Calls', 'Per-seat pricing', 'Call History & Analytics'] },
+    Pro:        { name: 'Pro',        tagline: 'Calls + SMS + Recordings',   price: 39.99, color: '#7C6DFA', popular: true,  contactSales: false, features: ['7-Day Free Trial Included', 'Everything in Basic', 'SMS Messaging', 'Call Recordings', 'Advanced Analytics'] },
+    Business:   { name: 'Business',   tagline: 'Full-featured platform',     price: 69.99, color: '#7C6DFA', popular: false, contactSales: false, features: ['7-Day Free Trial Included', 'Everything in Pro', 'WhatsApp Messaging', 'AI Call Insights', 'Priority Support'] },
+    Enterprise: { name: 'Enterprise', tagline: 'Custom for large teams',     price: null,  color: '#7C6DFA', popular: false, contactSales: true,  features: ['Everything in Business', 'Custom Seat Limit', 'Dedicated Account Manager', 'SLA & Custom Integrations'] },
 };
 
 function checkPassword(pw) {
@@ -38,14 +38,14 @@ function PasswordStrength({ password }) {
     return (
         <div style={{ marginTop: 6, marginBottom: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <div style={{ flex: 1, height: 4, borderRadius: 4, background: '#e5e7eb', overflow: 'hidden' }}>
+                <div style={{ flex: 1, height: 4, borderRadius: 4, background: '#1e2537', overflow: 'hidden' }}>
                     <div style={{ width: `${(passed / 5) * 100}%`, height: '100%', background: color, transition: 'all 0.3s' }} />
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color }}>{strength}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
                 {Object.entries(labels).map(([key, label]) => (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: checks[key] ? '#10b981' : '#9ca3af' }}>
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: checks[key] ? '#10b981' : '#64748B' }}>
                         <span style={{ fontSize: 10 }}>{checks[key] ? '✓' : '✗'}</span>
                         {label}
                     </div>
@@ -66,16 +66,16 @@ function StepBar({ step }) {
                         <div style={{
                             width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontWeight: 800, fontSize: 12,
-                            background: i < idx ? '#10b981' : i === idx ? '#2563eb' : '#e5e7eb',
-                            color: i <= idx ? '#fff' : '#9ca3af',
+                            background: i < idx ? '#10B981' : i === idx ? '#7C6DFA' : '#1e2537',
+                            color: i <= idx ? '#fff' : '#64748B',
                             flexShrink: 0,
                         }}>
                             {i < idx ? '✓' : i + 1}
                         </div>
-                        <span style={{ fontSize: 10, color: i === idx ? '#2563eb' : '#9ca3af', fontWeight: i === idx ? 700 : 400, whiteSpace: 'nowrap' }}>{label}</span>
+                        <span style={{ fontSize: 10, color: i === idx ? '#7C6DFA' : '#64748B', fontWeight: i === idx ? 700 : 400, whiteSpace: 'nowrap' }}>{label}</span>
                     </div>
                     {i < steps.length - 1 && (
-                        <div style={{ flex: 1, height: 2, background: i < idx ? '#10b981' : '#e5e7eb', margin: '0 6px', marginBottom: 16 }} />
+                        <div style={{ flex: 1, height: 2, background: i < idx ? '#10B981' : '#1e2537', margin: '0 6px', marginBottom: 16 }} />
                     )}
                 </div>
             ))}
@@ -232,7 +232,7 @@ export default function Signup() {
                         <div style={{ maxWidth: 360, flex: 1, marginLeft: 32 }}><StepBar step="pricing" /></div>
                     </div>
                     <h2 style={{ textAlign: 'center', marginBottom: '6px', fontSize: '1.5rem' }}>Choose Your Plan</h2>
-                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '24px', fontSize: '0.88rem' }}>
+                    <p style={{ textAlign: 'center', color: '#6B9AB8', marginBottom: '24px', fontSize: '0.88rem' }}>
                         You can upgrade anytime from your Admin dashboard
                     </p>
                     <PricingCards
@@ -250,7 +250,7 @@ export default function Signup() {
                         <button
                             type="button"
                             className="btn"
-                            style={{ flex: 1, background: '#f1f5f9', color: '#475569' }}
+                            style={{ flex: 1, background: '#111929', border: '1px solid #1e2537', color: '#CBD5E1', borderRadius: '8px', cursor: 'pointer', padding: '10px 20px', fontWeight: 600 }}
                             onClick={() => { setSignupStep('form'); setError(null); }}
                         >
                             ← Back
@@ -283,66 +283,66 @@ export default function Signup() {
                         <img src="/logo.png" alt="Voxiq" style={{ height: '36px' }} />
                         <div style={{ maxWidth: 480, flex: 1, marginLeft: 32 }}><StepBar step="checkout" /></div>
                     </div>
-                    <h2 style={{ textAlign: 'center', marginBottom: '6px', fontSize: '1.5rem' }}>Review Your Order</h2>
-                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '24px', fontSize: '0.88rem' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: '6px', fontSize: '1.5rem', color: '#F1F5F9' }}>Review Your Order</h2>
+                    <p style={{ textAlign: 'center', color: '#6B9AB8', marginBottom: '24px', fontSize: '0.88rem' }}>
                         Confirm your plan before completing registration
                     </p>
 
                     <div className="checkout-grid">
                         {/* Left: Plan Details */}
-                        <div style={{ background: 'var(--vx-gray-50)', borderRadius: '18px', padding: '28px', border: '1px solid var(--vx-gray-200)' }}>
+                        <div style={{ background: '#111929', borderRadius: '18px', padding: '28px', border: '1px solid #1e2537' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
                                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: plan.color, display: 'inline-block', flexShrink: 0 }} />
-                                <span style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 900, color: 'var(--vx-primary)' }}>{plan.name}</span>
-                                {plan.popular && <span style={{ background: plan.color, color: '#fff', padding: '2px 8px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>MOST POPULAR</span>}
+                                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.4rem', fontWeight: 800, color: '#7C6DFA' }}>{plan.name}</span>
+                                {plan.popular && <span style={{ background: '#7C6DFA', color: '#fff', padding: '2px 8px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>MOST POPULAR</span>}
                             </div>
-                            <p style={{ color: 'var(--vx-gray-500)', marginBottom: '18px', fontSize: '0.875rem' }}>{plan.tagline}</p>
+                            <p style={{ color: '#6B9AB8', marginBottom: '18px', fontSize: '0.875rem' }}>{plan.tagline}</p>
 
                             {/* Price */}
                             {plan.contactSales ? (
                                 <div style={{ marginBottom: '18px' }}>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>Custom</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: 800, color: plan.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Custom</div>
                                 </div>
                             ) : (
                                 <div style={{ marginBottom: '18px' }}>
-                                    <span style={{ fontSize: '2rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>${perSeatPrice.toFixed(2)}</span>
-                                    <span style={{ color: 'var(--vx-gray-400)', fontSize: '0.8rem' }}>/seat/mo</span>
-                                    <p style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 700, marginTop: '4px' }}>7-day free trial · cancel anytime</p>
+                                    <span style={{ fontSize: '2rem', fontWeight: 800, color: plan.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>${perSeatPrice.toFixed(2)}</span>
+                                    <span style={{ color: '#6B9AB8', fontSize: '0.8rem' }}>/seat/mo</span>
+                                    <p style={{ color: '#10B981', fontSize: '0.75rem', fontWeight: 700, marginTop: '4px' }}>7-day free trial · cancel anytime</p>
                                 </div>
                             )}
 
                             {/* Billing Toggle */}
                             {plan.price > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: '#fff', borderRadius: '10px', padding: '10px 14px' }}>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: billingCycle === 'monthly' ? 'var(--vx-primary)' : 'var(--vx-gray-400)' }}>Monthly</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: '#020D1A', border: '1px solid #1e2537', borderRadius: '10px', padding: '10px 14px' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: billingCycle === 'monthly' ? '#7C6DFA' : '#64748B' }}>Monthly</span>
                                     <button type="button" onClick={() => setBillingCycle(b => b === 'monthly' ? 'annual' : 'monthly')}
-                                        style={{ width: '40px', height: '22px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: billingCycle === 'annual' ? '#6366f1' : '#e2e8f0', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+                                        style={{ width: '40px', height: '22px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: billingCycle === 'annual' ? '#7C6DFA' : '#1e2537', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
                                         <span style={{ position: 'absolute', top: '2px', left: billingCycle === 'annual' ? '20px' : '2px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', display: 'block' }} />
                                     </button>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: billingCycle === 'annual' ? 'var(--vx-primary)' : 'var(--vx-gray-400)' }}>
-                                        Annual <span style={{ background: '#dcfce7', color: '#16a34a', padding: '1px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>–10%</span>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: billingCycle === 'annual' ? '#7C6DFA' : '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Annual <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', padding: '1px 7px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>–10%</span>
                                     </span>
                                 </div>
                             )}
 
                             {/* Seat Selector */}
                             {plan.price > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', borderRadius: '10px', padding: '10px 14px', marginBottom: '18px' }}>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--vx-gray-600)' }}>Seats</span>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#020D1A', border: '1px solid #1e2537', borderRadius: '10px', padding: '10px 14px', marginBottom: '18px' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#CBD5E1' }}>Seats</span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <button type="button" onClick={() => setSeatCount(s => Math.max(1, s - 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--vx-gray-200)', background: '#fff', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                                        <span style={{ fontWeight: 800, minWidth: '24px', textAlign: 'center', color: 'var(--vx-primary)' }}>{seatCount}</span>
-                                        <button type="button" onClick={() => setSeatCount(s => Math.min(100, s + 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid var(--vx-gray-200)', background: '#fff', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                        <button type="button" onClick={() => setSeatCount(s => Math.max(1, s - 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #1e2537', background: '#111929', color: '#CBD5E1', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                        <span style={{ fontWeight: 800, minWidth: '24px', textAlign: 'center', color: '#7C6DFA' }}>{seatCount}</span>
+                                        <button type="button" onClick={() => setSeatCount(s => Math.min(100, s + 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #1e2537', background: '#111929', color: '#CBD5E1', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                                     </div>
                                 </div>
                             )}
 
                             {/* Features */}
-                            <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '16px' }}>
-                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--vx-gray-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Included</p>
+                            <div style={{ borderTop: '1px solid #1e2537', paddingTop: '16px' }}>
+                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#6B9AB8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Included</p>
                                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                     {plan.features.map(f => (
-                                        <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.875rem', color: 'var(--vx-primary)' }}>
+                                        <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.875rem', color: '#CBD5E1' }}>
                                             <span style={{ color: plan.color, fontWeight: 800, flexShrink: 0 }}>✓</span>{f}
                                         </li>
                                     ))}
@@ -351,43 +351,43 @@ export default function Signup() {
                         </div>
 
                         {/* Right: Order Summary */}
-                        <div style={{ background: '#fff', borderRadius: '18px', padding: '24px', border: `2px solid ${plan.color}` }}>
-                            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', fontWeight: 900, color: 'var(--vx-primary)', marginBottom: '18px' }}>Order Summary</h3>
+                        <div style={{ background: '#111929', borderRadius: '18px', padding: '24px', border: `2px solid #7C6DFA` }}>
+                            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.05rem', fontWeight: 800, color: '#F1F5F9', marginBottom: '18px' }}>Order Summary</h3>
 
-                            <div style={{ background: 'var(--vx-gray-50)', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
+                            <div style={{ background: '#020D1A', border: '1px solid #1e2537', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                                    <span style={{ color: 'var(--vx-gray-500)' }}>Plan</span>
-                                    <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>{plan.name}</span>
+                                    <span style={{ color: '#6B9AB8' }}>Plan</span>
+                                    <span style={{ fontWeight: 700, color: '#F1F5F9' }}>{plan.name}</span>
                                 </div>
                                 {plan.price > 0 && (
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                                            <span style={{ color: 'var(--vx-gray-500)' }}>Per seat</span>
-                                            <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>${perSeatPrice.toFixed(2)}/mo</span>
+                                            <span style={{ color: '#6B9AB8' }}>Per seat</span>
+                                            <span style={{ fontWeight: 700, color: '#F1F5F9' }}>${perSeatPrice.toFixed(2)}/mo</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                                            <span style={{ color: 'var(--vx-gray-500)' }}>Seats</span>
-                                            <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>× {seatCount}</span>
+                                            <span style={{ color: '#6B9AB8' }}>Seats</span>
+                                            <span style={{ fontWeight: 700, color: '#F1F5F9' }}>× {seatCount}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                                            <span style={{ color: 'var(--vx-gray-500)' }}>Billing</span>
-                                            <span style={{ fontWeight: 700, color: 'var(--vx-primary)' }}>{billingCycle === 'annual' ? 'Annual (–10%)' : 'Monthly'}</span>
+                                            <span style={{ color: '#6B9AB8' }}>Billing</span>
+                                            <span style={{ fontWeight: 700, color: '#F1F5F9' }}>{billingCycle === 'annual' ? 'Annual (–10%)' : 'Monthly'}</span>
                                         </div>
                                     </>
                                 )}
                                 {!plan.contactSales && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                                        <span style={{ color: 'var(--vx-gray-500)' }}>Trial</span>
-                                        <span style={{ fontWeight: 700, color: '#16a34a' }}>7 days free</span>
+                                        <span style={{ color: '#6B9AB8' }}>Trial</span>
+                                        <span style={{ fontWeight: 700, color: '#10B981' }}>7 days free</span>
                                     </div>
                                 )}
-                                <div style={{ borderTop: '1px solid var(--vx-gray-200)', paddingTop: '12px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                    <span style={{ fontWeight: 800, color: 'var(--vx-primary)', fontSize: '0.875rem' }}>Total due today</span>
+                                <div style={{ borderTop: '1px solid #1e2537', paddingTop: '12px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                    <span style={{ fontWeight: 800, color: '#F1F5F9', fontSize: '0.875rem' }}>Total due today</span>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: plan.color, fontFamily: 'Outfit, sans-serif' }}>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: plan.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                                             {plan.contactSales ? 'Custom' : `$${totalPrice}`}
                                         </div>
-                                        {plan.price > 0 && <div style={{ fontSize: '0.7rem', color: 'var(--vx-gray-400)' }}>/{billingCycle === 'annual' ? 'year' : 'month'}</div>}
+                                        {plan.price > 0 && <div style={{ fontSize: '0.7rem', color: '#6B9AB8' }}>/{billingCycle === 'annual' ? 'year' : 'month'}</div>}
                                     </div>
                                 </div>
                             </div>
@@ -398,15 +398,15 @@ export default function Signup() {
                                 {checkoutLoading ? 'Redirecting to payment…' : isLoading ? 'Creating account…' : 'Start 7-Day Free Trial →'}
                             </button>
                             {error && <div className="auth-error" style={{ marginTop: '10px' }}>{error}</div>}
-                            <p style={{ fontSize: '0.72rem', color: 'var(--vx-gray-400)', textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
+                            <p style={{ fontSize: '0.72rem', color: '#6B9AB8', textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
                                 Card required. Cancel before day 8, pay nothing.
                             </p>
 
-                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--vx-gray-100)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #1e2537', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {['7-day free trial on all plans', 'Cancel anytime', '99.99% uptime SLA'].map(item => (
                                     <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                                        <span style={{ color: '#10b981', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--vx-gray-500)' }}>{item}</span>
+                                        <span style={{ color: '#10B981', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#6B9AB8' }}>{item}</span>
                                     </div>
                                 ))}
                             </div>
@@ -414,7 +414,7 @@ export default function Signup() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px', marginTop: '20px', maxWidth: '400px', margin: '20px auto 0' }}>
-                        <button type="button" className="btn" style={{ flex: 1, background: '#f1f5f9', color: '#475569' }}
+                        <button type="button" className="btn" style={{ flex: 1, background: '#111929', border: '1px solid #1e2537', color: '#CBD5E1', borderRadius: '8px', cursor: 'pointer', padding: '10px 20px', fontWeight: 600 }}
                             onClick={() => { setSignupStep('pricing'); setError(null); }}>
                             ← Back to Plans
                         </button>
@@ -484,7 +484,7 @@ export default function Signup() {
                                 <input name="companyName" type="text" placeholder="Acme Inc." value={formData.companyName} onChange={handleChange} required />
                             </div>
                             <div className="auth-field">
-                                <label>Company Website <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                                <label>Company Website <span style={{ color: '#6B9AB8', fontWeight: 400 }}>(optional)</span></label>
                                 <input name="website" type="url" placeholder="https://yourcompany.com" value={formData.website} onChange={handleChange} />
                             </div>
                         </div>
@@ -493,7 +493,7 @@ export default function Signup() {
                             <div className="auth-field">
                                 <label>
                                     Company NTN <span style={{ color: '#ef4444', fontWeight: 700 }}>*</span>
-                                    <span style={{ color: '#9ca3af', fontWeight: 400, fontSize: 11, marginLeft: 6 }}>FBR format: 1234567-8</span>
+                                    <span style={{ color: '#6B9AB8', fontWeight: 400, fontSize: 11, marginLeft: 6 }}>FBR format: 1234567-8</span>
                                 </label>
                                 <input name="ntn" type="text" placeholder="1234567-8" value={formData.ntn} onChange={handleChange} maxLength={9} required
                                     pattern="\d{7}-\d"
@@ -507,7 +507,7 @@ export default function Signup() {
                         </div>
 
                         <div className="auth-field">
-                            <label>Phone Number <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                            <label>Phone Number <span style={{ color: '#6B9AB8', fontWeight: 400 }}>(optional)</span></label>
                             <div className="auth-phone-row">
                                 <input
                                     name="countryCode"
@@ -543,7 +543,7 @@ export default function Signup() {
                                         style={{ paddingRight: '2.5rem', width: '100%', boxSizing: 'border-box' }} />
                                     <button type="button" tabIndex={-1} onClick={() => setShowPassword(v => !v)}
                                         aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                        style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 0, lineHeight: 1 }}>
+                                        style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B9AB8', padding: 0, lineHeight: 1 }}>
                                         {showPassword
                                             ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                                             : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -560,7 +560,7 @@ export default function Signup() {
                                         style={{ paddingRight: '2.5rem', width: '100%', boxSizing: 'border-box' }} />
                                     <button type="button" tabIndex={-1} onClick={() => setShowConfirm(v => !v)}
                                         aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                                        style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 0, lineHeight: 1 }}>
+                                        style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B9AB8', padding: 0, lineHeight: 1 }}>
                                         {showConfirm
                                             ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                                             : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -576,11 +576,11 @@ export default function Signup() {
                                 type="checkbox"
                                 checked={termsAccepted}
                                 onChange={e => setTermsAccepted(e.target.checked)}
-                                style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', accentColor: '#2563eb', flexShrink: 0 }}
+                                style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', accentColor: '#7C6DFA', flexShrink: 0 }}
                             />
-                            <label htmlFor="termsCheckbox" style={{ fontSize: 13, color: '#374151', cursor: 'pointer', lineHeight: 1.5 }}>
+                            <label htmlFor="termsCheckbox" style={{ fontSize: 13, color: '#CBD5E1', cursor: 'pointer', lineHeight: 1.5 }}>
                                 I have read and agree to the{' '}
-                                <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>
+                                <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#7C6DFA', fontWeight: 600 }}>
                                     Terms and Conditions
                                 </Link>
                                 {' '}of Voxiq. I confirm that my company will use this platform lawfully and in compliance with all applicable laws including PTA regulations and PECA 2016.

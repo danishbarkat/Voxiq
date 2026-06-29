@@ -42,6 +42,29 @@ export default function Login() {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
+
+        // ─── UI DEV MODE BYPASS ───────────────────────────────────────────────
+        // Use these credentials to skip the backend entirely for UI work:
+        //   Email:    dev@voxiq.com
+        //   Password: superadmin | admin | manager | agent  (pick your role)
+        const DEV_ROUTES = {
+            superadmin: '/superadmin',
+            admin: '/admin',
+            manager: '/manager',
+            agent: '/agent',
+        };
+        if (email.trim().toLowerCase() === 'dev@voxiq.com') {
+            const role = password.trim().toLowerCase();
+            const route = DEV_ROUTES[role] || '/agent';
+            setToken('dev-mode-fake-token');
+            setTimeout(() => {
+                setIsLoading(false);
+                navigate(route);
+            }, 400);
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         try {
             if (rememberMe) {
                 localStorage.setItem('voxiq_remember', 'true');
@@ -221,19 +244,19 @@ export default function Login() {
                             </div>
 
                             {!showAccessCode ? (
-                                <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '-0.25rem 0 0.75rem' }}>
+                                <p style={{ fontSize: '0.82rem', color: '#6B9AB8', margin: '-0.25rem 0 0.75rem' }}>
                                     First-time admin login?{' '}
                                     <button
                                         type="button"
                                         onClick={() => setShowAccessCode(true)}
-                                        style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}
+                                        style={{ background: 'none', border: 'none', color: '#7C6DFA', cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}
                                     >
                                         Enter your company access code
                                     </button>
                                 </p>
                             ) : (
                                 <div className="auth-field">
-                                    <label>Company Access Code <span style={{ color: '#9ca3af', fontWeight: 400 }}>(first admin login only)</span></label>
+                                    <label>Company Access Code <span style={{ color: '#6B9AB8', fontWeight: 400 }}>(first admin login only)</span></label>
                                     <input
                                         type="text"
                                         placeholder="Enter the code shared by Voxiq"
@@ -251,7 +274,7 @@ export default function Login() {
                                 <button
                                     type="button"
                                     className="auth-forgot"
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', color: '#6366f1', textDecoration: 'underline' }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', color: '#7C6DFA', textDecoration: 'underline' }}
                                     onClick={() => { setShowForgotForm(true); setForgotSent(false); setForgotEmail(''); }}
                                 >
                                     Forgot password?
@@ -259,15 +282,15 @@ export default function Login() {
                             </div>
 
                             {showForgotForm && (
-                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', marginTop: '-0.25rem' }}>
+                                <div style={{ background: '#020D1A', border: '1px solid #1e2537', borderRadius: '12px', padding: '1rem', marginTop: '-0.25rem' }}>
                                     {forgotSent ? (
                                         <div>
-                                            <p style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                                            <p style={{ color: '#10B981', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                                                 Your admin has been notified. They will reset your password.
                                             </p>
                                             <button
                                                 type="button"
-                                                style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, fontSize: '0.82rem', textDecoration: 'underline' }}
+                                                style={{ background: 'none', border: 'none', color: '#7C6DFA', cursor: 'pointer', padding: 0, fontSize: '0.82rem', textDecoration: 'underline' }}
                                                 onClick={() => { setShowForgotForm(false); setForgotSent(false); }}
                                             >
                                                 Back to login
@@ -275,11 +298,11 @@ export default function Login() {
                                         </div>
                                     ) : (
                                         <div>
-                                            <p style={{ fontSize: '0.82rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 600 }}>Enter your email to request a password reset:</p>
+                                            <p style={{ fontSize: '0.82rem', color: '#F1F5F9', marginBottom: '0.5rem', fontWeight: 600 }}>Enter your email to request a password reset:</p>
                                             <input
                                                 type="email"
                                                 className="auth-field"
-                                                style={{ width: '100%', boxSizing: 'border-box', marginBottom: '0.5rem', padding: '0.5rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem' }}
+                                                style={{ width: '100%', boxSizing: 'border-box', marginBottom: '0.5rem', padding: '0.5rem 0.75rem', border: '1px solid #1e2537', background: '#111929', color: '#F1F5F9', borderRadius: '8px', fontSize: '0.85rem' }}
                                                 placeholder="your@email.com"
                                                 value={forgotEmail}
                                                 onChange={e => setForgotEmail(e.target.value)}
@@ -310,7 +333,7 @@ export default function Login() {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0, fontSize: '0.78rem', textDecoration: 'underline', whiteSpace: 'nowrap' }}
+                                                    style={{ background: 'none', border: 'none', color: '#6B9AB8', cursor: 'pointer', padding: 0, fontSize: '0.78rem', textDecoration: 'underline', whiteSpace: 'nowrap' }}
                                                     onClick={() => setShowForgotForm(false)}
                                                 >
                                                     Back to login
@@ -332,11 +355,11 @@ export default function Login() {
                     ) : (
                         <form onSubmit={handleVerifyMfa} className="auth-form">
                             {mfaState.mfa_setup_required && (
-                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
+                                <div style={{ background: '#020D1A', border: '1px solid #1e2537', borderRadius: '16px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
                                     <p style={{ marginBottom: '0.75rem', fontWeight: 600 }}>Scan this QR in Google Authenticator or any TOTP app.</p>
                                     {qrUrl && <img src={qrUrl} alt="MFA QR Code" style={{ width: 220, height: 220, maxWidth: '100%', borderRadius: 12, background: '#fff', padding: 8 }} />}
-                                    <p style={{ marginTop: '0.75rem', marginBottom: '0.35rem', fontSize: '0.85rem', color: '#475569' }}>Manual setup key</p>
-                                    <code style={{ display: 'block', wordBreak: 'break-all', fontSize: '0.85rem', color: '#0f172a' }}>{mfaState.manual_key}</code>
+                                    <p style={{ marginTop: '0.75rem', marginBottom: '0.35rem', fontSize: '0.85rem', color: '#6B9AB8' }}>Manual setup key</p>
+                                    <code style={{ display: 'block', wordBreak: 'break-all', fontSize: '0.85rem', color: '#CBD5E1' }}>{mfaState.manual_key}</code>
                                 </div>
                             )}
 
@@ -358,7 +381,7 @@ export default function Login() {
                             <button
                                 type="button"
                                 className="btn"
-                                style={{ width: '100%', marginTop: '0.75rem', background: '#f1f5f9', color: '#475569' }}
+                                style={{ width: '100%', marginTop: '0.75rem', background: 'rgba(124, 109, 250, 0.1)', color: '#7C6DFA', border: '1px solid rgba(124, 109, 250, 0.2)', borderRadius: '8px', cursor: 'pointer', padding: '12px', fontWeight: 600, fontSize: '0.95rem' }}
                                 onClick={() => {
                                     setMfaState(null);
                                     setMfaCode('');

@@ -1,31 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Voxiq Premium Palette - Updated to Exact Dark Purple */
-  --vx-primary: #0f172a;      /* Deep slate */
-  --vx-accent: rgb(45, 51, 107);
-  --vx-accent-soft: rgba(45, 51, 107, 0.08);
-  --vx-success: #10b981;
-  --vx-gray-50: #f9fafb;
-  --vx-gray-100: #f3f4f6;
-  --vx-gray-200: #e5e7eb;
-  --vx-gray-300: #d1d5db;
-  --vx-gray-400: #9ca3af;
-  --vx-gray-500: #6b7280;
-  --vx-gray-600: #4b5563;
-  --vx-gray-900: #111827;
+  /* Voxiq Premium Palette - Updated to Exact Brand Spec */
+  --vx-primary: #7C6DFA;      /* Brand Purple */
+  --vx-accent: #7C6DFA;       /* Accent Purple */
+  --vx-accent-soft: rgba(124, 109, 250, 0.08);
+  --vx-dark: #0B0F1A;         /* Premium Dark Section Background */
+  --vx-success: #10B981;
+  --vx-gray-50: #0d1117;
+  --vx-gray-100: #1e2537;
+  --vx-gray-200: #1e2537;
+  --vx-gray-300: #253047;
+  --vx-gray-400: #475569;
+  --vx-gray-500: #64748B;
+  --vx-gray-600: #64748B;
+  --vx-gray-900: #F1F5F9;
+
+  /* Ocean Breeze Palette */
+  --ocean-deep:    #0A2540;
+  --ocean-mid:     #0D3B6E;
+  --ocean-breeze:  #7FCDFF;
+  --ocean-light:   #DFF7FF;
+  --ocean-foam:    #F0FBFF;
+  --cream:         #FFFDF5;
+  --cream-mid:     #FFF8E7;
+  --midnight:      #020D1A;
+  --text-dark:     #0A2540;
+  --text-mid:      #2D5986;
+  --text-muted:    #6B9AB8;
+  --purple-accent: #7C6DFA;
+  --green-live:    #00E5A0;
 
   /* Theme Mapping */
-  --bg-app: #ffffff;
-  --bg-surface: #ffffff;
+  --bg-app: #0B0F1A;
+  --bg-surface: #0B0F1A;
   --text-main: var(--vx-gray-900);
-  --text-dim: var(--vx-gray-600);
-  --text-soft: var(--vx-gray-400);
+  --text-dim: #CBD5E1;
+  --text-soft: #64748B;
   --border-light: var(--vx-gray-100);
   --border-mid: var(--vx-gray-200);
 
   /* Gradients & Shadows */
-  --grad-hero: radial-gradient(circle at 50% -20%, #eff6ff 0%, #ffffff 100%);
+  --grad-hero: radial-gradient(circle at 50% -20%, rgba(127, 205, 255, 0.1) 0%, transparent 100%);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -47,20 +63,84 @@ html, body {
   height: 100%;
   -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
+  background-color: var(--bg-app);
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-app);
-  color: var(--text-main);
-  line-height: 1.6;
+  color: var(--text-dim);
+  line-height: 1.7;
 }
 
 h1, h2, h3, h4, .font-head {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+  color: var(--text-main);
 }
+
+/* ===================================
+   OCEAN BREEZE — KEYFRAMES & UTILS
+   =================================== */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8px currentColor;
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.85);
+    box-shadow: 0 0 16px currentColor;
+  }
+}
+
+@keyframes float-up {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes shimmer-ocean {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+@keyframes marquee-left {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+.section-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.section-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.marquee-track.left  { animation-name: marquee-left; }
+.marquee-track.right { animation-name: marquee-right; }
+.marquee-track:hover,
+.marquee-track-paused { animation-play-state: paused !important; }
 
 /* Layout */
 .shell {
@@ -414,7 +494,7 @@ footer {
   display: flex; 
   height: 100vh; 
   background-color: #f8fafc;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .sidebar { 
@@ -845,12 +925,13 @@ tr:last-child td {
 .auth-card {
   width: 100%;
   max-width: 900px;
-  background: white;
+  background: #111929;
+  border: 1px solid #1e2537;
   border-radius: 28px;
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1.5fr;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4);
 }
 
 .auth-card-wide {
@@ -859,7 +940,7 @@ tr:last-child td {
 }
 
 .auth-left {
-  background: linear-gradient(160deg, var(--vx-accent), #1a1e42);
+  background: linear-gradient(160deg, var(--vx-accent), #0B0F1A);
   color: white;
   padding: 56px 40px;
   display: flex;
@@ -868,7 +949,7 @@ tr:last-child td {
 }
 
 .auth-right {
-  background: white;
+  background: #111929;
   padding: 56px 48px;
   display: flex;
   flex-direction: column;
@@ -978,7 +1059,7 @@ tr:last-child td {
   padding: 11px 14px;
   border: 1.5px solid var(--vx-gray-200);
   border-radius: 10px;
-  background: white;
+  background: #0d1117;
   color: var(--vx-gray-900);
   font-size: 0.95rem;
   font-family: inherit;
@@ -990,11 +1071,11 @@ tr:last-child td {
 .auth-field select:focus {
   outline: none;
   border-color: var(--vx-accent);
-  box-shadow: 0 0 0 3px rgba(45, 51, 107, 0.1);
+  box-shadow: 0 0 0 3px rgba(124, 109, 250, 0.15);
 }
 
 .auth-field input::placeholder {
-  color: var(--vx-gray-300);
+  color: #475569;
 }
 
 .auth-field-row {
@@ -1027,7 +1108,7 @@ tr:last-child td {
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: var(--vx-gray-600);
+  color: var(--vx-gray-500);
   cursor: pointer;
   font-weight: 500;
 }
@@ -1066,9 +1147,9 @@ tr:last-child td {
 }
 
 .auth-btn-primary:hover:not(:disabled) {
-  background: #1a1e42;
+  background: #5B4FE8;
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(45, 51, 107, 0.28);
+  box-shadow: 0 8px 24px rgba(124, 109, 250, 0.3);
 }
 
 .auth-btn-primary:disabled {
@@ -1318,4 +1399,38 @@ tr:last-child td {
 
 .step-item:hover .step-icon-svg {
   animation: iconWiggle 0.6s ease both;
+}
+
+/* Scroll Animations */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Fade in on scroll */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.fade-in-up.visible {
+  opacity: 1;
+  transform: translateY(0);
 }

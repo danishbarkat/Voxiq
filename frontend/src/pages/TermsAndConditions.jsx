@@ -6,19 +6,19 @@ const CONTACT_EMAIL = 'legal@voxiq.com';
 
 export default function TermsAndConditions() {
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#020D1A', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 24px 80px' }}>
 
         {/* Header */}
         <div style={{ marginBottom: 40 }}>
-          <Link to="/signup" style={{ color: '#2563eb', fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 24 }}>
+          <Link to="/signup" style={{ color: '#7C6DFA', fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 24 }}>
             ← Back to Signup
           </Link>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#111827', margin: '0 0 8px' }}>Terms and Conditions</h1>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: 0 }}>Effective Date: {EFFECTIVE_DATE} &nbsp;|&nbsp; {COMPANY} Automated Dialing Platform</p>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#F1F5F9', margin: '0 0 8px' }}>Terms and Conditions</h1>
+          <p style={{ color: '#6B9AB8', fontSize: 14, margin: 0 }}>Effective Date: {EFFECTIVE_DATE} &nbsp;|&nbsp; {COMPANY} Automated Dialing Platform</p>
         </div>
 
-        <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 12, padding: '14px 18px', marginBottom: 32, fontSize: 14, color: '#92400e' }}>
+        <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: 12, padding: '14px 18px', marginBottom: 32, fontSize: 14, color: '#F59E0B' }}>
           <strong>Important Notice:</strong> By registering on {COMPANY}, you confirm that your organization will use this platform in full compliance with Pakistani law, international telecommunications regulations, and the terms set out below. Violation of these terms may result in immediate account suspension, legal action, and reporting to relevant regulatory authorities.
         </div>
 
@@ -169,7 +169,7 @@ export default function TermsAndConditions() {
           <p style={{ fontWeight: 600 }}>{COMPANY} Legal &amp; Compliance<br />Email: {CONTACT_EMAIL}</p>
         </Section>
 
-        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 24, marginTop: 16, color: '#9ca3af', fontSize: 13 }}>
+        <div style={{ borderTop: '1px solid #1e2537', paddingTop: 24, marginTop: 16, color: '#6B9AB8', fontSize: 13 }}>
           By registering on {COMPANY}, you confirm that you have read, understood, and agree to these Terms and Conditions in full.
         </div>
       </div>
@@ -180,8 +180,8 @@ export default function TermsAndConditions() {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: '0 0 12px', paddingBottom: 8, borderBottom: '2px solid #e5e7eb' }}>{title}</h2>
-      <div style={{ color: '#374151', fontSize: 14.5, lineHeight: 1.8 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#F1F5F9', margin: '0 0 12px', paddingBottom: 8, borderBottom: '1px solid #1e2537' }}>{title}</h2>
+      <div style={{ color: '#CBD5E1', fontSize: 14.5, lineHeight: 1.8 }}>
         {children}
       </div>
     </div>
@@ -191,8 +191,8 @@ function Section({ title, children }) {
 function SubSection({ title, children }) {
   return (
     <div style={{ marginTop: 16, marginBottom: 8 }}>
-      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1f2937', margin: '0 0 8px' }}>{title}</h3>
-      <div style={{ color: '#374151', fontSize: 14, lineHeight: 1.8 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#F1F5F9', margin: '0 0 8px' }}>{title}</h3>
+      <div style={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.8 }}>
         {children}
       </div>
     </div>

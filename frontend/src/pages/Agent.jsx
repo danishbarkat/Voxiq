@@ -353,8 +353,47 @@ export default function Agent() {
   }, [agentId]);
 
   useEffect(() => {
+    const token = getToken();
     // Guard: if no token is present, ProtectedRoute should already redirect — bail early
-    if (!getToken()) return;
+    if (!token) return;
+
+    // ─── UI DEV MODE: seed mock data, skip all API calls ─────────────────────
+    if (token === 'dev-mode-fake-token') {
+      const mockProfile = {
+        id: 'dev-user-1',
+        name: 'Dev Agent',
+        email: 'dev@voxiq.com',
+        role: 'agent',
+        sipUri: '',
+        sipPassword: '',
+        callerNumber: '+15550001234',
+        callerName: 'Dev Agent',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      };
+      setAgentId('dev-user-1');
+      setProfile(mockProfile);
+      updateCredentials({ login: '', password: '', callerName: 'Dev Agent', callerNumber: '' });
+      setLeads([
+        { id: 'l1', firstName: 'Alice', lastName: 'Johnson', phone: '+15550001111', email: 'alice@example.com', status: 'New' },
+        { id: 'l2', firstName: 'Bob', lastName: 'Smith', phone: '+15550002222', email: 'bob@example.com', status: 'Called' },
+        { id: 'l3', firstName: 'Carol', lastName: 'Williams', phone: '+15550003333', email: 'carol@example.com', status: 'New' },
+        { id: 'l4', firstName: 'David', lastName: 'Brown', phone: '+15550004444', email: 'david@example.com', status: 'Voicemail' },
+        { id: 'l5', firstName: 'Eva', lastName: 'Davis', phone: '+15550005555', email: 'eva@example.com', status: 'New' },
+      ]);
+      setHistoryFeed([
+        { id: 'h1', type: 'call', category: 'dialed', phone: '+15550001111', name: 'Alice Johnson', createdAt: new Date(Date.now() - 3600000).toISOString(), duration: 120 },
+        { id: 'h2', type: 'call', category: 'missed', phone: '+15550002222', name: 'Bob Smith', createdAt: new Date(Date.now() - 7200000).toISOString(), duration: 0 },
+        { id: 'h3', type: 'sms', category: 'dialed', phone: '+15550003333', name: 'Carol Williams', createdAt: new Date(Date.now() - 10800000).toISOString() },
+      ]);
+      setHistoryStats({ missedCalls: 1, receivedCalls: 3, dialedCalls: 8, totalMessages: 5 });
+      setPeriodStats({ today: 8, yesterday: 12, thisWeek: 47, lastWeek: 53, thisMonth: 180, thisYear: 1420 });
+      setLeadsLoading(false);
+      setAppointmentsLoading(false);
+      setHistoryLoading(false);
+      return; // skip all API calls
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // 1. Get current user profile — cache: 'no-store' prevents stale cached responses
     //    on re-mounts from returning a 200 after the token has been cleared
@@ -390,7 +429,6 @@ export default function Agent() {
       }
     });
 
-    const token = getToken();
     const authHeaders = token
       ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       : { 'Content-Type': 'application/json' };

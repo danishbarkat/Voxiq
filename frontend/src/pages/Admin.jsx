@@ -2831,7 +2831,7 @@ export default function Admin() {
                     <div style={{ background: 'linear-gradient(135deg, #fff7ed, #ffedd5)', padding: '16px 20px', borderBottom: '1px solid #fed7aa', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 10, background: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#fff' }}>⚡</div>
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>Zapier / Webhooks</div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>Zapier Integration</div>
                         <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Fire events on call outcomes</div>
                       </div>
                     </div>
@@ -2846,7 +2846,7 @@ export default function Admin() {
                           <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 700, marginLeft: 8, flexShrink: 0 }} onClick={() => deleteWebhook(w.id)}>✕</button>
                         </div>
                       ))}
-                      {webhooks.length === 0 && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No webhooks yet</div>}
+                      {webhooks.length === 0 && <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No Zapier integrations yet</div>}
                     </div>
                   </div>
 

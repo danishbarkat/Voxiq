@@ -66,26 +66,27 @@ export default function BillingSuccess() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+      background: '#020D1A',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Inter, system-ui, sans-serif', padding: '24px',
+      fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '24px',
     }}>
       <div style={{
-        background: '#fff', borderRadius: '24px', padding: '48px 40px',
+        background: '#111929', borderRadius: '24px', padding: '48px 40px',
         maxWidth: '480px', width: '100%', textAlign: 'center',
-        boxShadow: '0 4px 32px rgba(0,0,0,0.08)',
+        border: '1px solid #1e2537',
+        boxShadow: '0 4px 32px rgba(0,0,0,0.4)',
       }}>
         <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>🎉</div>
 
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#F1F5F9', marginBottom: '8px' }}>
           {isNewUser ? 'Trial Started!' : 'Payment Successful!'}
         </h1>
 
-        <p style={{ color: '#64748b', fontSize: '1rem', marginBottom: '8px' }}>
+        <p style={{ color: '#CBD5E1', fontSize: '1rem', marginBottom: '8px' }}>
           Your <strong>{plan}</strong> plan ({seats} seat{Number(seats) > 1 ? 's' : ''}) is now active.
         </p>
 
-        <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '32px' }}>
+        <p style={{ color: '#6B9AB8', fontSize: '0.875rem', marginBottom: '32px' }}>
           {isNewUser
             ? 'Your 7-day free trial has started. You will not be charged until day 8.'
             : 'Your account has been upgraded. All features are now unlocked.'}
@@ -94,15 +95,15 @@ export default function BillingSuccess() {
         {isNewUser ? (
           verified ? (
             <>
-              <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
-                <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+                <p style={{ color: '#10B981', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
                   Email verified! Your account is ready.
                 </p>
               </div>
               <Link
                 to="/login"
                 style={{
-                  display: 'inline-block', background: '#6366f1', color: '#fff',
+                  display: 'inline-block', background: '#7C6DFA', color: '#fff',
                   borderRadius: '12px', padding: '13px 32px', fontWeight: 700,
                   fontSize: '1rem', textDecoration: 'none',
                 }}
@@ -112,7 +113,7 @@ export default function BillingSuccess() {
             </>
           ) : otpSent ? (
             <>
-              <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '16px' }}>
+              <p style={{ color: '#6B9AB8', fontSize: '0.875rem', marginBottom: '16px' }}>
                 We sent a 6-digit code to <strong>{email}</strong>. Enter it below to verify your email.
               </p>
               <form onSubmit={handleVerify} style={{ textAlign: 'left' }}>
@@ -124,19 +125,19 @@ export default function BillingSuccess() {
                   required
                   style={{
                     width: '100%', boxSizing: 'border-box', padding: '12px 16px',
-                    borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '1.1rem',
+                    borderRadius: '10px', border: '1px solid #1e2537', fontSize: '1.1rem',
                     textAlign: 'center', letterSpacing: '0.2em', marginBottom: '12px',
-                    fontWeight: 700,
+                    fontWeight: 700, background: '#020D1A', color: '#F1F5F9',
                   }}
                 />
                 {verifyError && (
-                  <p style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '10px', textAlign: 'center' }}>{verifyError}</p>
+                  <p style={{ color: '#EF4444', fontSize: '0.8rem', marginBottom: '10px', textAlign: 'center' }}>{verifyError}</p>
                 )}
                 <button
                   type="submit"
                   disabled={verifyLoading || otpCode.length < 6}
                   style={{
-                    width: '100%', background: verifyLoading ? '#94a3b8' : '#6366f1',
+                    width: '100%', background: verifyLoading ? '#475569' : '#7C6DFA',
                     color: '#fff', border: 'none', borderRadius: '12px',
                     padding: '13px', fontWeight: 700, fontSize: '1rem',
                     cursor: verifyLoading ? 'not-allowed' : 'pointer',
@@ -147,7 +148,7 @@ export default function BillingSuccess() {
                 <button
                   type="button"
                   onClick={sendOtp}
-                  style={{ marginTop: '10px', width: '100%', background: 'none', border: 'none', color: '#6366f1', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ marginTop: '10px', width: '100%', background: 'none', border: 'none', color: '#7C6DFA', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
                 >
                   Resend code
                 </button>
@@ -155,19 +156,19 @@ export default function BillingSuccess() {
             </>
           ) : (
             <>
-              <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
-                <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+                <p style={{ color: '#10B981', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
                   Account activation takes ~10 seconds after payment.
                 </p>
               </div>
               {verifyError && (
-                <p style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '12px' }}>{verifyError}</p>
+                <p style={{ color: '#EF4444', fontSize: '0.8rem', marginBottom: '12px' }}>{verifyError}</p>
               )}
               <button
                 onClick={sendOtp}
                 disabled={sendLoading || !email}
                 style={{
-                  width: '100%', background: sendLoading ? '#94a3b8' : '#6366f1',
+                  width: '100%', background: sendLoading ? '#475569' : '#7C6DFA',
                   color: '#fff', border: 'none', borderRadius: '12px',
                   padding: '13px', fontWeight: 700, fontSize: '1rem',
                   cursor: sendLoading ? 'not-allowed' : 'pointer', marginBottom: '12px',
@@ -177,7 +178,7 @@ export default function BillingSuccess() {
               </button>
               <Link
                 to="/login"
-                style={{ display: 'block', color: '#6366f1', fontSize: '0.85rem', fontWeight: 600 }}
+                style={{ display: 'block', color: '#7C6DFA', fontSize: '0.85rem', fontWeight: 600 }}
               >
                 Skip for now, go to Login
               </Link>
@@ -185,15 +186,15 @@ export default function BillingSuccess() {
           )
         ) : (
           <>
-            <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
-              <p style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', padding: '16px', marginBottom: '28px' }}>
+              <p style={{ color: '#10B981', fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>
                 Redirecting to your dashboard in {countdown}s…
               </p>
             </div>
             <button
               onClick={() => { window.location.href = '/admin'; }}
               style={{
-                background: '#6366f1', color: '#fff', border: 'none', borderRadius: '12px',
+                background: '#7C6DFA', color: '#fff', border: 'none', borderRadius: '12px',
                 padding: '13px 32px', fontWeight: 700, fontSize: '1rem', cursor: 'pointer',
               }}
             >
