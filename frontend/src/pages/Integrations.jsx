@@ -52,48 +52,120 @@ export default function Integrations() {
     <div style={{ background: '#020D1A', minHeight: '100vh', overflowX: 'hidden' }}>
       
       {/* 1. Hero */}
-      <section style={{ 
+                  <section style={{ 
         padding: '120px 0 80px', 
-        background: 'radial-gradient(circle at 50% -20%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 70%)', 
-        textAlign: 'center' 
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#020D1A', 
+        display: 'flex',
+        alignItems: 'center',
+        textAlign: 'left' 
       }}>
-        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 2rem' }}>
-          <span style={{
-            color: '#7C6DFA',
-            fontSize: '0.85rem',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            background: 'rgba(124, 109, 250, 0.08)',
-            padding: '6px 16px',
-            borderRadius: '999px',
-            display: 'inline-block',
-            marginBottom: '20px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            INTEGRATIONS
-          </span>
-          <h1 style={{
-            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-            fontWeight: 900,
-            color: '#F1F5F9',
-            letterSpacing: '-0.03em',
-            marginBottom: '24px',
-            lineHeight: '1.1',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Voxiq connects with the tools your team already uses.
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#6B9AB8',
-            maxWidth: '750px',
-            margin: '0 auto 40px',
-            lineHeight: '1.6',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Native integrations with GHL, Pipedrive, and Zapier. Plus APIs for custom connections.
-          </p>
+        {/* Background Image */}
+        <img 
+          src="/Intergration for Zapier..png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
+
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
+
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 10, width: '100%' }}>
+          <div style={{ maxWidth: '58%', textAlign: 'left' }}>
+            
+            <span style={{
+              color: '#7FCDFF',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: 'rgba(127, 205, 255, 0.08)',
+              padding: '6px 16px',
+              borderRadius: '999px',
+              display: 'inline-block',
+              marginBottom: '20px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Integrations
+            </span>
+            <h1 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: 900,
+              color: '#F1F5F9',
+              letterSpacing: '-0.03em',
+              marginBottom: '24px',
+              lineHeight: '1.1',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Connect Voxiq with the tools you already use.
+            </h1>
+            <p style={{
+              fontSize: '1.25rem',
+              color: '#6B9AB8',
+              margin: '0 0 40px 0',
+              lineHeight: '1.6',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Voxiq integrates natively with top CRMs, email systems, and marketing automation tools. Set up workflows in minutes with no code.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start', marginBottom: '60px' }}>
+              <Link
+                to="/signup"
+                style={{
+                  textDecoration: 'none',
+                  background: 'rgb(223, 247, 255)', color: '#0A2540',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.25)',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Start Free Trial
+              </Link>
+              <button
+                onClick={() => navigate('/pricing')}
+                style={{
+                  background: 'transparent',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                See Pricing
+              </button>
+            </div>
+            
+          </div>
         </div>
       </section>
 
@@ -103,17 +175,17 @@ export default function Integrations() {
           <div className="container" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 2rem' }}>
             <div style={{
               background: '#020D1A',
-              border: '2px solid #7C6DFA',
+              border: '2px solid #7FCDFF',
               borderRadius: '24px',
               padding: '48px',
               color: '#F1F5F9',
-              boxShadow: '0 30px 60px rgba(124, 109, 250, 0.08)',
+              boxShadow: '0 30px 60px rgba(127, 205, 255, 0.08)',
               position: 'relative'
             }}>
               
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <span style={{
-                  background: '#7C6DFA',
+                  background: '#7FCDFF',
                   color: 'white',
                   padding: '4px 12px',
                   borderRadius: '999px',
@@ -125,8 +197,8 @@ export default function Integrations() {
                   MOST POPULAR
                 </span>
                 <span style={{
-                  background: 'rgba(124, 109, 250, 0.08)',
-                  color: '#7C6DFA',
+                  background: 'rgba(127, 205, 255, 0.08)',
+                  color: '#7FCDFF',
                   padding: '4px 12px',
                   borderRadius: '999px',
                   fontSize: '0.72rem',
@@ -158,7 +230,7 @@ export default function Integrations() {
                   'AI Agent integrates with GHL automation'
                 ].map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                    <CheckCircle2 size={18} color="#7C6DFA" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <CheckCircle2 size={18} color="#7FCDFF" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span style={{ fontSize: '0.95rem', color: '#6B9AB8', fontWeight: 600 }}>{item}</span>
                   </div>
                 ))}
@@ -167,7 +239,7 @@ export default function Integrations() {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   style={{
-                    background: '#7C6DFA',
+                    background: '#7FCDFF',
                     color: 'white',
                     padding: '16px 36px',
                     borderRadius: '10px',
@@ -180,8 +252,7 @@ export default function Integrations() {
                 </button>
                 <button
                   style={{
-                    background: 'white',
-                    color: '#F1F5F9',
+                    background: 'white', color: '#0A2540',
                     border: '1px solid #1e2537',
                     padding: '16px 36px',
                     borderRadius: '10px',
@@ -274,7 +345,7 @@ export default function Integrations() {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 style={{
-                  background: '#7C6DFA',
+                  background: '#7FCDFF',
                   color: 'white',
                   padding: '14px 28px',
                   borderRadius: '8px',
@@ -287,8 +358,7 @@ export default function Integrations() {
               </button>
               <button
                 style={{
-                  background: 'white',
-                  color: '#F1F5F9',
+                  background: 'white', color: '#0A2540',
                   border: '1px solid #1e2537',
                   padding: '14px 28px',
                   borderRadius: '8px',

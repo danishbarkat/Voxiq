@@ -371,8 +371,8 @@ export default function Pricing() {
 
             {/* CARD 2 — Growth (MOST POPULAR) */}
             <div style={{
-              background: '#131f3a',
-              border: '2px solid rgba(124, 109, 250, 0.4)',
+              background: '#0D3B6E',
+              border: '2px solid rgba(127, 205, 255, 0.25)',
               borderRadius: '16px',
               padding: '32px',
               display: 'flex',
@@ -384,7 +384,7 @@ export default function Pricing() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 20px 40px rgba(108, 71, 255, 0.15)';
+              e.currentTarget.style.boxShadow = '0 20px 40px rgba(13, 59, 110, 0.5), 0 0 40px rgba(127,205,255,0.08)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
@@ -397,9 +397,9 @@ export default function Pricing() {
                 top: '-16px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                background: 'rgba(124, 109, 250, 0.15)',
-                border: '1px solid rgba(124, 109, 250, 0.3)',
-                color: '#A594F9',
+                background: '#0D3B6E',
+                border: '1px solid rgba(127, 205, 255, 0.35)',
+                color: '#7FCDFF',
                 padding: '6px 18px',
                 borderRadius: '999px',
                 fontSize: '0.75rem',
@@ -414,10 +414,10 @@ export default function Pricing() {
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#7C6DFA', display: 'inline-block' }} />
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 600, color: '#F1F5F9', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Growth</h3>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#7FCDFF', display: 'inline-block' }} />
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 600, color: '#FFFFFF', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Growth</h3>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#CBD5E1', marginBottom: '24px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>For growing sales teams</p>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(127,205,255,0.7)', marginBottom: '24px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>For growing sales teams</p>
                 
                 <div style={{ 
                   display: 'flex', 
@@ -427,16 +427,16 @@ export default function Pricing() {
                   opacity: isTransitioning ? 0 : 1,
                   transition: 'opacity 0.3s ease'
                 }}>
-                  <span style={{ fontSize: '3rem', fontWeight: 700, color: '#F1F5F9', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <span style={{ fontSize: '3rem', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     ${priceGrowth}
                   </span>
-                  <span style={{ fontSize: '0.9rem', color: '#CBD5E1', fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>/seat/month</span>
+                  <span style={{ fontSize: '0.9rem', color: 'rgba(127,205,255,0.7)', fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>/seat/month</span>
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#7C6DFA', fontWeight: 600, marginBottom: '24px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <div style={{ fontSize: '0.78rem', color: '#7FCDFF', fontWeight: 600, marginBottom: '24px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   14-day free trial · cancel anytime
                 </div>
 
-                <div style={{ borderTop: '1px solid #1e2537', paddingTop: '20px', marginBottom: '32px' }}>
+                <div style={{ borderTop: '1px solid rgba(127,205,255,0.15)', paddingTop: '20px', marginBottom: '32px' }}>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {[
                       'Everything in Starter',
@@ -455,12 +455,12 @@ export default function Pricing() {
                         alignItems: 'center', 
                         gap: '12px', 
                         fontSize: '0.9rem', 
-                        color: '#CBD5E1', 
+                        color: 'rgba(223,247,255,0.85)', 
                         fontWeight: 500,
                         fontFamily: "'Plus Jakarta Sans', sans-serif" 
                       }}>
                         <span style={{ 
-                          color: '#10B981', 
+                          color: '#00E5A0', 
                           fontWeight: 700,
                           fontSize: '1rem',
                           flexShrink: 0
@@ -478,23 +478,27 @@ export default function Pricing() {
                 onClick={() => navigate('/signup?plan=growth')}
                 style={{
                   width: '100%',
-                  background: '#6C47FF',
-                  color: 'white',
+                  background: 'rgb(223, 247, 255)',
+                  color: '#0A2540',
                   border: 'none',
                   padding: '16px 24px',
                   borderRadius: '8px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '0.95rem',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  boxShadow: '0 4px 14px rgba(124, 109, 250, 0.2)',
+                  boxShadow: '0 4px 20px rgba(223,247,255,0.2)',
                   fontFamily: "'Plus Jakarta Sans', sans-serif"
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#5B4FE8';
+                  e.currentTarget.style.background = '#FFFFFF';
+                  e.currentTarget.style.boxShadow = '0 8px 28px rgba(223,247,255,0.35)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#7C6DFA';
+                  e.currentTarget.style.background = 'rgb(223, 247, 255)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(223,247,255,0.2)';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 Start Free Trial

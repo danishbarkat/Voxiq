@@ -54,118 +54,151 @@ export default function AIAgent() {
     <div style={{ background: '#020D1A', minHeight: '100vh', overflowX: 'hidden' }}>
       
       {/* 1. Feature Hero */}
-      <section style={{ 
+            <section style={{ 
         padding: '120px 0 80px', 
-        background: 'radial-gradient(circle at 50% -20%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 70%)', 
-        textAlign: 'center' 
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#020D1A', 
+        display: 'flex',
+        alignItems: 'center',
+        textAlign: 'left' 
       }}>
-        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-            <span style={{
-              color: '#7C6DFA',
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              background: 'rgba(124, 109, 250, 0.08)',
-              padding: '6px 16px',
-              borderRadius: '999px',
+        {/* Background Image */}
+        <img 
+          src="/AI Agent Caller.png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
+
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
+
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 10, width: '100%' }}>
+          <div style={{ maxWidth: '58%', textAlign: 'left' }}>
+            
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+              <span style={{
+                color: '#7FCDFF',
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                background: 'rgba(127, 205, 255, 0.08)',
+                padding: '6px 16px',
+                borderRadius: '999px',
+                fontFamily: "'Plus Jakarta Sans', sans-serif"
+              }}>
+                AI AGENT CALLER — NEW
+              </span>
+              
+              <span style={{
+                background: '#10B981',
+                color: 'white',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: '999px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                NEW
+              </span>
+            </div>
+            <h1 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: 900,
+              color: '#F1F5F9',
+              letterSpacing: '-0.03em',
+              marginBottom: '24px',
+              lineHeight: '1.1',
               fontFamily: "'Plus Jakarta Sans', sans-serif"
             }}>
-              AI AGENT CALLER — NEW
-            </span>
-            <span style={{
-              background: '#10B981',
-              color: 'white',
-              fontSize: '11px',
-              fontWeight: 800,
-              padding: '4px 10px',
-              borderRadius: '999px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              An AI rep that calls leads, qualifies them, and books meetings — 24/7.
+            </h1>
+            <p style={{
+              fontSize: '1.25rem',
+              color: '#6B9AB8',
+              margin: '0 0 40px 0',
+              lineHeight: '1.6',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
             }}>
-              NEW
-            </span>
-          </div>
+              Voxiq's AI Agent uses natural voice to call new leads the moment they come in. It qualifies them with your custom script and hands warm leads off to your reps.
+            </p>
 
-          <h1 style={{
-            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-            fontWeight: 900,
-            color: '#F1F5F9',
-            letterSpacing: '-0.03em',
-            marginBottom: '24px',
-            lineHeight: '1.1',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            An AI rep that calls leads, qualifies them, and books meetings — 24/7.
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#6B9AB8',
-            maxWidth: '750px',
-            margin: '0 auto 40px',
-            lineHeight: '1.6',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Voxiq's AI Agent uses natural voice to call new leads the moment they come in. It qualifies them with your custom script and hands warm leads off to your reps.
-          </p>
-
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '60px' }}>
-            <Link
-              to="/signup"
-              style={{
-                textDecoration: 'none',
-                background: '#7C6DFA',
-                color: 'white',
-                padding: '16px 36px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.25)',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            >
-              Request Early Access
-            </Link>
-            <button
-              onClick={() => navigate('/pricing')}
-              style={{
-                background: 'white',
-                color: '#F1F5F9',
-                border: '1px solid #1e2537',
-                padding: '16px 36px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            >
-              Watch Demo
-            </button>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '24px',
-            borderTop: '1px solid #1e2537',
-            paddingTop: '40px',
-            maxWidth: '800px',
-            margin: '0 auto'
-          }} className="stats-row">
-            {[
-              { val: '< 60s', desc: 'Calls leads in' },
-              { val: '24/7', desc: 'availability' },
-              { val: 'Human', desc: 'quality voice' }
-            ].map((st, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <h3 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#7C6DFA', margin: '0 0 6px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.val}</h3>
-                <p style={{ fontSize: '0.9rem', color: '#6B9AB8', margin: 0, fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.desc}</p>
-              </div>
-            ))}
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start', marginBottom: '60px' }}>
+              <Link
+                to="/signup"
+                style={{
+                  textDecoration: 'none',
+                  background: 'rgb(223, 247, 255)', color: '#0A2540',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.25)',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Start Free Trial
+              </Link>
+              <button
+                onClick={() => navigate('/pricing')}
+                style={{
+                  background: 'transparent',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                See Pricing
+              </button>
+            </div>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '24px',
+              borderTop: '1px solid #1e2537',
+              paddingTop: '40px',
+              margin: '0'
+            }} className="stats-row">
+              {[
+                { val: '< 60s', desc: 'Calls leads in' },
+                { val: '24/7', desc: 'availability' },
+                { val: 'Human', desc: 'quality voice' }
+              ].map((st, i) => (
+                <div key={i} style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#7FCDFF', margin: '0 0 6px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.val}</h3>
+                  <p style={{ fontSize: '0.9rem', color: '#6B9AB8', margin: 0, fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -187,17 +220,17 @@ export default function AIAgent() {
             }} className="benefits-grid">
               {[
                 {
-                  icon: <Bot size={24} color="#7C6DFA" />,
+                  icon: <Bot size={24} color="#7FCDFF" />,
                   title: 'Instant Lead Response',
                   desc: 'New lead signs up? AI Agent calls them within 60 seconds — while interest is hot.'
                 },
                 {
-                  icon: <MessageCircle size={24} color="#7C6DFA" />,
+                  icon: <MessageCircle size={24} color="#7FCDFF" />,
                   title: 'Natural Voice Conversation',
                   desc: 'Not a robotic IVR. A real conversation with natural language understanding.'
                 },
                 {
-                  icon: <Calendar size={24} color="#7C6DFA" />,
+                  icon: <Calendar size={24} color="#7FCDFF" />,
                   title: 'Books Meetings Automatically',
                   desc: "Qualified leads get booked directly into your rep's calendar without human intervention."
                 }
@@ -212,7 +245,7 @@ export default function AIAgent() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '10px',
-                    background: 'rgba(124, 109, 250, 0.08)',
+                    background: 'rgba(127, 205, 255, 0.08)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -251,7 +284,7 @@ export default function AIAgent() {
                   <div style={{
                     fontSize: '4.5rem',
                     fontWeight: 900,
-                    color: 'rgba(124, 109, 250, 0.08)',
+                    color: 'rgba(127, 205, 255, 0.08)',
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
                     lineHeight: '1',
                     marginBottom: '-20px'
@@ -296,13 +329,13 @@ export default function AIAgent() {
                 </div>
                 <div style={{
                   background: '#0F0F1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.25)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.25)',
                   borderRadius: '20px',
                   padding: '24px',
                   color: 'white',
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)'
                 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#A594F9' }}>Script Builder HUD</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#7FCDFF' }}>Script Builder HUD</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
                     <div>1. Introduction node</div>
                     <div>2. Lead CRM usage verify</div>
@@ -320,14 +353,14 @@ export default function AIAgent() {
               }} className="feature-row">
                 <div style={{
                   background: '#0F0F1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.25)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.25)',
                   borderRadius: '20px',
                   padding: '24px',
                   color: 'white',
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
                   order: 0
                 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#A594F9' }}>GHL Action Mapping</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#7FCDFF' }}>GHL Action Mapping</h4>
                   <div style={{ background: '#020D1A', border: '1px solid #1e2537', padding: '12px', borderRadius: '8px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
                     {"Event: Lead Qualified\nAction: Trigger GHL Workflow"}
                   </div>
@@ -363,7 +396,7 @@ export default function AIAgent() {
               ].map((uc, i) => (
                 <div key={i} style={{
                   background: '#020D1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.15)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.15)',
                   borderRadius: '16px',
                   padding: '30px'
                 }}>
@@ -405,8 +438,8 @@ export default function AIAgent() {
                   width: '80px',
                   height: '40px',
                   borderRadius: '6px',
-                  background: 'rgba(124, 109, 250, 0.08)',
-                  color: '#7C6DFA',
+                  background: 'rgba(127, 205, 255, 0.08)',
+                  color: '#7FCDFF',
                   fontWeight: 800,
                   fontSize: '0.85rem',
                   display: 'flex',
@@ -452,7 +485,7 @@ export default function AIAgent() {
                 }}
               >
                 <span style={{ fontSize: '1rem', fontWeight: 800, color: '#F1F5F9', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{rf.name}</span>
-                <ArrowRight size={16} color="#7C6DFA" />
+                <ArrowRight size={16} color="#7FCDFF" />
               </Link>
             ))}
           </div>
@@ -469,14 +502,14 @@ export default function AIAgent() {
             <Link
               to="/signup"
               style={{
-                background: '#7C6DFA',
+                background: '#7FCDFF',
                 color: 'white',
                 padding: '16px 40px',
                 borderRadius: '10px',
                 fontWeight: 700,
                 fontSize: '1.05rem',
                 textDecoration: 'none',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.35)',
+                boxShadow: '0 8px 24px rgba(127, 205, 255, 0.35)',
                 display: 'inline-block',
                 fontFamily: "'Plus Jakarta Sans', sans-serif"
               }}

@@ -36,109 +36,119 @@ export default function HowItWorks() {
     <div style={{ background: '#020D1A', minHeight: '100vh', overflowX: 'hidden' }}>
       
       {/* SECTION 1 — HEADER */}
-      <section style={{ 
+                  <section style={{ 
         padding: '120px 0 80px', 
-        background: 'radial-gradient(circle at 50% -20%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 70%), #0B0F1A', 
-        textAlign: 'center' 
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#020D1A', 
+        display: 'flex',
+        alignItems: 'center',
+        textAlign: 'left' 
       }}>
-        <div className="container" style={{ maxWidth: '960px', margin: '0 auto', padding: '0 2rem' }}>
-          <span style={{
-            color: '#7C6DFA',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            background: 'rgba(124, 109, 250, 0.08)',
-            border: '1px solid rgba(124, 109, 250, 0.15)',
-            padding: '6px 16px',
-            borderRadius: '999px',
-            display: 'inline-block',
-            marginBottom: '20px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            How It Works
-          </span>
-          <h1 style={{
-            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-            fontWeight: 700,
-            color: '#F1F5F9',
-            letterSpacing: '-0.03em',
-            marginBottom: '20px',
-            lineHeight: '1.1',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            The outbound playbook, automated.
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#6B9AB8',
-            maxWidth: '700px',
-            margin: '0 auto',
-            lineHeight: '1.6',
-            marginBottom: '40px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Voxiq takes the manual labor out of outbound dialing. We connect your CRM, automate dialing queues, and log outcomes instantly so your reps can focus on selling.
-          </p>
-          
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }} className="how-cta-actions">
-            <button
-              onClick={() => navigate('/signup')}
-              style={{
-                background: '#7C6DFA',
-                color: 'white',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '18px 38px',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '1.05rem',
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.3)',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#5B4FE8';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 28px rgba(124, 109, 250, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#7C6DFA';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 109, 250, 0.3)';
-              }}
-            >
-              Start Free Trial
-            </button>
-            <button
-              style={{
-                background: 'transparent',
-                color: '#94A3B8',
-                border: '1px solid #1e2537',
-                padding: '18px 38px',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '1.05rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#253047';
-                e.currentTarget.style.color = '#F1F5F9';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#1e2537';
-                e.currentTarget.style.color = '#94A3B8';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              Watch Video Demo <Play size={16} fill="#94A3B8" />
-            </button>
+        {/* Background Image */}
+        <img 
+          src="/How it works..png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
+
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
+
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 10, width: '100%' }}>
+          <div style={{ maxWidth: '58%', textAlign: 'left' }}>
+            
+            <span style={{
+              color: '#7FCDFF',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: 'rgba(127, 205, 255, 0.08)',
+              padding: '6px 16px',
+              borderRadius: '999px',
+              display: 'inline-block',
+              marginBottom: '20px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              How It Works
+            </span>
+            <h1 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: 900,
+              color: '#F1F5F9',
+              letterSpacing: '-0.03em',
+              marginBottom: '24px',
+              lineHeight: '1.1',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              The outbound playbook, automated.
+            </h1>
+            <p style={{
+              fontSize: '1.25rem',
+              color: '#6B9AB8',
+              margin: '0 0 40px 0',
+              lineHeight: '1.6',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Voxiq takes the manual labor out of outbound dialing. We connect your CRM, automate dialing queues, and log outcomes instantly so your reps can focus on selling.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start', marginBottom: '60px' }}>
+              <Link
+                to="/signup"
+                style={{
+                  textDecoration: 'none',
+                  background: 'rgb(223, 247, 255)', color: '#0A2540',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.25)',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Start Free Trial
+              </Link>
+              <button
+                onClick={() => navigate('/pricing')}
+                style={{
+                  background: 'transparent',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                See Pricing
+              </button>
+            </div>
+            
           </div>
         </div>
       </section>
@@ -173,15 +183,15 @@ export default function HowItWorks() {
                   width: '90px',
                   height: '90px',
                   borderRadius: '50%',
-                  background: 'rgba(124, 109, 250, 0.1)',
-                  border: '1px solid rgba(124, 109, 250, 0.2)',
-                  boxShadow: '0 10px 25px rgba(124, 109, 250, 0.05)',
+                  background: 'rgba(127, 205, 255, 0.1)',
+                  border: '1px solid rgba(127, 205, 255, 0.2)',
+                  boxShadow: '0 10px 25px rgba(127, 205, 255, 0.05)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.8rem',
                   fontWeight: 700,
-                  color: '#7C6DFA',
+                  color: '#7FCDFF',
                   marginBottom: '20px',
                   fontFamily: "'Plus Jakarta Sans', sans-serif"
                 }}>
@@ -215,15 +225,15 @@ export default function HowItWorks() {
                   width: '90px',
                   height: '90px',
                   borderRadius: '50%',
-                  background: 'rgba(124, 109, 250, 0.1)',
-                  border: '1px solid rgba(124, 109, 250, 0.2)',
-                  boxShadow: '0 10px 25px rgba(124, 109, 250, 0.05)',
+                  background: 'rgba(127, 205, 255, 0.1)',
+                  border: '1px solid rgba(127, 205, 255, 0.2)',
+                  boxShadow: '0 10px 25px rgba(127, 205, 255, 0.05)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.8rem',
                   fontWeight: 700,
-                  color: '#7C6DFA',
+                  color: '#7FCDFF',
                   marginBottom: '20px',
                   fontFamily: "'Plus Jakarta Sans', sans-serif"
                 }}>
@@ -257,15 +267,15 @@ export default function HowItWorks() {
                   width: '90px',
                   height: '90px',
                   borderRadius: '50%',
-                  background: 'rgba(124, 109, 250, 0.1)',
-                  border: '1px solid rgba(124, 109, 250, 0.2)',
-                  boxShadow: '0 10px 25px rgba(124, 109, 250, 0.05)',
+                  background: 'rgba(127, 205, 255, 0.1)',
+                  border: '1px solid rgba(127, 205, 255, 0.2)',
+                  boxShadow: '0 10px 25px rgba(127, 205, 255, 0.05)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.8rem',
                   fontWeight: 700,
-                  color: '#7C6DFA',
+                  color: '#7FCDFF',
                   marginBottom: '20px',
                   fontFamily: "'Plus Jakarta Sans', sans-serif"
                 }}>
@@ -353,7 +363,7 @@ export default function HowItWorks() {
                       width: '36px',
                       height: '36px',
                       borderRadius: '50%',
-                      background: isActive ? '#7C6DFA' : 'rgba(127,205,255,0.08)',
+                      background: isActive ? '#7FCDFF' : 'rgba(127,205,255,0.08)',
                       color: isActive ? 'white' : '#6B9AB8',
                       display: 'flex',
                       alignItems: 'center',
@@ -403,7 +413,7 @@ export default function HowItWorks() {
                         <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B', display: 'inline-block' }} />
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B9AB8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dialing Queue</span>
                       </div>
-                      <span style={{ fontSize: '0.7rem', color: '#A594F9', fontWeight: 600 }}>Line 1 of 3</span>
+                      <span style={{ fontSize: '0.7rem', color: '#7FCDFF', fontWeight: 600 }}>Line 1 of 3</span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -413,8 +423,8 @@ export default function HowItWorks() {
                         { name: 'Sarah Jenkins', company: 'NovaCRM', status: 'Pending' }
                       ].map((lead, idx) => (
                         <div key={idx} style={{
-                          background: idx === 0 ? 'rgba(124, 109, 250, 0.08)' : '#0d1117',
-                          border: idx === 0 ? '1.5px solid rgba(124, 109, 250, 0.3)' : '1px solid #1e2537',
+                          background: idx === 0 ? 'rgba(127, 205, 255, 0.08)' : '#0d1117',
+                          border: idx === 0 ? '1.5px solid rgba(127, 205, 255, 0.3)' : '1px solid #1e2537',
                           borderRadius: '10px',
                           padding: '12px 14px',
                           display: 'flex',
@@ -428,11 +438,11 @@ export default function HowItWorks() {
                           <span style={{
                             fontSize: '0.72rem',
                             fontWeight: 600,
-                            color: idx === 0 ? '#A594F9' : '#64748B',
-                            background: idx === 0 ? 'rgba(124, 109, 250, 0.1)' : 'transparent',
+                            color: idx === 0 ? '#7FCDFF' : '#64748B',
+                            background: idx === 0 ? 'rgba(127, 205, 255, 0.1)' : 'transparent',
                             padding: '3px 8px',
                             borderRadius: '4px',
-                            border: idx === 0 ? '1px solid rgba(124, 109, 250, 0.2)' : 'none'
+                            border: idx === 0 ? '1px solid rgba(127, 205, 255, 0.2)' : 'none'
                           }}>
                             {lead.status}
                           </span>
@@ -454,7 +464,7 @@ export default function HowItWorks() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(124, 109, 250, 0.1)', border: '1px solid rgba(124, 109, 250, 0.2)', color: '#7C6DFA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.25rem' }}>RC</div>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(127, 205, 255, 0.1)', border: '1px solid rgba(127, 205, 255, 0.2)', color: '#7FCDFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.25rem' }}>RC</div>
                       <div>
                         <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#F1F5F9' }}>Robert Carter</h4>
                         <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#6B9AB8' }}>CEO at Acme Corp</p>
@@ -470,7 +480,7 @@ export default function HowItWorks() {
                             key={i}
                             style={{
                               width: '3px',
-                              background: '#7C6DFA',
+                              background: '#7FCDFF',
                               borderRadius: '2px',
                               height: `${h * 20}%`
                             }}
@@ -498,7 +508,7 @@ export default function HowItWorks() {
                         <div key={idx} style={{
                           padding: '12px',
                           borderRadius: '8px',
-                          border: item.active ? '1.5px solid rgba(124, 109, 250, 0.4)' : '1px solid #1e2537',
+                          border: item.active ? '1.5px solid rgba(127, 205, 255, 0.4)' : '1px solid #1e2537',
                           background: item.active ? '#13203a' : '#0d1117',
                           color: item.active ? '#F1F5F9' : '#64748B',
                           fontSize: '0.82rem',
@@ -537,20 +547,20 @@ export default function HowItWorks() {
                   <div className="tab-fade-in">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1e2537', paddingBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#7C6DFA', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem', fontWeight: 900 }}>C</div>
+                        <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#7FCDFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem', fontWeight: 900 }}>C</div>
                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F1F5F9' }}>CRM Integration</span>
                       </div>
                       <span style={{ fontSize: '0.72rem', color: '#10B981', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>✓ SYNCED</span>
                     </div>
 
-                    <div style={{ borderLeft: '2px solid #7C6DFA', paddingLeft: '14px', marginLeft: '6px' }}>
+                    <div style={{ borderLeft: '2px solid #7FCDFF', paddingLeft: '14px', marginLeft: '6px' }}>
                       <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#F1F5F9', marginBottom: '4px' }}>Call with Robert Carter Logged</div>
                       <div style={{ fontSize: '0.72rem', color: '#6B9AB8', marginBottom: '12px' }}>Duration: 0:42 ➜ Status: Interested</div>
                       
                       <div style={{ background: '#020D1A', border: '1px solid #1e2537', borderRadius: '8px', padding: '12px', fontSize: '0.75rem', color: '#CBD5E1', lineHeight: '1.5' }}>
                         <strong>Outcome:</strong> Interested — Callback Scheduled<br />
                         <strong>Notes:</strong> Requested pricing deck. Booked callback for Monday at 10am.<br />
-                        <strong>Recording:</strong> <span style={{ color: '#7C6DFA', textDecoration: 'underline', cursor: 'pointer' }}>recording_8472.mp3</span>
+                        <strong>Recording:</strong> <span style={{ color: '#7FCDFF', textDecoration: 'underline', cursor: 'pointer' }}>recording_8472.mp3</span>
                       </div>
                     </div>
                   </div>
@@ -564,7 +574,7 @@ export default function HowItWorks() {
                     </div>
 
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#F1F5F9', marginBottom: '24px' }}>
-                      Next call starting in <span style={{ color: '#7C6DFA', fontSize: '1.75rem', fontWeight: 700 }}>{countdown}</span>...
+                      Next call starting in <span style={{ color: '#7FCDFF', fontSize: '1.75rem', fontWeight: 700 }}>{countdown}</span>...
                     </h3>
 
                     {/* Progress Bar Animation */}
@@ -579,14 +589,14 @@ export default function HowItWorks() {
                       <div style={{
                         width: `${(countdown / 3) * 100}%`,
                         height: '100%',
-                        background: '#7C6DFA',
+                        background: '#7FCDFF',
                         transition: 'width 1s linear'
                       }} />
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px' }}>
-                      <button style={{ flex: 1, padding: '12px', background: 'rgba(124, 109, 250, 0.1)', border: '1px solid rgba(124, 109, 250, 0.2)', borderRadius: '8px', color: '#7C6DFA', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>Pause Dialer</button>
-                      <button style={{ flex: 1.2, padding: '12px', background: '#7C6DFA', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>Dial Now →</button>
+                      <button style={{ flex: 1, padding: '12px', background: 'rgba(127, 205, 255, 0.1)', border: '1px solid rgba(127, 205, 255, 0.2)', borderRadius: '8px', color: '#7FCDFF', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>Pause Dialer</button>
+                      <button style={{ flex: 1.2, padding: '12px', background: '#7FCDFF', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>Dial Now →</button>
                     </div>
                   </div>
                 )}
@@ -649,12 +659,12 @@ export default function HowItWorks() {
                   <span style={{
                     fontSize: '0.8rem',
                     fontWeight: 700,
-                    color: '#7C6DFA',
-                    background: 'rgba(124, 109, 250, 0.1)',
+                    color: '#7FCDFF',
+                    background: 'rgba(127, 205, 255, 0.1)',
                     padding: '4px 10px',
                     borderRadius: '6px',
                     marginBottom: '14px',
-                    border: '1px solid rgba(124, 109, 250, 0.2)',
+                    border: '1px solid rgba(127, 205, 255, 0.2)',
                     fontFamily: "'Plus Jakarta Sans', sans-serif"
                   }}>
                     {item.time}
@@ -664,8 +674,8 @@ export default function HowItWorks() {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    background: idx === 4 ? '#7C6DFA' : '#0B0F1A',
-                    border: '3px solid #7C6DFA',
+                    background: idx === 4 ? '#7FCDFF' : '#0B0F1A',
+                    border: '3px solid #7FCDFF',
                     marginBottom: '16px',
                     boxShadow: '0 0 0 4px #0d1117'
                   }} />
@@ -710,21 +720,21 @@ export default function HowItWorks() {
               border: '1px solid rgba(127,205,255,0.08)',
               borderRadius: '20px',
               padding: '32px',
-              boxShadow: '0 10px 30px rgba(108, 71, 255, 0.05)',
+              boxShadow: '0 10px 30px rgba(127, 205, 255, 0.05)',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
               transition: 'border-color 0.3s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(108, 71, 255, 0.3)'}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(127, 205, 255, 0.3)'}
             onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
             >
               <div style={{
                 width: '40px',
                 height: '40px',
                 borderRadius: '8px',
-                background: 'rgba(124, 109, 250, 0.1)',
-                color: '#7C6DFA',
+                background: 'rgba(127, 205, 255, 0.1)',
+                color: '#7FCDFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -744,21 +754,21 @@ export default function HowItWorks() {
               border: '1px solid rgba(127,205,255,0.08)',
               borderRadius: '20px',
               padding: '32px',
-              boxShadow: '0 10px 30px rgba(108, 71, 255, 0.05)',
+              boxShadow: '0 10px 30px rgba(127, 205, 255, 0.05)',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
               transition: 'border-color 0.3s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(108, 71, 255, 0.3)'}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(127, 205, 255, 0.3)'}
             onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
             >
               <div style={{
                 width: '40px',
                 height: '40px',
                 borderRadius: '8px',
-                background: 'rgba(124, 109, 250, 0.1)',
-                color: '#7C6DFA',
+                background: 'rgba(127, 205, 255, 0.1)',
+                color: '#7FCDFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -778,21 +788,21 @@ export default function HowItWorks() {
               border: '1px solid rgba(127,205,255,0.08)',
               borderRadius: '20px',
               padding: '32px',
-              boxShadow: '0 10px 30px rgba(108, 71, 255, 0.05)',
+              boxShadow: '0 10px 30px rgba(127, 205, 255, 0.05)',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
               transition: 'border-color 0.3s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(108, 71, 255, 0.3)'}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(127, 205, 255, 0.3)'}
             onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
             >
               <div style={{
                 width: '40px',
                 height: '40px',
                 borderRadius: '8px',
-                background: 'rgba(124, 109, 250, 0.1)',
-                color: '#7C6DFA',
+                background: 'rgba(127, 205, 255, 0.1)',
+                color: '#7FCDFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -822,7 +832,7 @@ export default function HowItWorks() {
             textAlign: 'center',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(124, 109, 250, 0.05)'
+            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(127, 205, 255, 0.05)'
           }}>
             
             <div style={{
@@ -831,7 +841,7 @@ export default function HowItWorks() {
               left: '-20%',
               width: '400px',
               height: '400px',
-              background: 'rgba(124, 109, 250, 0.1)',
+              background: 'rgba(127, 205, 255, 0.1)',
               borderRadius: '50%',
               filter: 'blur(100px)',
               pointerEvents: 'none'
@@ -842,7 +852,7 @@ export default function HowItWorks() {
               right: '-20%',
               width: '400px',
               height: '400px',
-              background: 'rgba(124, 109, 250, 0.1)',
+              background: 'rgba(127, 205, 255, 0.1)',
               borderRadius: '50%',
               filter: 'blur(100px)',
               pointerEvents: 'none'
@@ -879,13 +889,13 @@ export default function HowItWorks() {
                 to="/signup"
                 style={{
                   textDecoration: 'none',
-                  background: '#7C6DFA',
+                  background: '#7FCDFF',
                   color: 'white',
                   padding: '20px 48px',
                   borderRadius: '12px',
                   fontWeight: 600,
                   fontSize: '1.1rem',
-                  boxShadow: '0 8px 24px rgba(124, 109, 250, 0.35)',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.35)',
                   transition: 'all 0.2s',
                   display: 'inline-block',
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -894,12 +904,12 @@ export default function HowItWorks() {
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = '#5B4FE8';
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 28px rgba(124, 109, 250, 0.45)';
+                  e.currentTarget.style.boxShadow = '0 12px 28px rgba(127, 205, 255, 0.45)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#7C6DFA';
+                  e.currentTarget.style.background = '#7FCDFF';
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 109, 250, 0.35)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(127, 205, 255, 0.35)';
                 }}
               >
                 Start Free Trial

@@ -345,26 +345,45 @@ export default function InboundCalls() {
       <div style={{ background: C.midnight, minHeight: '100vh', overflowX: 'hidden', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
         {/* ═══════════════════════════════════════════
-            SECTION 1 — HERO  bg: midnight #020D1A
+            SECTION 1 — HERO
         ═══════════════════════════════════════════ */}
-        <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden', background: C.midnight }}>
+        <section style={{ 
+          padding: '180px 0 80px', 
+          position: 'relative', 
+          overflow: 'hidden', 
+          background: C.midnight, 
+          display: 'flex', 
+          alignItems: 'center' 
+        }}>
 
-          {/* 3D background — disabled on mobile for perf */}
-          {!isMobile && (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-              <HeroCanvas />
-            </div>
-          )}
+          {/* Background Image */}
+          <img 
+            src="/Inbound calls.png" 
+            alt="Background" 
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center 12%',
+              zIndex: 1,
+              top: 0,
+              left: 0,
+              pointerEvents: 'none'
+            }}
+          />
 
-          {/* Radial gradient overlay */}
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 1,
-            background: `radial-gradient(ellipse 70% 55% at 65% 50%, rgba(127,205,255,.07), transparent 72%)`,
-            pointerEvents: 'none',
+          {/* Gradient Overlay */}
+          <div style={{ 
+            position: 'absolute', 
+            inset: 0, 
+            background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+            zIndex: 2, 
+            pointerEvents: 'none' 
           }} />
 
           {/* Content */}
-          <div style={{ ...container, position: 'relative', zIndex: 10, width: '100%', paddingTop: '120px', paddingBottom: '80px' }}>
+          <div style={{ ...container, position: 'relative', zIndex: 10, width: '100%' }}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '55% 45%', gap: '48px', alignItems: 'center' }}>
 
               {/* LEFT */}
@@ -464,88 +483,92 @@ export default function InboundCalls() {
 
               </motion.div>
 
-              {/* RIGHT — Floating UI Mockup over 3D */}
-              {!isMobile && (
-                <div style={{ position: 'relative', height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <motion.div
-                    animate={{ y: [0, -12, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                    style={{
-                      background: 'rgba(7,24,40,.88)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(127,205,255,.15)',
-                      borderRadius: '22px',
-                      padding: '22px',
-                      width: '300px',
-                      boxShadow: `0 32px 64px rgba(0,0,0,.45), 0 0 0 1px rgba(127,205,255,.05), inset 0 1px 0 rgba(127,205,255,.1)`,
-                      position: 'relative', zIndex: 10,
-                    }}
-                  >
-                    {/* Card header */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                      <span style={{
-                        width: 7, height: 7, borderRadius: '50%',
-                        background: C.liveGreen,
-                        boxShadow: `0 0 8px ${C.liveGreen}`,
-                        animation: 'pulse-glow 1.5s infinite',
-                      }} />
-                      <span style={{ fontSize: '10px', color: C.breeze, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>
-                        Inbound Queue
-                      </span>
-                      <span style={{
-                        marginLeft: 'auto', fontSize: '10px',
-                        background: 'rgba(127,205,255,.1)',
-                        border: '1px solid rgba(127,205,255,.18)',
-                        color: C.breeze, padding: '2px 10px', borderRadius: '20px',
-                      }}>3 waiting</span>
-                    </div>
-
-                    {/* Queue rows */}
-                    {[
-                      { id: '+1(512)***-1901', wait: '0:14', status: 'Connecting...', col: C.liveGreen },
-                      { id: '+1(206)***-8822', wait: '0:48', status: 'On hold', col: C.warn },
-                      { id: '+1(310)***-4411', wait: '1:02', status: 'On hold', col: C.warn },
-                    ].map((row, i) => (
-                      <div key={i} style={{
-                        background: 'rgba(127,205,255,.04)',
-                        border: '1px solid rgba(127,205,255,.08)',
-                        borderRadius: '10px', padding: '10px 12px',
-                        marginBottom: '8px',
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                      }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: '8px',
-                          background: `linear-gradient(135deg, ${C.oceanMid}, ${C.oceanDeep})`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '11px', fontWeight: 700, color: C.breeze, flexShrink: 0,
-                        }}>
-                          <Phone size={13} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '11px', fontWeight: 600, color: C.breezeLight, marginBottom: '2px' }}>{row.id}</div>
-                          <div style={{ fontSize: '10px', color: row.col }}>{row.status}</div>
-                        </div>
-                        <span style={{
-                          fontFamily: "'Space Grotesk',sans-serif",
-                          fontSize: '13px', fontWeight: 700,
-                          color: row.col,
-                        }}>{row.wait}</span>
-                      </div>
-                    ))}
-
-                    {/* Bottom strip */}
-                    <div style={{
-                      marginTop: '12px', paddingTop: '10px',
-                      borderTop: '1px solid rgba(127,205,255,.07)',
-                      display: 'flex', justifyContent: 'space-between',
-                    }}>
-                      <span style={{ fontSize: '10px', color: C.textMid }}>Avg wait today</span>
-                      <span style={{ fontSize: '10px', color: C.liveGreen, fontWeight: 700 }}>↓ 18s</span>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
+              {/* RIGHT — Empty right column so text stays on the left */}
+              {!isMobile && <div />}
             </div>
+
+            {/* RIGHT CARD - ABSOLUTELY POSITIONED AT BOTTOM RIGHT */}
+            {!isMobile && (
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  background: '#FFFFFF',
+                  border: '1px solid rgba(10,37,64,0.1)',
+                  borderRadius: '22px',
+                  padding: '22px',
+                  width: '300px',
+                  boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
+                  position: 'absolute',
+                  bottom: '20px',
+                  right: '40px',
+                  zIndex: 10
+                }}
+              >
+                {/* Card header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: '#10B981',
+                    boxShadow: '0 0 8px #10B981',
+                    animation: 'pulse-glow 1.5s infinite',
+                  }} />
+                  <span style={{ fontSize: '10px', color: '#0D3B6E', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                    Inbound Queue
+                  </span>
+                  <span style={{
+                    marginLeft: 'auto', fontSize: '10px',
+                    background: 'rgba(13,59,110,0.08)',
+                    border: '1px solid rgba(13,59,110,0.15)',
+                    color: '#0D3B6E', padding: '2px 10px', borderRadius: '20px',
+                    fontWeight: 600
+                  }}>3 waiting</span>
+                </div>
+
+                {/* Queue rows */}
+                {[
+                  { id: '+1(512)***-1901', wait: '0:14', status: 'Connecting...', col: '#10B981' },
+                  { id: '+1(206)***-8822', wait: '0:48', status: 'On hold', col: '#EF4444' },
+                  { id: '+1(310)***-4411', wait: '1:02', status: 'On hold', col: '#EF4444' },
+                ].map((row, i) => (
+                  <div key={i} style={{
+                    background: '#F8FAFC',
+                    border: '1px solid rgba(10,37,64,0.05)',
+                    borderRadius: '10px', padding: '10px 12px',
+                    marginBottom: '8px',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #7FCDFF, #0D3B6E)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '11px', fontWeight: 700, color: '#FFFFFF', flexShrink: 0,
+                    }}>
+                      <Phone size={13} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: '#0A2540', marginBottom: '2px' }}>{row.id}</div>
+                      <div style={{ fontSize: '10px', color: row.col }}>{row.status}</div>
+                    </div>
+                    <span style={{
+                      fontFamily: "'Space Grotesk',sans-serif",
+                      fontSize: '13px', fontWeight: 700,
+                      color: row.col,
+                    }}>{row.wait}</span>
+                  </div>
+                ))}
+
+                {/* Bottom strip */}
+                <div style={{
+                  marginTop: '12px', paddingTop: '10px',
+                  borderTop: '1px solid rgba(10,37,64,0.08)',
+                  display: 'flex', justifyContent: 'space-between',
+                }}>
+                  <span style={{ fontSize: '10px', color: '#64748B' }}>Avg wait today</span>
+                  <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 700 }}>↓ 18s</span>
+                </div>
+              </motion.div>
+            )}
           </div>
         </section>
 

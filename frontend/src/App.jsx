@@ -19,8 +19,6 @@ const Agent = lazy(() => import('./pages/Agent'))
 const Pricing = lazy(() => import('./pages/Pricing'))
 const Features = lazy(() => import('./pages/Features'))
 const HowItWorks = lazy(() => import('./pages/HowItWorks'))
-const Blog = lazy(() => import('./pages/Blog'))
-const BlogPost = lazy(() => import('./pages/BlogPost'))
 
 const InboundCalls = lazy(() => import('./pages/InboundCalls'))
 const OutboundCalls = lazy(() => import('./pages/OutboundCalls'))
@@ -113,8 +111,6 @@ function AppRoutes() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/features" element={<Features />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:id" element={<BlogPost />} />
 
           <Route path="/features/inbound-calls" element={<InboundCalls />} />
           <Route path="/features/outbound-calls" element={<OutboundCalls />} />

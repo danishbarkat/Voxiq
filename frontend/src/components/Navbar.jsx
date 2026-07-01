@@ -188,10 +188,10 @@ export default function Navbar() {
       {/* NAVBAR — Ocean Breeze */}
       <nav style={{
         width: '100%',
-        background: scrolled || isAuthPage ? 'rgba(2,13,26,0.95)' : 'rgba(2,13,26,0.85)',
+        background: scrolled || isAuthPage ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: scrolled ? '1px solid rgba(127,205,255,0.12)' : '1px solid rgba(127,205,255,0.08)',
+        borderBottom: scrolled ? '1px solid #E2E8F0' : '1px solid #F1F5F9',
         transition: 'all 0.2s ease',
         height: '64px',
         display: 'flex',
@@ -213,11 +213,11 @@ export default function Navbar() {
             <span style={{
               fontWeight: 700,
               fontSize: '22px',
-              color: '#FFFFFF',
+              color: '#0A2540',
               letterSpacing: '-0.5px',
               fontFamily: "'Space Grotesk', sans-serif"
             }}>
-              Vox<span style={{ color: '#7FCDFF' }}>iq</span>
+              Vox<span style={{ color: '#0D3B6E' }}>iq</span>
             </span>
           </Link>
 
@@ -233,7 +233,7 @@ export default function Navbar() {
               >
                 <span style={{ 
                   cursor: 'pointer', 
-                  color: productsOpen ? '#7FCDFF' : '#6B9AB8', 
+                  color: productsOpen ? '#0A2540' : '#475569', 
                   fontWeight: 500, 
                   fontSize: '14px', 
                   display: 'flex', 
@@ -254,10 +254,10 @@ export default function Navbar() {
                   left: '50%',
                   transform: 'translateX(-50%)' + (productsOpen ? ' translateY(0)' : ' translateY(8px)'),
                   width: '980px',
-                  background: '#071828',
-                  border: '1px solid rgba(127,205,255,0.1)',
+                  background: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
                   borderRadius: '20px',
-                  boxShadow: '0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(127,205,255,0.05)',
+                  boxShadow: '0 24px 48px rgba(10,37,64,0.1), 0 0 0 1px rgba(10,37,64,0.05)',
                   padding: '40px 48px 32px',
                   boxSizing: 'border-box',
                   zIndex: 999,
@@ -334,7 +334,7 @@ export default function Navbar() {
                   </div>
 
                   {/* Bottom divider + all features link */}
-                  <div style={{ borderTop: '1px solid #1e2537', marginTop: '20px', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '20px', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
                     <Link to="/features" onClick={() => setProductsOpen(false)} style={{
                       fontSize: '12px',
                       color: '#7C6DFA',
@@ -359,7 +359,7 @@ export default function Navbar() {
               >
                 <span style={{ 
                   cursor: 'pointer', 
-                  color: solutionsOpen ? '#7FCDFF' : '#6B9AB8', 
+                  color: solutionsOpen ? '#0A2540' : '#475569', 
                   fontWeight: 500, 
                   fontSize: '14px', 
                   display: 'flex', 
@@ -380,10 +380,10 @@ export default function Navbar() {
                   left: '50%',
                   transform: 'translateX(-50%)' + (solutionsOpen ? ' translateY(0)' : ' translateY(8px)'),
                   width: '720px',
-                  background: '#111929',
-                  border: '1px solid #1e2537',
+                  background: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
                   borderRadius: '16px',
-                  boxShadow: '0 24px 48px rgba(0, 0, 0, 0.5)',
+                  boxShadow: '0 24px 48px rgba(10,37,64,0.1), 0 0 0 1px rgba(10,37,64,0.05)',
                   padding: '24px',
                   boxSizing: 'border-box',
                   display: 'grid',
@@ -445,8 +445,8 @@ export default function Navbar() {
                   {/* Column 3: Featured Card */}
                   <div>
                     <div style={{
-                      background: 'linear-gradient(135deg, rgba(124, 109, 250, 0.15) 0%, rgba(91, 79, 232, 0.08) 100%)',
-                      border: '1px solid rgba(124, 109, 250, 0.25)',
+                      background: 'linear-gradient(135deg, rgba(124, 109, 250, 0.08) 0%, rgba(91, 79, 232, 0.04) 100%)',
+                      border: '1px solid rgba(124, 109, 250, 0.15)',
                       borderRadius: '14px',
                       padding: '20px',
                       height: '100%',
@@ -460,7 +460,7 @@ export default function Navbar() {
                           <span style={{
                             background: 'rgba(124, 109, 250, 0.15)',
                             border: '1px solid rgba(124, 109, 250, 0.25)',
-                            color: '#A594F9',
+                            color: '#7C6DFA',
                             fontSize: '10px',
                             fontWeight: 600,
                             letterSpacing: '0.08em',
@@ -471,7 +471,7 @@ export default function Navbar() {
                             Most Popular
                           </span>
                         </div>
-                        <h5 style={{ margin: '10px 0 8px', fontSize: '15px', fontWeight: 600, color: '#F1F5F9' }}>Voxiq for GHL Agencies</h5>
+                        <h5 style={{ margin: '10px 0 8px', fontSize: '15px', fontWeight: 600, color: '#0A2540' }}>Voxiq for GHL Agencies</h5>
                         <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>
                           Resell Voxiq to your GHL clients with white-label branding. Built natively for GHL workflows.
                         </p>
@@ -488,9 +488,9 @@ export default function Navbar() {
                         </div>
                       </div>
                       <Link to="/solutions/ghl-agencies" onClick={() => setSolutionsOpen(false)} style={{
-                        background: 'rgba(124, 109, 250, 0.12)',
-                        border: '1px solid rgba(124, 109, 250, 0.25)',
-                        color: '#A594F9',
+                        background: 'rgba(124, 109, 250, 0.08)',
+                        border: '1px solid rgba(124, 109, 250, 0.15)',
+                        color: '#7C6DFA',
                         borderRadius: '8px',
                         padding: '9px 16px',
                         fontSize: '13px',
@@ -512,9 +512,8 @@ export default function Navbar() {
               </div>
 
               {/* Normal Links */}
-              <Link to="/pricing" style={{ textDecoration: 'none', color: '#6B9AB8', fontWeight: 500, fontSize: '14px', padding: '0 16px', fontFamily: "'Plus Jakarta Sans', sans-serif", transition: 'color 0.15s' }} className="plain-nav-link">Pricing</Link>
-              <Link to="/how-it-works" style={{ textDecoration: 'none', color: '#6B9AB8', fontWeight: 500, fontSize: '14px', padding: '0 16px', fontFamily: "'Plus Jakarta Sans', sans-serif", transition: 'color 0.15s' }} className="plain-nav-link">How It Works</Link>
-              <Link to="/blog" style={{ textDecoration: 'none', color: '#6B9AB8', fontWeight: 500, fontSize: '14px', padding: '0 16px', fontFamily: "'Plus Jakarta Sans', sans-serif", transition: 'color 0.15s' }} className="plain-nav-link">Blog</Link>
+              <Link to="/pricing" style={{ textDecoration: 'none', color: '#475569', fontWeight: 500, fontSize: '14px', padding: '0 16px', fontFamily: "'Plus Jakarta Sans', sans-serif", transition: 'color 0.15s' }} className="plain-nav-link">Pricing</Link>
+              <Link to="/how-it-works" style={{ textDecoration: 'none', color: '#475569', fontWeight: 500, fontSize: '14px', padding: '0 16px', fontFamily: "'Plus Jakarta Sans', sans-serif", transition: 'color 0.15s' }} className="plain-nav-link">How It Works</Link>
             </div>
           )}
 
@@ -524,7 +523,7 @@ export default function Navbar() {
               to="/login"
               style={{
                 textDecoration: 'none',
-                color: '#4A7A9B',
+                color: '#475569',
                 fontWeight: 600,
                 fontSize: '14px',
                 transition: 'color 0.15s',
@@ -721,7 +720,6 @@ export default function Navbar() {
 
               <Link to="/pricing" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', color: '#F1F5F9', fontWeight: 700, fontSize: '15px', padding: '8px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Pricing</Link>
               <Link to="/how-it-works" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', color: '#F1F5F9', fontWeight: 700, fontSize: '15px', padding: '8px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>How It Works</Link>
-              <Link to="/blog" onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none', color: '#F1F5F9', fontWeight: 700, fontSize: '15px', padding: '8px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Blog</Link>
             </div>
 
             {/* Mobile Drawer Bottom Action CTAs */}
@@ -762,44 +760,44 @@ export default function Navbar() {
           box-sizing: border-box;
         }
         .dropdown-card-item:hover {
-          background: rgba(127,205,255,0.06);
-          border-color: rgba(127,205,255,0.12);
+          background: #F1F5F9;
+          border-color: #E2E8F0;
         }
         .dropdown-card-icon-box {
           width: 36px;
           height: 36px;
-          background: rgba(127,205,255,0.08);
-          border: 1px solid rgba(127,205,255,0.12);
+          background: #F1F5F9;
+          border: 1px solid #E2E8F0;
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #7FCDFF;
+          color: #0D3B6E;
           font-size: 18px;
           flex-shrink: 0;
           transition: all 0.15s ease;
         }
         .dropdown-card-item:hover .dropdown-card-icon-box {
-          background: rgba(127,205,255,0.15);
+          background: #E2E8F0;
         }
         .dropdown-card-title {
           font-size: 14px;
           font-weight: 500;
-          color: #DFF7FF;
+          color: #0A2540;
           transition: color 0.15s ease;
           line-height: 1.2;
         }
         .dropdown-card-item:hover .dropdown-card-title {
-          color: #7FCDFF;
+          color: #7C6DFA;
         }
         .dropdown-card-desc {
           font-size: 12px;
-          color: #2D5986;
+          color: #64748B;
           margin-top: 2px;
           line-height: 1.3;
         }
         .featured-learn-more-btn:hover {
-          background: rgba(127,205,255,0.15) !important;
+          background: rgba(124,109,250,0.18) !important;
         }
 
         .prod-text-link {
@@ -807,7 +805,7 @@ export default function Navbar() {
           align-items: center;
           font-size: 17px;
           font-weight: 400;
-          color: #6B9AB8;
+          color: #475569;
           text-decoration: none;
           padding: 11px 10px;
           border-radius: 8px;
@@ -817,27 +815,27 @@ export default function Navbar() {
           letter-spacing: -0.02em;
         }
         .prod-text-link:hover {
-          color: #DFF7FF;
-          background: rgba(127,205,255,0.06);
+          color: #0A2540;
+          background: #F1F5F9;
         }
         .prod-all-features-link:hover {
-          color: #7FCDFF !important;
+          color: #0A2540 !important;
         }
 
         .plain-integration-link {
           transition: color 0.15s ease;
         }
         .plain-integration-link:hover {
-          color: #7FCDFF !important;
+          color: #0A2540 !important;
         }
         .login-link:hover {
-          color: #7FCDFF !important;
+          color: #0A2540 !important;
         }
         .plain-nav-link:hover {
-          color: #DFF7FF !important;
+          color: #0A2540 !important;
         }
         .nav-link-item:hover {
-          color: #DFF7FF !important;
+          color: #0A2540 !important;
         }
 
         .announcement-desktop-text { display: inline; }

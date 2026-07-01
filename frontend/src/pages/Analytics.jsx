@@ -53,105 +53,138 @@ export default function Analytics() {
     <div style={{ background: '#020D1A', minHeight: '100vh', overflowX: 'hidden' }}>
       
       {/* 1. Feature Hero */}
-      <section style={{ 
+            <section style={{ 
         padding: '120px 0 80px', 
-        background: 'radial-gradient(circle at 50% -20%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 70%)', 
-        textAlign: 'center' 
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#020D1A', 
+        display: 'flex',
+        alignItems: 'center',
+        textAlign: 'left' 
       }}>
-        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 2rem' }}>
-          <span style={{
-            color: '#7C6DFA',
-            fontSize: '0.85rem',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            background: 'rgba(124, 109, 250, 0.08)',
-            padding: '6px 16px',
-            borderRadius: '999px',
-            display: 'inline-block',
-            marginBottom: '20px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            ANALYTICS
-          </span>
-          <h1 style={{
-            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-            fontWeight: 900,
-            color: '#F1F5F9',
-            letterSpacing: '-0.03em',
-            marginBottom: '24px',
-            lineHeight: '1.1',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Stop guessing. Start knowing exactly what's happening on your sales floor.
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#6B9AB8',
-            maxWidth: '750px',
-            margin: '0 auto 40px',
-            lineHeight: '1.6',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Real-time dashboards for managers. Performance reports for reps. Every metric that matters for outbound sales.
-          </p>
+        {/* Background Image */}
+        <img 
+          src="/Analytics.png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
 
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '60px' }}>
-            <Link
-              to="/signup"
-              style={{
-                textDecoration: 'none',
-                background: '#7C6DFA',
-                color: 'white',
-                padding: '16px 36px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.25)',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            >
-              Start Free Trial
-            </Link>
-            <button
-              onClick={() => navigate('/pricing')}
-              style={{
-                background: 'white',
-                color: '#F1F5F9',
-                border: '1px solid #1e2537',
-                padding: '16px 36px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            >
-              See Pricing
-            </button>
-          </div>
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '24px',
-            borderTop: '1px solid #1e2537',
-            paddingTop: '40px',
-            maxWidth: '800px',
-            margin: '0 auto'
-          }} className="stats-row">
-            {[
-              { val: 'Real-time', desc: 'data' },
-              { val: 'Rep-level', desc: 'reporting' },
-              { val: 'Automated', desc: 'reports' }
-            ].map((st, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <h3 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#7C6DFA', margin: '0 0 6px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.val}</h3>
-                <p style={{ fontSize: '0.9rem', color: '#6B9AB8', margin: 0, fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.desc}</p>
-              </div>
-            ))}
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 10, width: '100%' }}>
+          <div style={{ maxWidth: '58%', textAlign: 'left' }}>
+            
+            <span style={{
+              color: '#7FCDFF',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: 'rgba(127, 205, 255, 0.08)',
+              padding: '6px 16px',
+              borderRadius: '999px',
+              display: 'inline-block',
+              marginBottom: '20px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              ANALYTICS
+            </span>
+            <h1 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: 900,
+              color: '#F1F5F9',
+              letterSpacing: '-0.03em',
+              marginBottom: '24px',
+              lineHeight: '1.1',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Stop guessing. Start knowing exactly what's happening on your sales floor.
+            </h1>
+            <p style={{
+              fontSize: '1.25rem',
+              color: '#6B9AB8',
+              margin: '0 0 40px 0',
+              lineHeight: '1.6',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Real-time dashboards for managers. Performance reports for reps. Every metric that matters for outbound sales.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start', marginBottom: '60px' }}>
+              <Link
+                to="/signup"
+                style={{
+                  textDecoration: 'none',
+                  background: 'rgb(223, 247, 255)', color: '#0A2540',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.25)',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Start Free Trial
+              </Link>
+              <button
+                onClick={() => navigate('/pricing')}
+                style={{
+                  background: 'transparent',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                See Pricing
+              </button>
+            </div>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '24px',
+              borderTop: '1px solid #1e2537',
+              paddingTop: '40px',
+              margin: '0'
+            }} className="stats-row">
+              {[
+                { val: 'Real-time', desc: 'data' },
+                { val: 'Rep-level', desc: 'reporting' },
+                { val: 'Automated', desc: 'reports' }
+              ].map((st, i) => (
+                <div key={i} style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#7FCDFF', margin: '0 0 6px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.val}</h3>
+                  <p style={{ fontSize: '0.9rem', color: '#6B9AB8', margin: 0, fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -173,17 +206,17 @@ export default function Analytics() {
             }} className="benefits-grid">
               {[
                 {
-                  icon: <Users size={24} color="#7C6DFA" />,
+                  icon: <Users size={24} color="#7FCDFF" />,
                   title: 'Live Team Dashboard',
                   desc: "See every active call on your floor right now. Who's talking, who's idle, who needs coaching."
                 },
                 {
-                  icon: <TrendingUp size={24} color="#7C6DFA" />,
+                  icon: <TrendingUp size={24} color="#7FCDFF" />,
                   title: 'Connect Rate Analysis',
                   desc: 'Know the best times to call by area code, day of week, and time of day.'
                 },
                 {
-                  icon: <BarChart2 size={24} color="#7C6DFA" />,
+                  icon: <BarChart2 size={24} color="#7FCDFF" />,
                   title: 'Rep Performance Leaderboards',
                   desc: 'Track calls, connect rate, talk time, and meetings booked per rep — daily.'
                 }
@@ -198,7 +231,7 @@ export default function Analytics() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '10px',
-                    background: 'rgba(124, 109, 250, 0.08)',
+                    background: 'rgba(127, 205, 255, 0.08)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -237,7 +270,7 @@ export default function Analytics() {
                   <div style={{
                     fontSize: '4.5rem',
                     fontWeight: 900,
-                    color: 'rgba(124, 109, 250, 0.08)',
+                    color: 'rgba(127, 205, 255, 0.08)',
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
                     lineHeight: '1',
                     marginBottom: '-20px'
@@ -272,22 +305,22 @@ export default function Analytics() {
                     Identify calling outcomes directly on the dashboards:
                   </p>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7C6DFA" /> Call volume levels</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7C6DFA" /> Connect rate percentage</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7C6DFA" /> Average talk time s</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7C6DFA" /> Outcome rate values</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7C6DFA" /> Pipeline created deals</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7FCDFF" /> Call volume levels</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7FCDFF" /> Connect rate percentage</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7FCDFF" /> Average talk time s</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7FCDFF" /> Outcome rate values</li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600 }}><CheckCircle2 size={16} color="#7FCDFF" /> Pipeline created deals</li>
                   </ul>
                 </div>
                 <div style={{
                   background: '#0F0F1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.25)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.25)',
                   borderRadius: '20px',
                   padding: '24px',
                   color: 'white',
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)'
                 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#A594F9' }}>5 Core Metrics Panel</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#7FCDFF' }}>5 Core Metrics Panel</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.75rem' }}>
                     <div style={{ background: '#020D1A', border: '1px solid #1e2537', padding: '8px', borderRadius: '4px' }}>Dials: 1,247</div>
                     <div style={{ background: '#020D1A', border: '1px solid #1e2537', padding: '8px', borderRadius: '4px' }}>Connect: 38%</div>
@@ -304,14 +337,14 @@ export default function Analytics() {
               }} className="feature-row">
                 <div style={{
                   background: '#0F0F1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.25)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.25)',
                   borderRadius: '20px',
                   padding: '24px',
                   color: 'white',
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
                   order: 0
                 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#A594F9' }}>Automated Reports Console</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#7FCDFF' }}>Automated Reports Console</h4>
                   <div style={{ background: '#020D1A', border: '1px solid #1e2537', padding: '12px', borderRadius: '8px', fontSize: '0.8rem' }}>
                     {"Email schedules: Weekly Summary PDF -> Active"}
                   </div>
@@ -359,7 +392,7 @@ export default function Analytics() {
                 }}
               >
                 <span style={{ fontSize: '1rem', fontWeight: 800, color: '#F1F5F9', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{rf.name}</span>
-                <ArrowRight size={16} color="#7C6DFA" />
+                <ArrowRight size={16} color="#7FCDFF" />
               </Link>
             ))}
           </div>
@@ -376,14 +409,14 @@ export default function Analytics() {
             <Link
               to="/signup"
               style={{
-                background: '#7C6DFA',
+                background: '#7FCDFF',
                 color: 'white',
                 padding: '16px 40px',
                 borderRadius: '10px',
                 fontWeight: 700,
                 fontSize: '1.05rem',
                 textDecoration: 'none',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.35)',
+                boxShadow: '0 8px 24px rgba(127, 205, 255, 0.35)',
                 display: 'inline-block',
                 fontFamily: "'Plus Jakarta Sans', sans-serif"
               }}

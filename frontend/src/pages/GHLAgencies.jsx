@@ -53,20 +53,46 @@ export default function GHLAgencies() {
       {/* 1. HERO SECTION */}
       <section style={{ 
         padding: '120px 0 80px', 
-        background: 'radial-gradient(circle at 50% -20%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 70%)',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#020D1A'
       }}>
-        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem' }}>
+        {/* Background Image */}
+        <img 
+          src="/Integration for GHL..png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
+
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
+
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '60px', alignItems: 'center' }} className="hero-grid-solutions">
             <div>
               <span style={{
-                color: '#A594F9',
+                color: '#7FCDFF',
                 fontSize: '0.85rem',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
-                background: 'rgba(124, 109, 250, 0.1)',
-                border: '1px solid rgba(124, 109, 250, 0.2)',
+                background: 'rgba(127, 205, 255, 0.1)',
+                border: '1px solid rgba(127, 205, 255, 0.2)',
                 padding: '6px 16px',
                 borderRadius: '999px',
                 display: 'inline-flex',
@@ -78,7 +104,7 @@ export default function GHLAgencies() {
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  background: '#7C6DFA',
+                  background: 'rgb(223, 247, 255)',
                   display: 'inline-block',
                   animation: 'pulse-dot 1.5s infinite'
                 }}></span>
@@ -108,8 +134,8 @@ export default function GHLAgencies() {
 
               {/* Special Note Card */}
               <div style={{
-                background: 'rgba(124, 109, 250, 0.08)',
-                border: '1px solid rgba(124, 109, 250, 0.2)',
+                background: 'rgba(127, 205, 255, 0.08)',
+                border: '1px solid rgba(127, 205, 255, 0.2)',
                 borderRadius: '8px',
                 padding: '12px 16px',
                 marginBottom: '32px',
@@ -120,32 +146,24 @@ export default function GHLAgencies() {
                 gap: '8px',
                 maxWidth: '560px'
               }}>
-                <span style={{ color: '#7C6DFA', fontWeight: 'bold' }}>✦</span> Voxiq is the only dialer with true native GHL integration — not a Zapier workaround.
+                <span style={{ color: '#7FCDFF', fontWeight: 'bold' }}>✦</span> Voxiq is the only dialer with true native GHL integration — not a Zapier workaround.
               </div>
-
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 <Link
                   to="/signup"
                   style={{
                     textDecoration: 'none',
-                    background: '#7C6DFA',
-                    color: 'white',
+                    background: 'rgb(223, 247, 255)', color: '#0A2540',
                     padding: '16px 36px',
                     borderRadius: '10px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '1rem',
-                    boxShadow: '0 8px 24px rgba(124, 109, 250, 0.25)',
+                    boxShadow: '0 8px 24px rgba(127, 205, 255, 0.25)',
                     transition: 'all 0.2s',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    fontFamily: "'Plus Jakarta Sans', sans-serif"
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#5B4FE8';
-                    e.currentTarget.style.boxShadow = '0 12px 28px rgba(124, 109, 250, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#7C6DFA';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 109, 250, 0.25)';
-                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
                   Start Free Trial
                 </Link>
@@ -154,24 +172,19 @@ export default function GHLAgencies() {
                   style={{
                     textDecoration: 'none',
                     background: 'transparent',
-                    color: '#94A3B8',
-                    border: '1px solid #1e2537',
+                    color: '#FFFFFF',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
                     padding: '16px 36px',
                     borderRadius: '10px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '1rem',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif"
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#2e3a4f';
-                    e.currentTarget.style.color = '#F1F5F9';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#1e2537';
-                    e.currentTarget.style.color = '#94A3B8';
-                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
                 >
-                  See How It Works
+                  Watch Demo
                 </a>
               </div>
             </div>
@@ -181,7 +194,7 @@ export default function GHLAgencies() {
               background: '#111929',
               border: '1px solid #1e2537',
               borderRadius: '16px',
-              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(124, 109, 250, 0.08)',
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(127, 205, 255, 0.08)',
               padding: '24px'
             }} className="hero-mockup-container">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #1e2537', paddingBottom: '12px' }}>
@@ -191,7 +204,7 @@ export default function GHLAgencies() {
               <div style={{ background: '#020D1A', border: '1px solid #1e2537', borderRadius: '8px', padding: '16px' }}>
                 <div style={{ fontSize: '11px', color: '#6B9AB8', textTransform: 'uppercase', marginBottom: '6px' }}>Active Workspace</div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: '#F1F5F9' }}>Agency White-Label: Active</div>
-                <div style={{ fontSize: '13px', color: '#7C6DFA', marginTop: '4px' }}>Custom Domain: dialer.myagency.com</div>
+                <div style={{ fontSize: '13px', color: '#7FCDFF', marginTop: '4px' }}>Custom Domain: dialer.myagency.com</div>
               </div>
             </div>
           </div>
@@ -285,11 +298,11 @@ export default function GHLAgencies() {
                 <div key={idx} style={{
                   background: '#111929',
                   border: '1px solid #1e2537',
-                  borderLeft: '2px solid #7C6DFA',
+                  borderLeft: '2px solid #7FCDFF',
                   borderRadius: '16px',
                   padding: '32px'
                 }}>
-                  <div style={{ color: '#7C6DFA', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ color: '#7FCDFF', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Zap size={16} />
                     <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Solution</span>
                   </div>
@@ -327,7 +340,7 @@ export default function GHLAgencies() {
                       'Appointment booking to GHL calendar'
                     ].map((item, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Check size={16} color="#7C6DFA" style={{ flexShrink: 0 }} />
+                        <Check size={16} color="#7FCDFF" style={{ flexShrink: 0 }} />
                         <span style={{ fontSize: '15px', color: '#CBD5E1' }}>{item}</span>
                       </div>
                     ))}
@@ -373,7 +386,7 @@ export default function GHLAgencies() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
                       <span style={{ color: '#6B9AB8' }}>Your Resale Price / seat</span>
-                      <span style={{ color: '#7C6DFA', fontWeight: 600 }}>$149/mo</span>
+                      <span style={{ color: '#7FCDFF', fontWeight: 600 }}>$149/mo</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', borderTop: '1px solid #1e2537', paddingTop: '8px', fontWeight: 700 }}>
                       <span style={{ color: '#6B9AB8' }}>Predictable Agency MRR</span>
@@ -397,16 +410,16 @@ export default function GHLAgencies() {
                       'Co-marketing opportunities'
                     ].map((item, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Check size={16} color="#7C6DFA" style={{ flexShrink: 0 }} />
+                        <Check size={16} color="#7FCDFF" style={{ flexShrink: 0 }} />
                         <span style={{ fontSize: '15px', color: '#CBD5E1' }}>{item}</span>
                       </div>
                     ))}
                   </div>
                   <Link to="/signup" style={{
                     display: 'inline-block',
-                    background: 'rgba(124,109,250,0.1)',
-                    border: '1px solid rgba(124,109,250,0.25)',
-                    color: '#A594F9',
+                    background: 'rgba(127, 205, 255,0.1)',
+                    border: '1px solid rgba(127, 205, 255,0.25)',
+                    color: '#7FCDFF',
                     padding: '12px 24px',
                     borderRadius: '8px',
                     textDecoration: 'none',
@@ -414,8 +427,8 @@ export default function GHLAgencies() {
                     fontSize: '14px',
                     transition: 'all 0.15s'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(124,109,250,0.2)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(124,109,250,0.1)'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(127, 205, 255,0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(127, 205, 255,0.1)'}
                   >
                     Apply for Agency Program →
                   </Link>
@@ -465,7 +478,7 @@ export default function GHLAgencies() {
                       <button 
                         onClick={() => navigate('/signup')}
                         style={{
-                          background: '#7C6DFA',
+                          background: 'rgb(223, 247, 255)',
                           border: 'none',
                           color: 'white',
                           padding: '10px 20px',
@@ -491,8 +504,8 @@ export default function GHLAgencies() {
         <section style={{ padding: '80px 0', background: '#020D1A' }}>
           <div className="container" style={{ maxWidth: '900px', margin: '0 auto', padding: '0 2rem' }}>
             <div style={{
-              background: 'rgba(124, 109, 250, 0.06)',
-              border: '1px solid rgba(124, 109, 250, 0.15)',
+              background: 'rgba(127, 205, 255, 0.06)',
+              border: '1px solid rgba(127, 205, 255, 0.15)',
               borderRadius: '16px',
               padding: '40px',
               textAlign: 'center',
@@ -503,7 +516,7 @@ export default function GHLAgencies() {
                 top: '10px',
                 left: '20px',
                 fontSize: '120px',
-                color: '#7C6DFA',
+                color: '#7FCDFF',
                 opacity: 0.15,
                 lineHeight: 1,
                 userSelect: 'none',
@@ -545,14 +558,14 @@ export default function GHLAgencies() {
 
       {/* 8. BOTTOM CTA */}
       <FadeInSection>
-        <section style={{ padding: '100px 0', background: 'radial-gradient(circle at 50% 120%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 60%)', borderTop: '1px solid #1e2537' }}>
+        <section style={{ padding: '100px 0', background: 'radial-gradient(circle at 50% 120%, rgba(127, 205, 255, 0.15) 0%, #0B0F1A 60%)', borderTop: '1px solid #1e2537' }}>
           <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', textAlign: 'center' }}>
             <div style={{
               background: '#111929',
               border: '1px solid #1e2537',
               borderRadius: '24px',
               padding: '60px 40px',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(124, 109, 250, 0.05)',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(127, 205, 255, 0.05)',
               maxWidth: '900px',
               margin: '0 auto',
               position: 'relative',
@@ -567,24 +580,23 @@ export default function GHLAgencies() {
               <Link
                 to="/signup"
                 style={{
-                  background: '#7C6DFA',
-                  color: 'white',
+                  background: 'rgb(223, 247, 255)', color: '#0A2540',
                   padding: '16px 40px',
                   borderRadius: '10px',
                   fontWeight: 600,
                   fontSize: '1rem',
                   textDecoration: 'none',
-                  boxShadow: '0 8px 24px rgba(124, 109, 250, 0.35)',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.35)',
                   display: 'inline-block',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   transition: 'all 0.2s'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#5B4FE8';
+                  e.currentTarget.style.background = '#FFFFFF';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#7C6DFA';
+                  e.currentTarget.style.background = 'rgb(223, 247, 255)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >

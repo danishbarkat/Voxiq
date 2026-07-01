@@ -163,24 +163,43 @@ export default function OutboundCalls() {
   return (
     <div style={{ background: C.midnight, minHeight: '100vh', overflowX: 'hidden', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
-      {/* ══ HERO — midnight bg ══ */}
-      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden', background: C.midnight }}>
+      {/* ══ HERO ══ */}
+      <section style={{ 
+        padding: '180px 0 80px', 
+        position: 'relative', 
+        overflow: 'hidden', 
+        background: C.midnight, 
+        display: 'flex', 
+        alignItems: 'center' 
+      }}>
 
-        {!mobile && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <Canvas camera={{ position: [0, 0, 5], fov: 50 }} style={{ background: 'transparent' }} gl={{ alpha: true }}>
-              <ambientLight intensity={.3} />
-              <pointLight position={[4, 4, 4]} intensity={1.2} color="#7FCDFF" />
-              <pointLight position={[-4, -3, -4]} intensity={.5} color="#0D3B6E" />
-              <Stars radius={60} depth={30} count={350} factor={2} fade speed={.4} />
-              <OutboundSphere />
-            </Canvas>
-          </div>
-        )}
+        {/* Background Image */}
+        <img 
+          src="/Outbound call..png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center 12%',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
 
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'radial-gradient(ellipse 65% 55% at 65% 50%, rgba(127,205,255,.07), transparent 72%)', pointerEvents: 'none' }} />
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
 
-        <div style={{ ...wrap, position: 'relative', zIndex: 10, width: '100%', paddingTop: '120px', paddingBottom: '80px' }}>
+        <div style={{ ...wrap, position: 'relative', zIndex: 10, width: '100%' }}>
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '55% 45%', gap: '48px', alignItems: 'center' }}>
 
             {/* LEFT */}
@@ -238,64 +257,75 @@ export default function OutboundCalls() {
               </motion.div>
             </motion.div>
 
-            {/* RIGHT — Dialer Mockup */}
-            {!mobile && (
-              <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{
-                  ...mockBase, width: '290px',
-                  background: 'rgba(7,24,40,.9)', border: '1px solid rgba(127,205,255,.18)',
-                  borderRadius: '22px', padding: '20px',
-                }}>
-                  {/* header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.warn, animation: 'pulse-glow 1.8s infinite', display: 'inline-block' }} />
-                    <span style={{ fontSize: '10px', color: C.breeze, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Auto Dialing...</span>
-                    <span style={{ marginLeft: 'auto', fontSize: '10px', background: 'rgba(127,205,255,.1)', border: '1px solid rgba(127,205,255,.15)', color: C.breeze, padding: '2px 8px', borderRadius: '20px' }}>14 left</span>
-                  </div>
+            {/* RIGHT — Empty right column so text stays on the left */}
+            {!mobile && <div />}
+          </div>
 
-                  {/* Contact card */}
-                  <div style={{ background: 'rgba(127,205,255,.04)', border: '1px solid rgba(127,205,255,.08)', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '10px', background: `linear-gradient(135deg,${C.breeze},${C.oceanMid})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', color: C.white, flexShrink: 0 }}>SJ</div>
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: C.breezeLight }}>Sarah Jenkins</div>
-                        <div style={{ fontSize: '10px', color: C.textMid }}>VP Sales · NovaCRM</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {['+1(555)923-4412', 'San Francisco, CA'].map((t, i) => (
-                        <span key={i} style={{ fontSize: '10px', background: 'rgba(127,205,255,.06)', border: '1px solid rgba(127,205,255,.1)', color: C.textMuted, padding: '3px 8px', borderRadius: '20px' }}>{t}</span>
-                      ))}
-                    </div>
-                  </div>
+          {/* RIGHT CARD - ABSOLUTELY POSITIONED AT BOTTOM RIGHT */}
+          {!mobile && (
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid rgba(10,37,64,0.1)',
+                borderRadius: '22px',
+                padding: '22px',
+                width: '300px',
+                boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
+                position: 'absolute',
+                bottom: '20px',
+                right: '40px',
+                zIndex: 10
+              }}
+            >
+              {/* header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', animation: 'pulse-glow 1.8s infinite', display: 'inline-block' }} />
+                <span style={{ fontSize: '10px', color: '#0D3B6E', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase' }}>Auto Dialing...</span>
+                <span style={{ marginLeft: 'auto', fontSize: '10px', background: 'rgba(13,59,110,0.08)', border: '1px solid rgba(13,59,110,0.15)', color: '#0D3B6E', padding: '2px 8px', borderRadius: '20px', fontWeight: 600 }}>14 left</span>
+              </div>
 
-                  {/* Timer */}
-                  <div style={{ background: 'rgba(2,13,26,.6)', border: '1px solid rgba(127,205,255,.08)', borderRadius: '10px', padding: '12px', textAlign: 'center', marginBottom: '12px' }}>
-                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: '28px', fontWeight: 800, color: C.liveGreen, letterSpacing: '-.03em' }}>0:42</div>
-                    <div style={{ fontSize: '10px', color: C.textMid, marginTop: '4px' }}>Connected</div>
-                  </div>
-
-                  {/* Buttons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '7px' }}>
-                    {[
-                      { l: '🔇 Mute', s: { background: 'rgba(127,205,255,.06)', border: '1px solid rgba(127,205,255,.1)', color: C.breeze } },
-                      { l: '💬 Whisper', s: { background: 'rgba(127,205,255,.06)', border: '1px solid rgba(127,205,255,.1)', color: C.breeze } },
-                      { l: '✕ End', s: { background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', color: '#EF4444' } },
-                    ].map((b, i) => (
-                      <div key={i} style={{ ...b.s, borderRadius: '8px', padding: '8px 4px', fontSize: '10px', fontWeight: 600, textAlign: 'center' }}>{b.l}</div>
-                    ))}
-                  </div>
-
-                  {/* VM drop strip */}
-                  <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(0,229,160,.06)', border: '1px solid rgba(0,229,160,.15)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: C.textMid }}>Voicemail drop ready</span>
-                    <span style={{ fontSize: '10px', color: C.liveGreen, fontWeight: 700 }}>Drop ↓</span>
+              {/* Contact card */}
+              <div style={{ background: '#F8FAFC', border: '1px solid rgba(10,37,64,0.05)', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #7FCDFF, #0D3B6E)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px', color: '#FFFFFF', flexShrink: 0 }}>SJ</div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0A2540' }}>Sarah Jenkins</div>
+                    <div style={{ fontSize: '10px', color: '#64748B' }}>VP Sales · NovaCRM</div>
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {['+1(555)923-4412', 'San Francisco, CA'].map((t, i) => (
+                    <span key={i} style={{ fontSize: '10px', background: 'rgba(13,59,110,0.06)', border: '1px solid rgba(13,59,110,0.1)', color: '#64748B', padding: '3px 8px', borderRadius: '20px' }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timer */}
+              <div style={{ background: '#F8FAFC', border: '1px solid rgba(10,37,64,0.05)', borderRadius: '10px', padding: '12px', textAlign: 'center', marginBottom: '12px' }}>
+                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: '28px', fontWeight: 800, color: '#10B981', letterSpacing: '-.03em' }}>0:42</div>
+                <div style={{ fontSize: '10px', color: '#64748B', marginTop: '4px' }}>Connected</div>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '7px' }}>
+                {[
+                  { l: '🔇 Mute', s: { background: 'rgba(13,59,110,0.06)', border: '1px solid rgba(13,59,110,0.12)', color: '#0D3B6E' } },
+                  { l: '💬 Whisper', s: { background: 'rgba(13,59,110,0.06)', border: '1px solid rgba(13,59,110,0.12)', color: '#0D3B6E' } },
+                  { l: '✕ End', s: { background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', color: '#EF4444' } },
+                ].map((b, i) => (
+                  <div key={i} style={{ ...b.s, borderRadius: '8px', padding: '8px', fontSize: '10px', fontWeight: 600, textAlign: 'center', cursor: 'pointer' }}>{b.l}</div>
+                ))}
+              </div>
+
+              {/* VM drop strip */}
+              <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', color: '#64748B' }}>Voicemail drop ready</span>
+                <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 700 }}>Drop ↓</span>
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 

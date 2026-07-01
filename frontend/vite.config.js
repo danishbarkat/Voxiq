@@ -18,5 +18,6 @@ export default defineConfig({
   },
   server: {
     hmr: true,
+    allowedHosts: true,
   },
 })

@@ -51,105 +51,138 @@ export default function ManualDialer() {
     <div style={{ background: '#020D1A', minHeight: '100vh', overflowX: 'hidden' }}>
       
       {/* 1. Feature Hero */}
-      <section style={{ 
+                  <section style={{ 
         padding: '120px 0 80px', 
-        background: 'radial-gradient(circle at 50% -20%, rgba(124, 109, 250, 0.15) 0%, #0B0F1A 70%)', 
-        textAlign: 'center' 
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#020D1A', 
+        display: 'flex',
+        alignItems: 'center',
+        textAlign: 'left' 
       }}>
-        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 2rem' }}>
-          <span style={{
-            color: '#7C6DFA',
-            fontSize: '0.85rem',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            background: 'rgba(124, 109, 250, 0.08)',
-            padding: '6px 16px',
-            borderRadius: '999px',
-            display: 'inline-block',
-            marginBottom: '20px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            MANUAL DIALER
-          </span>
-          <h1 style={{
-            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-            fontWeight: 900,
-            color: '#F1F5F9',
-            letterSpacing: '-0.03em',
-            marginBottom: '24px',
-            lineHeight: '1.1',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            Full control. One click to connect.
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#6B9AB8',
-            maxWidth: '750px',
-            margin: '0 auto 40px',
-            lineHeight: '1.6',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-          }}>
-            When your reps need to research before calling, the manual dialer gives them time to prepare — then connects instantly.
-          </p>
+        {/* Background Image */}
+        <img 
+          src="/Manual Dialer.png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
 
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '60px' }}>
-            <Link
-              to="/signup"
-              style={{
-                textDecoration: 'none',
-                background: '#7C6DFA',
-                color: 'white',
-                padding: '16px 36px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.25)',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            >
-              Start Free Trial
-            </Link>
-            <button
-              onClick={() => navigate('/pricing')}
-              style={{
-                background: 'white',
-                color: '#F1F5F9',
-                border: '1px solid #1e2537',
-                padding: '16px 36px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            >
-              See Pricing
-            </button>
-          </div>
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '24px',
-            borderTop: '1px solid #1e2537',
-            paddingTop: '40px',
-            maxWidth: '800px',
-            margin: '0 auto'
-          }} className="stats-row">
-            {[
-              { val: '1-click', desc: 'to dial' },
-              { val: 'Full', desc: 'contact preview' },
-              { val: 'CRM data', desc: 'on screen' }
-            ].map((st, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <h3 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#7C6DFA', margin: '0 0 6px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.val}</h3>
-                <p style={{ fontSize: '0.9rem', color: '#6B9AB8', margin: 0, fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.desc}</p>
-              </div>
-            ))}
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 10, width: '100%' }}>
+          <div style={{ maxWidth: '58%', textAlign: 'left' }}>
+            
+            <span style={{
+              color: '#7FCDFF',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: 'rgba(127, 205, 255, 0.08)',
+              padding: '6px 16px',
+              borderRadius: '999px',
+              display: 'inline-block',
+              marginBottom: '20px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Manual Dialer
+            </span>
+            <h1 style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontWeight: 900,
+              color: '#F1F5F9',
+              letterSpacing: '-0.03em',
+              marginBottom: '24px',
+              lineHeight: '1.1',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Speed up manual dialing. No complex setups.
+            </h1>
+            <p style={{
+              fontSize: '1.25rem',
+              color: '#6B9AB8',
+              margin: '0 0 40px 0',
+              lineHeight: '1.6',
+              fontFamily: "'Plus Jakarta Sans', sans-serif"
+            }}>
+              Perfect for outbound campaigns where reps need to preview contacts and make calls one-by-one with full control.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-start', marginBottom: '60px' }}>
+              <Link
+                to="/signup"
+                style={{
+                  textDecoration: 'none',
+                  background: 'rgb(223, 247, 255)', color: '#0A2540',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  boxShadow: '0 8px 24px rgba(127, 205, 255, 0.25)',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                Start Free Trial
+              </Link>
+              <button
+                onClick={() => navigate('/pricing')}
+                style={{
+                  background: 'transparent',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '16px 36px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                See Pricing
+              </button>
+            </div>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '24px',
+              borderTop: '1px solid #1e2537',
+              paddingTop: '40px',
+              margin: '0'
+            }} className="stats-row">
+              {[
+                { val: 'Auto-prep', desc: 'next contact' },
+                { val: '1-click', desc: 'voicemail drop' },
+                { val: 'Hotkey', desc: 'shortcuts' }
+              ].map((st, i) => (
+                <div key={i} style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#7FCDFF', margin: '0 0 6px 0', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.val}</h3>
+                  <p style={{ fontSize: '0.9rem', color: '#6B9AB8', margin: 0, fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{st.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -171,17 +204,17 @@ export default function ManualDialer() {
             }} className="benefits-grid">
               {[
                 {
-                  icon: <Info size={24} color="#7C6DFA" />,
+                  icon: <Info size={24} color="#7FCDFF" />,
                   title: 'Full Contact Context Before Dialing',
                   desc: 'See the full CRM record before you call — history, notes, deal stage, last interaction.'
                 },
                 {
-                  icon: <Users size={24} color="#7C6DFA" />,
+                  icon: <Users size={24} color="#7FCDFF" />,
                   title: 'Research Mode',
                   desc: 'Take time to review a prospect before dialing. No pressure to dial instantly.'
                 },
                 {
-                  icon: <Keyboard size={24} color="#7C6DFA" />,
+                  icon: <Keyboard size={24} color="#7FCDFF" />,
                   title: 'Hotkey Shortcuts',
                   desc: 'Keyboard shortcuts for dial, disposition, skip, and voicemail drop — maximum speed.'
                 }
@@ -196,7 +229,7 @@ export default function ManualDialer() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '10px',
-                    background: 'rgba(124, 109, 250, 0.08)',
+                    background: 'rgba(127, 205, 255, 0.08)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -235,7 +268,7 @@ export default function ManualDialer() {
                   <div style={{
                     fontSize: '4.5rem',
                     fontWeight: 900,
-                    color: 'rgba(124, 109, 250, 0.08)',
+                    color: 'rgba(127, 205, 255, 0.08)',
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
                     lineHeight: '1',
                     marginBottom: '-20px'
@@ -272,13 +305,13 @@ export default function ManualDialer() {
                 </div>
                 <div style={{
                   background: '#0F0F1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.25)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.25)',
                   borderRadius: '20px',
                   padding: '24px',
                   color: 'white',
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)'
                 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#A594F9' }}>Mode Advisor HUD</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#7FCDFF' }}>Mode Advisor HUD</h4>
                   <div style={{ background: '#020D1A', border: '1px solid #1e2537', padding: '12px', borderRadius: '8px', fontSize: '0.8rem' }}>
                     Recommended Mode: Manual Dialer (Enterprise Target segment)
                   </div>
@@ -294,14 +327,14 @@ export default function ManualDialer() {
               }} className="feature-row">
                 <div style={{
                   background: '#0F0F1A',
-                  border: '1.5px solid rgba(124, 109, 250, 0.25)',
+                  border: '1.5px solid rgba(127, 205, 255, 0.25)',
                   borderRadius: '20px',
                   padding: '24px',
                   color: 'white',
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
                   order: 0
                 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#A594F9' }}>Hotkey Map</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#7FCDFF' }}>Hotkey Map</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem' }}>
                     <div><kbd style={{ background: '#2D3748', padding: '2px 6px', borderRadius: '4px' }}>D</kbd> - Start Dialing</div>
                     <div><kbd style={{ background: '#2D3748', padding: '2px 6px', borderRadius: '4px' }}>V</kbd> - Instant VM Drop</div>
@@ -350,7 +383,7 @@ export default function ManualDialer() {
                 }}
               >
                 <span style={{ fontSize: '1rem', fontWeight: 800, color: '#F1F5F9', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{rf.name}</span>
-                <ArrowRight size={16} color="#7C6DFA" />
+                <ArrowRight size={16} color="#7FCDFF" />
               </Link>
             ))}
           </div>
@@ -367,14 +400,14 @@ export default function ManualDialer() {
             <Link
               to="/signup"
               style={{
-                background: '#7C6DFA',
+                background: '#7FCDFF',
                 color: 'white',
                 padding: '16px 40px',
                 borderRadius: '10px',
                 fontWeight: 700,
                 fontSize: '1.05rem',
                 textDecoration: 'none',
-                boxShadow: '0 8px 24px rgba(124, 109, 250, 0.35)',
+                boxShadow: '0 8px 24px rgba(127, 205, 255, 0.35)',
                 display: 'inline-block',
                 fontFamily: "'Plus Jakarta Sans', sans-serif"
               }}

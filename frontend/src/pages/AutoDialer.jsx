@@ -120,40 +120,41 @@ export default function AutoDialer() {
   return (
     <div style={{ background: C.midnight, minHeight: '100vh', overflowX: 'hidden', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
-      {/* ══ HERO — CREAM #FFFDF5 ══ */}
-      <section style={{ position: 'relative', minHeight: '92vh', display: 'flex', alignItems: 'center', overflow: 'hidden', background: '#FFFDF5' }}>
+      {/* ══ HERO — DARK THEME WITH BACKGROUND IMAGE ══ */}
+      <section style={{ position: 'relative', minHeight: '92vh', display: 'flex', alignItems: 'center', overflow: 'hidden', background: C.midnight }}>
+        {/* Background Image */}
+        <img 
+          src="/Autodialer..png" 
+          alt="Background" 
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover', objectPosition: 'center 12%', zIndex: 1,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none'
+          }}
+        />
 
-        {!mobile && ['180px', '280px', '380px'].map((s, i) => (
-          <div key={i} style={{
-            position: 'absolute', top: '50%', right: '8%',
-            width: s, height: s, borderRadius: '50%',
-            border: `1px solid rgba(10,37,64,${.1 - i * .025})`,
-            animation: `${i % 2 === 0 ? 'spin-ring' : 'counter-ring'} ${18 + i * 8}s linear infinite`,
-            pointerEvents: 'none', zIndex: 0,
-          }} />
-        ))}
+        {/* Gradient Overlay */}
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          background: 'linear-gradient(rgba(2, 13, 26, 0.4), rgba(2, 13, 26, 0.4)), radial-gradient(ellipse 70% 60% at 60% 50%, rgba(127,205,255,0.06), transparent 70%)', 
+          zIndex: 2, 
+          pointerEvents: 'none' 
+        }} />
 
-        {!mobile && (
-          <div style={{
-            position: 'absolute', top: '50%', right: 'calc(8% + 190px)',
-            transform: 'translate(50%,-50%)',
-            width: 10, height: 10, borderRadius: '50%',
-            background: C.oceanMid, boxShadow: `0 0 20px ${C.oceanMid}`,
-            zIndex: 1, pointerEvents: 'none',
-          }} />
-        )}
-
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 55% at 30% 50%, rgba(10,37,64,.04), transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-
-        <div style={{ ...wrap, position: 'relative', zIndex: 10, width: '100%', paddingTop: '120px', paddingBottom: '80px' }}>
+        <div style={{ ...wrap, position: 'relative', zIndex: 10, width: '100%', paddingTop: '180px', paddingBottom: '80px' }}>
           <div style={{ maxWidth: mobile ? '100%' : '58%' }}>
             <motion.div initial="hidden" animate="visible" variants={stagger}>
 
               <motion.div variants={fadeUp} style={{ marginBottom: '20px' }}>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  background: 'rgba(10,37,64,.06)', border: '1px solid rgba(10,37,64,.14)',
-                  borderRadius: '100px', padding: '6px 16px', color: C.oceanMid, fontSize: '12px', fontWeight: 700,
+                  background: 'rgba(127,205,255,.06)', border: '1px solid rgba(127,205,255,.16)',
+                  borderRadius: '100px', padding: '6px 16px', color: C.breeze, fontSize: '12px', fontWeight: 600,
                 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.liveGreen, boxShadow: `0 0 8px ${C.liveGreen}`, animation: 'pulse-glow 2s infinite', display: 'inline-block' }} />
                   AUTO DIALER
@@ -163,15 +164,15 @@ export default function AutoDialer() {
               <motion.h1 variants={fadeUp} style={{
                 fontFamily: "'Space Grotesk',sans-serif",
                 fontSize: 'clamp(2.6rem,5.5vw,4.5rem)', fontWeight: 700,
-                letterSpacing: '-.04em', lineHeight: 1.02, color: C.textDark, margin: '0 0 20px',
+                letterSpacing: '-.04em', lineHeight: 1.02, color: C.white, margin: '0 0 20px',
               }}>
                 Your reps talk.{' '}
-                <span style={{ background: `linear-gradient(135deg,${C.oceanMid},${C.breeze})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <span style={{ background: `linear-gradient(135deg,${C.breeze},${C.breezeLight})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   Voxiq dials.
                 </span>
               </motion.h1>
 
-              <motion.p variants={fadeUp} style={{ fontSize: '1.1rem', color: C.textMid, lineHeight: 1.78, maxWidth: '480px', margin: '0 0 32px' }}>
+              <motion.p variants={fadeUp} style={{ fontSize: '1.1rem', color: C.textMuted, lineHeight: 1.78, maxWidth: '480px', margin: '0 0 32px' }}>
                 Let Voxiq handle the dialing completely. Reps get connected the moment someone picks up — no waiting, no clicking, no dead air.
               </motion.p>
 
@@ -179,20 +180,20 @@ export default function AutoDialer() {
                 <Link to="/signup" style={{
                   textDecoration: 'none', fontWeight: 700, fontSize: '15px',
                   padding: '13px 28px', borderRadius: '12px', display: 'inline-block',
-                  background: `linear-gradient(135deg,${C.oceanMid},${C.oceanDeep})`,
-                  color: C.white, boxShadow: '0 8px 24px rgba(10,37,64,.2)',
+                  background: `linear-gradient(135deg,${C.breeze},#5BB8F5)`,
+                  color: C.midnight, boxShadow: `0 0 24px rgba(127,205,255,.28), 0 8px 24px rgba(127,205,255,.18)`,
                 }}>Start Free Trial</Link>
                 <button onClick={() => navigate('/pricing')} style={{
-                  background: 'transparent', color: C.textMid,
-                  border: '1px solid rgba(10,37,64,.2)', fontSize: '15px',
+                  background: 'transparent', color: C.textMuted,
+                  border: '1px solid rgba(127,205,255,.16)', fontSize: '15px',
                   padding: '13px 26px', borderRadius: '12px', cursor: 'pointer',
                 }}>See Pricing</button>
               </motion.div>
 
-              <motion.div variants={fadeUp} style={{ display: 'flex', gap: '0', flexWrap: 'wrap', borderTop: '1px solid rgba(10,37,64,.08)', paddingTop: '28px' }}>
+              <motion.div variants={fadeUp} style={{ display: 'flex', gap: '0', flexWrap: 'wrap', borderTop: '1px solid rgba(127,205,255,.16)', paddingTop: '28px' }}>
                 {[['300', 'calls/day per rep'], ['< 1s', 'skip unanswered'], ['AMD', 'voicemail detection']].map(([n, l], i) => (
-                  <div key={i} style={{ paddingRight: '28px', marginRight: '28px', borderRight: i < 2 ? '1px solid rgba(10,37,64,.08)' : 'none' }}>
-                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: '1.5rem', fontWeight: 800, color: C.oceanMid }}>{n}</div>
+                  <div key={i} style={{ paddingRight: '28px', marginRight: '28px', borderRight: i < 2 ? '1px solid rgba(127,205,255,.16)' : 'none' }}>
+                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: '1.5rem', fontWeight: 800, color: C.breeze }}>{n}</div>
                     <div style={{ fontSize: '11px', color: C.textMuted, marginTop: '3px' }}>{l}</div>
                   </div>
                 ))}
